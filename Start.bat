@@ -8,7 +8,7 @@ set bitcoinaddress=1BLXARB3GbKyEg8NTY56me5VXFsX2cixFB
 set miningpoolhubuser=grantemsley
 set workername=multipoolminer
 
-set "command=& .\multipoolminer.ps1 -wallet %bitcoinaddress% -username %miningpoolhubuser% -workername %workername% -region europe -currency btc,usd,eur -type amd,nvidia,cpu -poolname miningpoolhub,miningpoolhubcoins,zpool,nicehash -algorithm cryptonight,decred,decrednicehash,ethash,ethash2gb,equihash,groestl,lbry,lyra2z,neoscrypt,pascal,sia,siaclaymore,sianicehash,sib -donate 24 -watchdog"
+set "command=& .\multipoolminer.ps1 -wallet %bitcoinaddress% -username %miningpoolhubuser% -workername %workername% -region US -currency btc -type amd,nvidia,cpu -poolname miningpoolhub,miningpoolhubcoins,zpool -donate 24 -watchdog -verbose"
 powershell -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
 
 pause
