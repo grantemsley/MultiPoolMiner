@@ -44,13 +44,7 @@ if($Verbose) {
 
 Set-Location (Split-Path $MyInvocation.MyCommand.Path)
 
-Write-Verbose 'Unblocking files...'
-if (Get-Command "Unblock-File" -ErrorAction SilentlyContinue) {Get-ChildItem . -Recurse | Unblock-File}
 
-Write-Verbose 'Adding exclusions to Windows Defender...'
-if ((Get-Command "Get-MpPreference" -ErrorAction SilentlyContinue) -and (Get-MpComputerStatus -ErrorAction SilentlyContinue) -and (Get-MpPreference).ExclusionPath -notcontains (Convert-Path .)) {
-    Start-Process (@{desktop = "powershell"; core = "pwsh"}.$PSEdition) "-Command Import-Module '$env:Windir\System32\WindowsPowerShell\v1.0\Modules\Defender\Defender.psd1'; Add-MpPreference -ExclusionPath '$(Convert-Path .)'" -Verb runAs
-}
 
 if ($Proxy -eq "") {$PSDefaultParameterValues.Remove("*:Proxy")}
 else {$PSDefaultParameterValues["*:Proxy"] = $Proxy}
@@ -165,16 +159,12 @@ while ($true) {
   # Show information about available pools
   Write-Verbose "Pools disabled by algorithm selection:"
   # Get the full list of pools, and of the ones that are supported by the selected sites, show the disabled algorithms. Group them by name and algorithm to remove duplicates
-  $NewPools | Where-Object {$Poolname -contains $_.Name} | Where-Object {$Algorithm -notcontains $_.Algorithm} | Group-Object Name,Algorithm | %{$_.Group | Select -First 1} | ft Name, Algorithm, Info, Host
-   
-  Write-Verbose "Most profitable of available pools:"
-  $poollist = @();
-  $pools.PsObject.Properties | Foreach-Object {$poollist += $_.Value }
-  $poollist | ft Name, Algorithm, Info, Host
-    
+  $NewPools | Where-Object {$Poolname -contains $_.Name} | Where-Object {$Algorithm -notcontains $_.Algorithm -and $Algorithm.Count -ne 0} | Group-Object Name,Algorithm | %{$_.Group | Select -First 1} | ft Name, Algorithm, Info, Host
 
   #Load information about the miners
   #Messy...?
+  Write-Verbose "Getting miner information..."
+
   $AllMiners = if (Test-Path "Miners") {
     Get-ChildItemContent "Miners" -Parameters @{Pools = $Pools; Stats = $Stats} | ForEach-Object {$_.Content | Add-Member Name $_.Name -PassThru} | 
     Where-Object {$Type.Count -eq 0 -or (Compare-Object $Type $_.Type -IncludeEqual -ExcludeDifferent | Measure-Object).Count -gt 0} | 
@@ -256,13 +246,12 @@ while ($true) {
     if (-not $Miner.API) {$Miner | Add-Member API "Miner" -Force}
   }
   $Miners = $AllMiners | Where-Object {Test-Path $_.Path}
-  if (Get-Command "Get-NetFirewallRule" -ErrorAction SilentlyContinue) {
-    if ($MinerFirewalls -eq $null) {$MinerFirewalls = Get-NetFirewallRule | Where-Object DisplayName -EQ "MultiPoolMiner" | Get-NetFirewallApplicationFilter | Select-Object -ExpandProperty Program}
-    if (@($AllMiners | Select-Object -ExpandProperty Path -Unique) | Compare-Object @($MinerFirewalls) | Where-Object SideIndicator -EQ "=>") {
-      Start-Process (@{desktop = "powershell"; core = "pwsh"}.$PSEdition) ("-Command Import-Module '$env:Windir\System32\WindowsPowerShell\v1.0\Modules\NetSecurity\NetSecurity.psd1'; ('$(@($AllMiners | Select-Object -ExpandProperty Path -Unique) | Compare-Object @($MinerFirewalls) | Where-Object SideIndicator -EQ '=>' | Select-Object -ExpandProperty InputObject | ConvertTo-Json -Compress)' | ConvertFrom-Json) | ForEach {New-NetFirewallRule -DisplayName 'MultiPoolMiner' -Program `$_}" -replace '"', '\"') -Verb runAs
-      $MinerFirewalls = $null
-    }
+
+  if(($AllMiners | Where-Object {!(Test-Path $_.Path)}).Count -gt 0) {
+    Write-Warning "Some miners disabled because not installed (run GetMiners.ps1 to install):"
+    $AllMiners | Where-Object {!(Test-Path $_.Path)} | Sort Path -Unique | ft Path, URI
   }
+
 
   #Apply watchdog to miners
   $Miners = $Miners | Where-Object {
@@ -477,7 +466,7 @@ while ($true) {
   }
 
   #Display mining information
-  Clear-Host
+  #Clear-Host
   $Miners | Where-Object {$_.Profit -ge 1E-5 -or $_.Profit -eq $null} | Sort-Object -Descending Type, Profit | Format-Table -GroupBy Type (
     @{Label = "Miner"; Expression = {$_.Name}}, 
     @{Label = "Algorithm"; Expression = {$_.HashRates.PSObject.Properties.Name}}, 
