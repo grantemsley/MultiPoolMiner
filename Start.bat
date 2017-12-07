@@ -4,7 +4,7 @@ setx GPU_USE_SYNC_OBJECTS 1
 setx GPU_MAX_ALLOC_PERCENT 100
 setx GPU_SINGLE_ALLOC_PERCENT 100
 
-set bitcoinaddress=1Q24z7gHPDbedkaWDTFqhMF8g7iHMehsCb
+set bitcoinaddress=1BLXARB3GbKyEg8NTY56me5VXFsX2cixFB
 set miningpoolhubuser=grantemsley
 set workername=multipoolminer
 
