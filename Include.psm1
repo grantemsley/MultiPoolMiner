@@ -1,9 +1,29 @@
-﻿Import-Module "$env:Windir\System32\WindowsPowerShell\v1.0\Modules\NetSecurity\NetSecurity.psd1" -ErrorAction Ignore
-Import-Module "$env:Windir\System32\WindowsPowerShell\v1.0\Modules\Defender\Defender.psd1" -ErrorAction Ignore
-
-Set-Location (Split-Path $MyInvocation.MyCommand.Path)
+﻿Set-Location (Split-Path $MyInvocation.MyCommand.Path)
 
 Add-Type -Path .\OpenCL\*.cs
+
+function Get-Balances {
+    [CmdletBinding()]
+    param(
+        [String]$Wallet,
+        [String]$API_Key, # for miningpoolhub
+        $Rates
+    )
+    
+    $balances = Get-ChildItemContent Balances -Parameters @{Wallet = $Wallet; API_Key = $API_Key}
+    
+    # Add the local currency rates if available
+    if($Rates) {
+        $balances | Where-Object {$_.Content.currency -eq 'BTC'} | Foreach-Object {
+            ForEach($Rate in ($Rates.PSObject.Properties)) {
+                $_ | Add-Member "Total_$($Rate.Name)" ([Double]$Rate.Value * $_.Content.total)
+            }
+        }
+    }
+    
+    $balances
+}
+
 
 function Set-Stat {
     [CmdletBinding()]
