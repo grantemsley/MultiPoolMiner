@@ -75,6 +75,9 @@ $ActiveMiners = @()
 
 $Rates = [PSCustomObject]@{BTC = [Double]1}
 
+# Make sure the cache directory exists
+if (-not (Test-Path "Cache")) {New-Item "Cache" -ItemType "directory" | Out-Null}
+
 #Start the log
 Start-Transcript ".\Logs\$(Get-Date -Format "yyyy-MM-dd_HH-mm-ss").txt"
 #Set donation parameters
@@ -486,6 +489,15 @@ while ($true) {
         @{Label = "Command"; Expression = {"$($_.Path.TrimStart((Convert-Path ".\"))) $($_.Arguments)"}}
     ) | Out-Host
 
+
+    # Print Balances
+    $Balances = Get-Balances -Wallet $Wallet -API_Key $API_Key -Rates $Rates
+    $Balances | ft *
+    $Rates.PsObject.Properties.Name | Foreach-Object {
+        Write-Host -ForegroundColor Green "Total $_ :" ($Balances | Measure-Object -sum "Total_$_").sum
+    }
+
+
     #Display watchdog timers
     $WatchdogTimers | Where-Object Kicked -GT $Timer.AddSeconds( - $WatchdogReset) | Format-Table -Wrap (
         @{Label = "Miner"; Expression = {$_.MinerName}}, 
@@ -518,9 +530,6 @@ while ($true) {
 
         $MinerComparisons | Out-Host
     }
-
-    # Print Balances
-    $Balances = Get-PoolBalances -Wallet $Wallet -API_Key $API_Key
 
 
     #Reduce Memory

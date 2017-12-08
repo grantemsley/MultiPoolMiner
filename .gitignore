@@ -2,6 +2,7 @@ bin/
 stats/
 logs/
 wrapper/
+cache/
 *.zip
 *.7z
 *.rar
