@@ -133,8 +133,12 @@ while ($true) {
     Write-Verbose "Loading pool information..."
     $NewPools = @()
     if (Test-Path "Pools") {
+        # Get all the pool info (algorithm, profitability, host, etc)
         $NewPools = Get-ChildItemContent "Pools" -Parameters @{Wallet = $Wallet; UserName = $UserName; WorkerName = $WorkerName; StatSpan = $StatSpan} | ForEach-Object {$_.Content | Add-Member Name $_.Name -PassThru}
     }
+
+    # Find any pools that were already in $AllPools (from a previous loop) but not in $NewPools. Add them back into the list.  Their API likely didn't return in time, but we don't want to cut them off just yet since mining is likely still working.
+    # Then filter out any pools that are for algorithms we aren't using.
     $AllPools = @($NewPools) + @(Compare-Object @($NewPools | Select-Object -ExpandProperty Name -Unique) @($AllPools | Select-Object -ExpandProperty Name -Unique) | Where-Object SideIndicator -EQ "=>" | Select-Object -ExpandProperty InputObject | ForEach-Object {$AllPools | Where-Object Name -EQ $_}) | 
     Where-Object {$Algorithm.Count -eq 0 -or (Compare-Object $Algorithm $_.Algorithm -IncludeEqual -ExcludeDifferent | Measure-Object).Count -gt 0}
 
@@ -152,7 +156,10 @@ while ($true) {
         continue
     }
     $Pools = [PSCustomObject]@{}
+    # Set $Pools to have the best pool for each algorithm, sorting by pool preference, best price, region, and ssl options then picking the first one.
+    Write-Verbose "Selecting best pool for each algorithm..."
     $AllPools.Algorithm | ForEach-Object {$_.ToLower()} | Select-Object -Unique | ForEach-Object {$Pools | Add-Member $_ ($AllPools | Sort-Object -Descending {$PoolName.Count -eq 0 -or (Compare-Object $PoolName $_.Name -IncludeEqual -ExcludeDifferent | Measure-Object).Count -gt 0}, StablePrice, {$_.Region -EQ $Region}, {$_.SSL -EQ $SSL} | Where-Object Algorithm -EQ $_ | Select-Object -First 1)}
+    #Set Price_Bias based on either Price, or StablePrice if the prices are out of sync.
     if (($Pools | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {$Pools.$_} | Measure-Object Updated -Minimum -Maximum | ForEach-Object {$_.Maximum - $_.Minimum} | Select-Object -ExpandProperty TotalSeconds) -gt $Interval * $Strikes) {
         Write-Warning "Pool prices are out of sync. "
         $Pools | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {$Pools.$_ | Add-Member Price_Bias ($Pools.$_.StablePrice * (1 - ($Pools.$_.MarginOfError * [Math]::Pow($DecayBase, $DecayExponent)))) -Force}
@@ -161,21 +168,19 @@ while ($true) {
         $Pools | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {$Pools.$_ | Add-Member Price_Bias ($Pools.$_.Price * (1 - ($Pools.$_.MarginOfError * [Math]::Pow($DecayBase, $DecayExponent)))) -Force}
     }
     
-    # Show information about available pools
-    Write-Verbose "Pools disabled by algorithm selection:"
-    # Get the full list of pools, and of the ones that are supported by the selected sites, show the disabled algorithms. Group them by name and algorithm to remove duplicates
-    $NewPools | Where-Object {$Poolname -contains $_.Name} | Where-Object {$Algorithm -notcontains $_.Algorithm -and $Algorithm.Count -ne 0} | Group-Object Name,Algorithm | %{$_.Group | Select -First 1} | ft Name, Algorithm, Info, Host
-
     #Load information about the miners
-    #Messy...?
     Write-Verbose "Getting miner information..."
 
+    # Get all the miners, get just the .Content property and add the name, select only the ones that match our $Type (CPU, AMD, NVIDIA) or all of them if type is unset,
+    # select only the ones that have a HashRate matching our algorithms, and that only include algorithms we have pools for
+    # select only the miners that match $MinerName, if specified
     $AllMiners = if (Test-Path "Miners") {
         Get-ChildItemContent "Miners" -Parameters @{Pools = $Pools; Stats = $Stats} | ForEach-Object {$_.Content | Add-Member Name $_.Name -PassThru} | 
         Where-Object {$Type.Count -eq 0 -or (Compare-Object $Type $_.Type -IncludeEqual -ExcludeDifferent | Measure-Object).Count -gt 0} | 
         Where-Object {($Algorithm.Count -eq 0 -or (Compare-Object $Algorithm $_.HashRates.PSObject.Properties.Name | Where-Object SideIndicator -EQ "=>" | Measure-Object).Count -eq 0) -and ((Compare-Object $Pools.PSObject.Properties.Name $_.HashRates.PSObject.Properties.Name | Where-Object SideIndicator -EQ "=>" | Measure-Object).Count -eq 0)} | 
         Where-Object {$MinerName.Count -eq 0 -or (Compare-Object $MinerName $_.Name -IncludeEqual -ExcludeDifferent | Measure-Object).Count -gt 0}
     }
+    Write-Verbose "Calculating profit for each miner..."
     $AllMiners | ForEach-Object {
         $Miner = $_
 
@@ -191,6 +196,7 @@ while ($true) {
         $Miner_Indexes = $Miner.Index | Select-Object -Unique
         $Miner_Devices = $Miner.Device | Select-Object -Unique
 
+        # Calculate the profit for each algorithm this miner does
         $Miner.HashRates.PSObject.Properties.Name | ForEach-Object { #temp fix, must use 'PSObject.Properties' to preserve order
             $Miner_HashRates | Add-Member $_ ([Double]$Miner.HashRates.$_)
             $Miner_Pools | Add-Member $_ ([PSCustomObject]$Pools.$_)
@@ -200,16 +206,19 @@ while ($true) {
             $Miner_Profits_Bias | Add-Member $_ ([Double]$Miner.HashRates.$_ * $Pools.$_.Price_Bias)
         }
 
+        # Calculate the overall profit for the miner
         $Miner_Profit = [Double]($Miner_Profits.PSObject.Properties.Value | Measure-Object -Sum).Sum
         $Miner_Profit_Comparison = [Double]($Miner_Profits_Comparison.PSObject.Properties.Value | Measure-Object -Sum).Sum
         $Miner_Profit_Bias = [Double]($Miner_Profits_Bias.PSObject.Properties.Value | Measure-Object -Sum).Sum
 
+        # Calculate margin of error
         $Miner.HashRates | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name | ForEach-Object {
             $Miner_Profits_MarginOfError | Add-Member $_ ([Double]$Pools.$_.MarginOfError * (& {if ($Miner_Profit) {([Double]$Miner.HashRates.$_ * $Pools.$_.StablePrice) / $Miner_Profit}else {1}}))
         }
 
         $Miner_Profit_MarginOfError = [Double]($Miner_Profits_MarginOfError.PSObject.Properties.Value | Measure-Object -Sum).Sum
 
+        # If any of the algorithms don't have a hashrate set, set all the profit calculations to $null
         $Miner.HashRates | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name | ForEach-Object {
             if (-not [String]$Miner.HashRates.$_) {
                 $Miner_HashRates.$_ = $null
@@ -250,6 +259,7 @@ while ($true) {
 
         if (-not $Miner.API) {$Miner | Add-Member API "Miner" -Force}
     }
+    # Remove any miners where the file is missing.
     $Miners = $AllMiners | Where-Object {Test-Path $_.Path}
 
     if(($AllMiners | Where-Object {!(Test-Path $_.Path)}).Count -gt 0) {
@@ -406,7 +416,7 @@ while ($true) {
     $BestMiners_Combo_Comparison = $BestMiners_Combos_Comparison | Sort-Object -Descending {($_.Combination | Where-Object Profit -EQ $null | Measure-Object).Count}, {($_.Combination | Measure-Object Profit_Comparison -Sum).Sum}, {($_.Combination | Where-Object Profit -NE 0 | Measure-Object).Count} | Select-Object -First 1 | Select-Object -ExpandProperty Combination
     $BestMiners_Combo | ForEach-Object {$_.Best = $true}
     $BestMiners_Combo_Comparison | ForEach-Object {$_.Best_Comparison = $true}
-
+    
     #Stop or start miners in the active list depending on if they are the most profitable
     $ActiveMiners | Where-Object Activated -GT 0 | Where-Object Best -EQ $false | ForEach-Object {
         $Miner = $_
