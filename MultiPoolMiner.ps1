@@ -1,9 +1,10 @@
 ﻿#using module .\Include.psm1
 Set-Location (Split-Path $MyInvocation.MyCommand.Path)
+
 Import-Module .\Include.psm1
 
 
-$VerbosePreference = 'continue'
+$VerbosePreference = 'silentlycontinue'
 
 # Relaunch with administrator priviledges
 $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')
@@ -12,8 +13,10 @@ if($IsAdmin) {
     Write-Verbose 'Already running as administrator'
 } else {
     if ($MyInvocation.InvocationName -ne '') {
+        $FullPath = Resolve-Path $MyInvocation.InvocationName
         try {
-            $arg = "-file `"$($MyInvocation.InvocationName)`"" 
+            $arg = "-file `"$($FullPath)`"" 
+            $arg
             Start-Process "$psHome\powershell.exe" -Verb Runas -ArgumentList $arg -ErrorAction 'stop'
         } catch {
             Write-Warning "Unable to restart as administrator"
