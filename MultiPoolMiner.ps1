@@ -1,15 +1,34 @@
-﻿using module .\Include.psm1
+﻿#using module .\Include.psm1
+Set-Location (Split-Path $MyInvocation.MyCommand.Path)
+Import-Module .\Include.psm1
+
 
 $VerbosePreference = 'continue'
+
+# Relaunch with administrator priviledges
+$IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')
+
+if($IsAdmin) {
+    Write-Verbose 'Already running as administrator'
+} else {
+    if ($MyInvocation.InvocationName -ne '') {
+        try {
+            $arg = "-file `"$($MyInvocation.InvocationName)`"" 
+            Start-Process "$psHome\powershell.exe" -Verb Runas -ArgumentList $arg -ErrorAction 'stop'
+        } catch {
+            Write-Warning "Unable to restart as administrator"
+        }
+        exit
+    } else {
+        Write-Warning "Error, unable to determine script path"
+    }
+}
 
 If(!(Test-Path -Path '.\Config.ps1')) {
     Throw "Configuration missing!  You must copy Config.sample.ps1 as Config.ps1 and edit the settings."  
 } else {
     . .\Config.ps1
 }
-
-Set-Location (Split-Path $MyInvocation.MyCommand.Path)
-
 
 if ($Proxy -eq "") {$PSDefaultParameterValues.Remove("*:Proxy")}
 else {$PSDefaultParameterValues["*:Proxy"] = $Proxy}
