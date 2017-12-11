@@ -28,6 +28,7 @@ $Request.getuserallbalances.data | Foreach-Object {
     switch -wildcard ($_.coin) {
         "bitcoin" {$coinname = 'BTC'}
         "myriadcoin-*" {$coinname = 'myriad'}
+        "bitcoin-gold" {$coinname = 'Bitcoin Gold'}
     }
 
     [PSCustomObject]@{
