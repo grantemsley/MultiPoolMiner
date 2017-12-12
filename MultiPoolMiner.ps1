@@ -6,27 +6,6 @@ Import-Module .\Include.psm1
 
 $VerbosePreference = 'silentlycontinue'
 
-# Relaunch with administrator priviledges
-$IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')
-
-if($IsAdmin) {
-    Write-Verbose 'Already running as administrator'
-} else {
-    if ($MyInvocation.InvocationName -ne '') {
-        $FullPath = Resolve-Path $MyInvocation.InvocationName
-        try {
-            $arg = "-file `"$($FullPath)`"" 
-            $arg
-            Start-Process "$psHome\powershell.exe" -Verb Runas -ArgumentList $arg -ErrorAction 'stop'
-        } catch {
-            Write-Warning "Unable to restart as administrator"
-        }
-        exit
-    } else {
-        Write-Warning "Error, unable to determine script path"
-    }
-}
-
 If(!(Test-Path -Path '.\Config.ps1')) {
     Throw "Configuration missing!  You must copy Config.sample.ps1 as Config.ps1 and edit the settings."  
 } else {
