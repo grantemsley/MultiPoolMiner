@@ -21,9 +21,10 @@ if (($Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measur
     return
 }
 
+
 [PSCustomObject]@{
   "currency" = $Request.currency
   "balance" = $Request.balance
   "pending" = $Request.unsold
-  "total" = $Request.unpaid
+  "total" = $Request.total_unpaid
 }
