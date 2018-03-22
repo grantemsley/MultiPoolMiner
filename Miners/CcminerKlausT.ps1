@@ -164,27 +164,28 @@ $Devices.$Type | ForEach-Object {
         $Algorithm_Norm = Get-Algorithm $_
 
         if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
-            $MinerName = "$Name-$($DeviceTypeModel.Name_Norm)"
+            $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
             $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for algorithm
         }
         else {
-            $MinerName = $Name
+            $Miner_Name = $Name
             $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select -Index 0 # additional command line options for algorithm
         }
 
         $MinerPort = $Config.Miners.$Name.Port + $Devices.$Type.IndexOf($DeviceTypeModel) # make port unique
 
         [PSCustomObject]@{
-            Name      = $MinerName
-            Type      = $Type
-            Path      = $Path
-            Arguments = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($MinerPort) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
-            HashRates = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($MinerName)_$($Algorithm_Norm)_HashRate".Week}
-            API       = $Api
-            Port      = $MinerPort
-            URI       = $Uri
-            Fees      = @($null)
-            Index     = $DeviceIDs -join ';'
+            Name             = $Miner_Name
+            Type             = $Type
+            Path             = $Path
+            Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($MinerPort) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
+            HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
+            API              = $Api
+            Port             = $MinerPort
+            URI              = $Uri
+            Fees             = @($null)
+            Index            = $DeviceIDs -join ';'
+            ShowMinerWindows = $Config.ShowMinerWindows
         }
     }
 }

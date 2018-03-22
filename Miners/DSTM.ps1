@@ -165,15 +165,15 @@ $Devices.$Type | ForEach-Object {
         $Algorithm_Norm = Get-Algorithm $_
 
         if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
-            $MinerName = "$Name-$($DeviceTypeModel.Name_Norm)"
+            $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
             $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for algorithm
         }
         else {
-            $MinerName = $Name
+            $Miner_Name = $Name
             $Commands = $Config.Miners.$Name.Commands.$_ # additional command line options for algorithm
         }    
 
-        $HashRate = $Stats."$($MinerName)_$($Algorithm_Norm)_HashRate".Week
+        $HashRate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
 
         if ($Config.IgnoreMinerFees -or $Config.Miners.$Name.$MinerFeeInPercent -eq 0) {
             $Fees = @($null)
@@ -186,7 +186,7 @@ $Devices.$Type | ForEach-Object {
         $MinerPort = $Config.Miners.$Name.Port + $Devices.$Type.IndexOf($DeviceTypeModel) # make port unique
         
         [PSCustomObject]@{
-            Name             = $MinerName
+            Name             = $Miner_Name
             Type             = $Type
             Path             = $Path
             Arguments        = ("--server $(if ($Pools.$Algorithm_Norm.SSL) {'ssl://'})$($Pools.Equihash.Host) --port $($Pools.$Algorithm_Norm.Port) --user $($Pools.$Algorithm_Norm.User) --pass $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) --telemetry=0.0.0.0:$($MinerPort) --dev $($DeviceIDs -join ' ')" -replace "\s+", " ").trim()
@@ -198,6 +198,7 @@ $Devices.$Type | ForEach-Object {
             Index            = $DeviceIDs -join ';'
             PrerequisitePath = $PrerequisitePath
             PrerequisiteURI  = $PrerequisiteURI               
+            ShowMinerWindows = $Config.ShowMinerWindows
         }
     }
 }
