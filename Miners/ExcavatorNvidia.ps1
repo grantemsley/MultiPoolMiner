@@ -170,7 +170,9 @@ if (-not (Test-Path (Split-Path $Path))) {New-Item (Split-Path $Path) -ItemType 
 function Build-Miner {
     param(
         [Parameter(Mandatory = $true)]
-        [String]$Algorithm_Norm = ""
+        [String]$Algorithm_Norm = "",
+        [Parameter(Mandatory = $true)]
+        [Array]$DeviceIDs
     )
 
     $JsonFile = "$($MinerName)_$($Pools.$Algorithm_Norm.Name)_$($Algorithm_Norm)_$($Pools.$Algorithm_Norm.User)_$($Type).json"
@@ -229,10 +231,6 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
         
         $Threads = $_.Split(":") | Select -Index 1
 
-        if ($Algorithm_Norm -eq "Ethash2gb") {
-            $DeviceIDs = $DeviceIDs2gb
-        }
-
         if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
             $MinerName = "$Name$($Threads)-$($DeviceTypeModel.Name_Norm)"
             $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for main algorithm
@@ -246,11 +244,11 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
 
         try {
             if ($Algorithm_Norm -ne "Decred" -and $Algorithm_Norm -ne "Sia") {
-                Build-Miner -Algorithm_Norm $Algorithm_Norm
-                if ($Algorithm -eq "daggerhashimoto") {Build-Miner -Algorithm_Norm "$($Algorithm_Norm)2gb"}
+                Build-Miner -Algorithm_Norm $Algorithm_Norm  -DeviceIDs $DeviceIDs
+                if ($Algorithm -eq "daggerhashimoto") {Build-Miner -Algorithm_Norm "$($Algorithm_Norm)2gb" -DeviceIDs $DeviceIDs2gb}
             }
             else {
-                Build-Miner -Algorithm_Norm "$($Algorithm_Norm)NiceHash"
+                Build-Miner -Algorithm_Norm "$($Algorithm_Norm)NiceHash" -DeviceIDs $DeviceIDs
             }
         }
         catch {
