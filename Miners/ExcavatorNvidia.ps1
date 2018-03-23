@@ -61,6 +61,10 @@ $DefaultMinerConfig = [PSCustomObject]@{
         "pascal:2"          = @() #Pascal
     }
     "CommonCommands" = ""
+    "DoNotMine" = [PSCustomObject]@{ 
+        # Syntax: "Algorithm" = "Poolname"
+        #"pascal:2" = @("Zpool", "ZpoolCoins")
+    }
 }
 
 if (-not $Config.Miners.$Name.MinerFileVersion) {
@@ -163,6 +167,13 @@ if ($Info) {
                 Info        = "Optional miner parameter that gets appended to the resulting miner command line (for all algorithms). "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space"
             }
+            [PSCustomObject]@{
+                Name        = "DoNotMine"
+                Controltype = "PSCustomObject"
+                Default     = $DefaultMinerConfig.DoNotMine
+                Info        = "Optional filter parameter per algorithm and pool. MPM will not use the miner for this algorithm at the listed pool.`nSyntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")'. "
+                Tooltip     = "Not all pools are compatible with all miners and algorithms"
+            }
         )
     }
 }
@@ -175,7 +186,9 @@ function Build-Miner {
         [Parameter(Mandatory = $true)]
         [String]$Algorithm_Norm = "",
         [Parameter(Mandatory = $true)]
-        [Array]$DeviceIDs
+        [Array]$DeviceIDs,
+        [Parameter(Mandatory = $true)]
+        [String]$Commands
     )
 
     $JsonFile = "$($Miner_Name)_$($Pools.$Algorithm_Norm.Name)_$($Algorithm_Norm)_$($Pools.$Algorithm_Norm.User)_$($Type).json"
@@ -207,7 +220,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
     
     if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
-    $DeviceIDs = @() # array of all devices with more than 3MiB VRAM, ids will be in hex format
+    $DeviceIDs3gb = @() # array of all devices with more than 3MiB VRAM, ids will be in hex format
     $DeviceIDs2gb = @() # array of all devices, ids will be in hex format
 
     # Get DeviceIDs, filter out all disabled hw models and IDs
@@ -215,7 +228,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
         if ($Config.Miners.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm) {
             $DeviceTypeModel.DeviceIDs | Where-Object {$Config.Miners.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
                 $DeviceIDs2gb += [Convert]::ToString($_, 16) # convert id to hex
-                if ($DeviceTypeModel.GlobalMemsize -ge 3000000000) {$DeviceIDs += [Convert]::ToString($_, 16)} # convert id to hex
+                if ($DeviceTypeModel.GlobalMemsize -ge 3000000000) {$DeviceIDs3gb += [Convert]::ToString($_, 16)} # convert id to hex
             }
         }
     }
@@ -223,12 +236,12 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
         $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | ForEach-Object {
             $_.DeviceIDs | Where-Object {$Config.Miners.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
                 $DeviceIDs2gb += [Convert]::ToString($_, 16) # convert id to hex
-                if ($_.GlobalMemsize -ge 3000000000) {$DeviceIDs += [Convert]::ToString($_, 16)} # convert id to hex
+                if ($_.GlobalMemsize -ge 3000000000) {$DeviceIDs3gb += [Convert]::ToString($_, 16)} # convert id to hex
             }
         }
     }
 
-    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$_ -match ".+:[1-9]"} | ForEach-Object {
+    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$_ -match ".+:[1-9]" -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm ($_.Split(";") | Select -Index 0)).Name} | ForEach-Object {
 
         $Algorithm = $_.Split(":") | Select -Index 0
         $Algorithm_Norm = Get-Algorithm $Algorithm
@@ -237,26 +250,26 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
 
         if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
             $Miner_Name = "$Name$($Threads)-$($DeviceTypeModel.Name_Norm)"
-            $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for main algorithm
+            $Commands3gb = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs3gb # additional command line options for main algorithm
+            $Commands2gb = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs2gb # additional command line options for main algorithm
         }
         else {
             $Miner_Name = "$($Name)$($Threads)"
-            $Commands = $Config.Miners.$Name.Commands.$_ # additional command line options for main algorithm
+            $Commands2gb = $Commands3gb = $Config.Miners.$Name.Commands.$_ # additional command line options for main algorithm
         }    
 
         $MinerPort = $Config.Miners.$Name.Port + $Devices.$Type.IndexOf($DeviceTypeModel) # make port unique
 
         try {
             if ($Algorithm_Norm -ne "Decred" -and $Algorithm_Norm -ne "Sia") {
-                Build-Miner -Algorithm_Norm $Algorithm_Norm  -DeviceIDs $DeviceIDs
-                if ($Algorithm -eq "daggerhashimoto") {Build-Miner -Algorithm_Norm "$($Algorithm_Norm)2gb" -DeviceIDs $DeviceIDs2gb}
+                Build-Miner -Algorithm_Norm $Algorithm_Norm  -DeviceIDs $DeviceIDs3gb -Commands $Commands3gb
+                if ($Algorithm -eq "daggerhashimoto") {Build-Miner -Algorithm_Norm "$($Algorithm_Norm)2gb" -DeviceIDs $DeviceIDs2gb -Commands $Commands2gb}
             }
             else {
-                Build-Miner -Algorithm_Norm "$($Algorithm_Norm)NiceHash" -DeviceIDs $DeviceIDs
+                Build-Miner -Algorithm_Norm "$($Algorithm_Norm)NiceHash" -DeviceIDs $DeviceIDs3gb -Commands $Commands3gb
             }
         }
         catch {
         }
     }
 }
-Sleep 0

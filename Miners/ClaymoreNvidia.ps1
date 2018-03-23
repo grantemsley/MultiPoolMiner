@@ -73,6 +73,10 @@ $DefaultMinerConfig = [PSCustomObject]@{
         "ethash2gb;pascal:80" = ""
     }
     "CommonCommands" = " -eres 0 -logsmaxsize 1"
+    "DoNotMine" = [PSCustomObject]@{ 
+        # Syntax: "Algorithm" = "Poolname"
+        #"ethash2gb;pascal:80" = @("Zpool", "ZpoolCoins")
+    }
 }
 
 if (-not $Config.Miners.$Name.MinerFileVersion) {
@@ -199,6 +203,13 @@ if ($Info) {
                 Info        = "Optional miner parameter that gets appended to the resulting miner command line (for all algorithms). "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space"
             }
+            [PSCustomObject]@{
+                Name        = "DoNotMine"
+                Controltype = "PSCustomObject"
+                Default     = $DefaultMinerConfig.DoNotMine
+                Info        = "Optional filter parameter per algorithm and pool. MPM will not use the miner for this algorithm at the listed pool.`nSyntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")'. "
+                Tooltip     = "Not all pools are compatible with all miners and algorithms"
+            }
         )
     }
 }
@@ -229,7 +240,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
         }
     }
 
-    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {
+    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm ($_.Split(";") | Select -Index 0)).Name} |ForEach-Object {
 
         $MainAlgorithm = $_.Split(";") | Select -Index 0
         $MainAlgorithm_Norm = Get-Algorithm $MainAlgorithm
@@ -335,4 +346,3 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
         }
     }
 }
-Sleep 0

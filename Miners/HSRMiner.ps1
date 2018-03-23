@@ -38,15 +38,19 @@ $DefaultMinerConfig = [PSCustomObject]@{
         "neoscrypt" = "" #NeoScrypt
     }
     "CommonCommands" = ""
+    "DoNotMine" = [PSCustomObject]@{ 
+        # Syntax: "Algorithm" = "Poolname"
+        #"neoscrypt" = @("Zpool", "ZpoolCoins")
+    }
 }
 
 if (-not $Config.Miners.$Name.MinerFileVersion) {
     # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
     $NewConfig = Get-Content -Path 'config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
     # Apply default
-    $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force
+    $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
     # Save config to file
-    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "config.txt" -Force -ErrorAction Stop -ErrorAction Stop
+    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "config.txt" -Force -ErrorAction Stop
     # Apply config, must re-read from file to expand variables
     $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
 }
@@ -132,6 +136,13 @@ if ($Info) {
                 Info        = "Optional miner parameter that gets appended to the resulting miner command line (for all algorithms). "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space"
             }
+            [PSCustomObject]@{
+                Name        = "DoNotMine"
+                Controltype = "PSCustomObject"
+                Default     = $DefaultMinerConfig.DoNotMine
+                Info        = "Optional filter parameter per algorithm and pool. MPM will not use the miner for this algorithm at the listed pool.`nSyntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")'. "
+                Tooltip     = "Not all pools are compatible with all miners and algorithms"
+            }
         )
     }
 }
@@ -160,7 +171,7 @@ $Devices.$Type | ForEach-Object {
         }
     }
 
-    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_).Protocol -eq "stratum+tcp" <#temp fix#> -and $DeviceIDs} | ForEach-Object {
+    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_).Protocol -eq "stratum+tcp" -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name -and $DeviceIDs} | ForEach-Object {
 
         $Algorithm_Norm = Get-Algorithm $_
 
@@ -190,4 +201,3 @@ $Devices.$Type | ForEach-Object {
         }
     }
 }
-Sleep 0

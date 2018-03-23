@@ -65,6 +65,10 @@ $DefaultMinerConfig = [PSCustomObject]@{
         "x17" = "" #X17
     }
     "CommonCommands" = " --submit-stale"
+    "DoNotMine" = [PSCustomObject]@{ 
+        # Syntax: "Algorithm" = "Poolname"
+        #"x17" = @("Zpool", "ZpoolCoins")
+    }
 }
 
 if (-not $Config.Miners.$Name.MinerFileVersion) {
@@ -159,6 +163,13 @@ if ($Info) {
                 Info        = "Optional miner parameter that gets appended to the resulting miner command line (for all algorithms). "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space"
             }
+            [PSCustomObject]@{
+                Name        = "DoNotMine"
+                Controltype = "PSCustomObject"
+                Default     = $DefaultMinerConfig.DoNotMine
+                Info        = "Optional filter parameter per algorithm and pool. MPM will not use the miner for this algorithm at the listed pool.`nSyntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")'. "
+                Tooltip     = "Not all pools are compatible with all miners and algorithms"
+            }
         )
     }
 }
@@ -187,7 +198,7 @@ $Devices.$Type | ForEach-Object {
         }
     }
 
-    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_).Protocol -eq "stratum+tcp" <#temp fix#> -and $DeviceIDs} | ForEach-Object {
+    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_).Protocol -eq "stratum+tcp"  -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name -and $DeviceIDs} | ForEach-Object {
 
         $Algorithm_Norm = Get-Algorithm $_
 
@@ -217,4 +228,3 @@ $Devices.$Type | ForEach-Object {
         }
     }
 }
-Sleep 0
