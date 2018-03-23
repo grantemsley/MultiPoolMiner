@@ -7,9 +7,12 @@ param(
     [PSCustomObject]$Devices
 )
 
+# Compatibility check with old MPM builds
+if (-not $Config.Miners) {return}
+
 # Hardcoded per miner version, do not allow user to change in config
 $MinerFileVersion = "2018032200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo =  "Ccminer (x64) 8.21 by KlausT"
+$MinerBinaryInfo = "Ccminer (x64) 8.21 by KlausT"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\NVIDIA-KlausT\ccminer.exe"
 $Type = "NVIDIA"
@@ -43,7 +46,7 @@ if (-not $Config.Miners.$Name.MinerFileVersion) {
     # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
     $NewConfig = Get-Content -Path 'config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
     # Apply default
-    $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force
+    $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
     # Save config to file
     $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "config.txt" -Force -ErrorAction Stop
     # Apply config, must re-read from file to expand variables

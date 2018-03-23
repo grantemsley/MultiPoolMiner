@@ -7,9 +7,12 @@ param(
     [PSCustomObject]$Devices
 )
 
+# Compatibility check with old MPM builds
+if (-not $Config.Miners) {return}
+
 # Hardcoded per miner version, do not allow user to change in config
 $MinerFileVersion = "2018032200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo =  "HSRMINER Neoscrypt Fork by Justaminer 12.03.2018"
+$MinerBinaryInfo = "HSRMINER Neoscrypt Fork by Justaminer 12.03.2018"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\NVIDIA-Hsrminer\hsrminer_neoscrypt_fork_hp.exe"
 $Type = "NVIDIA"
@@ -43,7 +46,7 @@ if (-not $Config.Miners.$Name.MinerFileVersion) {
     # Apply default
     $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force
     # Save config to file
-    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "config.txt" -Force -ErrorAction Stop
+    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "config.txt" -Force -ErrorAction Stop -ErrorAction Stop
     # Apply config, must re-read from file to expand variables
     $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
 }
