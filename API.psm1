@@ -80,6 +80,10 @@
                     $Data = $API.Stats | ConvertTo-Json
                     Break
                 }
+                "/watchdogtimers" {
+                    $Data = $API.WatchdogTimers | ConvertTo-Json
+                    Break
+                }
                 "/stop" {
                     $API.Stop = $true
                     $Data = "Stopping"
