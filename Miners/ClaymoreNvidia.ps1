@@ -7,9 +7,12 @@ param(
     [PSCustomObject]$Devices
 )
 
+# Compatibility check with old MPM builds
+if (-not $Config.Miners) {return}
+
 # Hardcoded per miner version, do not allow user to change in config
 $MinerFileVersion = "2018032200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo =  "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.5"
+$MinerBinaryInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.5"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\Ethash-Claymore\EthDcrMiner64.exe"
 $Type = "NVIDIA"
@@ -76,7 +79,7 @@ if (-not $Config.Miners.$Name.MinerFileVersion) {
     # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
     $NewConfig = Get-Content -Path 'config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
     # Apply default
-    $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force
+    $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
     # Save config to file
     $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "config.txt" -Force -ErrorAction Stop
     # Apply config, must re-read from file to expand variables
@@ -205,7 +208,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
     
     if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
-    $DeviceIDs = @() # array of all devices with more than 3MiB VRAM, ids will be in hex format
+    $DeviceIDs3gb = @() # array of all devices with more than 3MiB VRAM, ids will be in hex format
     $DeviceIDs2gb = @() # array of all devices, ids will be in hex format
 
     # Get DeviceIDs, filter out all disabled hw models and IDs
@@ -213,7 +216,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
         if ($Config.Miners.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm) {
             $DeviceTypeModel.DeviceIDs | Where-Object {$Config.Miners.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
                 $DeviceIDs2gb += [Convert]::ToString($_, 16) # convert id to hex
-                if ($DeviceTypeModel.GlobalMemsize -ge 3000000000) {$DeviceIDs += [Convert]::ToString($_, 16)} # convert id to hex
+                if ($DeviceTypeModel.GlobalMemsize -ge 3000000000) {$DeviceIDs3gb += [Convert]::ToString($_, 16)} # convert id to hex
             }
         }
     }
@@ -221,7 +224,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
         $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | ForEach-Object {
             $_.DeviceIDs | Where-Object {$Config.Miners.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
                 $DeviceIDs2gb += [Convert]::ToString($_, 16) # convert id to hex
-                if ($_.GlobalMemsize -ge 3000000000) {$DeviceIDs += [Convert]::ToString($_, 16)} # convert id to hex
+                if ($_.GlobalMemsize -ge 3000000000) {$DeviceIDs3gb += [Convert]::ToString($_, 16)} # convert id to hex
             }
         }
     }
@@ -231,9 +234,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
         $MainAlgorithm = $_.Split(";") | Select -Index 0
         $MainAlgorithm_Norm = Get-Algorithm $MainAlgorithm
         
-        if ($MainAlgorithm_Norm -eq "Ethash2gb") {
-            $DeviceIDs = $DeviceIDs2gb
-        }
+        if ($MainAlgorithm_Norm -eq "Ethash2gb") {$DeviceIDs = $DeviceIDs2gb} else {$DeviceIDs = $DeviceIDs3gb} #
 
         if ($Pools.$MainAlgorithm_Norm -and $DeviceIDs) { # must have a valid pool to mine and available devices
 
