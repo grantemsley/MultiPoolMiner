@@ -80,9 +80,6 @@ $ExcludeAlgorithm = $ExcludeAlgorithm | ForEach-Object {Get-Algorithm $_}
 $Region = $Region | ForEach-Object {Get-Region $_}
 $Currency = $Currency | ForEach-Object {$_.ToUpper()}
 
-#Get miner hw info
-$Devices = Get-Devices
-
 $Timer = (Get-Date).ToUniversalTime()
 $StatEnd = $Timer
 $DecayStart = $Timer
@@ -113,10 +110,14 @@ $WalletDonate = @("1Q24z7gHPDbedkaWDTFqhMF8g7iHMehsCb", "1Fonyo1sgJQjEzqp1AxgbHh
 $UserNameDonate = @("aaronsace", "fonyo")[[Math]::Floor((Get-Random -Minimum 1 -Maximum 11) / 10)]
 $WorkerNameDonate = "multipoolminer"
 
+#Get miner hw info
+$Devices = Get-Devices
+
 #Initialize the API
 Import-Module .\API.psm1
 Start-APIServer
 $API.Version = $Version
+$API.Devices = $Devices #Give API access to the device information  
 
 while ($true) {
     #Load the config
@@ -222,7 +223,6 @@ while ($true) {
 
     #Give API access to the current running configuration
     $API.Config = $Config
-    $API.Devices = $Devices
 
     #Clear pool cache if the configuration has changed
     if (($ConfigBackup | ConvertTo-Json -Compress) -ne ($Config | ConvertTo-Json -Compress)) {$AllPools = $null}
@@ -635,14 +635,6 @@ while ($true) {
         }
     }
 
-    #Give API access to WatchdogTimers information
-    $API.WatchdogTimers = $WatchdogTimers
-
-    #Give API access to the active miners information
-    $API.ActiveMiners = $ActiveMiners
-    $API.RunningMiners = $ActiveMiners | Where-Object {$_.Status -eq "Running"}
-    $API.FailedMiners = $ActiveMiners | Where-Object {$_.Status -eq "Failed"}
-
     if ($Config.MinerStatusURL -and $Config.MinerStatusKey) {& .\ReportStatus.ps1 -Key $Config.MinerStatusKey -WorkerName $WorkerName -ActiveMiners $ActiveMiners -Miners $Miners -MinerStatusURL $Config.MinerStatusURL}
 
     Clear-Host
@@ -699,6 +691,13 @@ while ($true) {
 
         $MinerComparisons | Out-Host
     }
+    #Give API access to WatchdogTimers information
+    $API.WatchdogTimers = $WatchdogTimers
+
+    # Update API Data
+    $API.ActiveMiners = $ActiveMiners
+    $API.RunningMiners = $ActiveMiners | Where-Object {$_.GetStatus() -eq [MinerStatus]::Running}
+    $API.FailedMiners = $ActiveMiners | Where-Object {$_.GetStatus() -eq [MinerStatus]::Failed}
 
     #Reduce Memory
     Get-Job -State Completed | Remove-Job
