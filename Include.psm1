@@ -11,14 +11,13 @@ function Get-Devices {
     $OpenGlDevices = [OpenCl.Platform]::GetPlatformIDs() | ForEach-Object {[OpenCl.Device]::GetDeviceIDs($_, [OpenCl.DeviceType]::All)}
     $OpenGlDevices | ForEach-Object {
 
-        $Vendor = $_.Vendor
         $Name_Norm = (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
 
         if ($_.Type -eq "Cpu") {
             $Type = "CPU"
         }
         else {
-            Switch ($Vendor) {
+            Switch ($_.Vendor) {
                 "Advanced Micro Devices, Inc." {$Type = "AMD"}
                 "Intel(R) Corporation"         {$Type = "INTEL"}
                 "NVIDIA Corporation"           {$Type = "NVIDIA"}
@@ -26,20 +25,21 @@ function Get-Devices {
         }        
 
         $Device = @([PSCustomObject]$_)
-        $Device | Add-Member Name_Norm $Name_Norm
 
         if (-not $Devices.$Type) {
             $DeviceID = 0
+            $Device | Add-Member Name_Norm $Name_Norm
             $Device | Add-Member DeviceIDs @($DeviceID)
             $Devices | Add-Member $Type $Device
         }
         else {
-            if ($Devices.$Type.Name_Norm -notcontains $Name_Norm) {
+            if ($Devices.$Type.Name_Norm -inotcontains $Name_Norm) {
+                $Device | Add-Member Name_Norm $Name_Norm
                 $Device | Add-Member DeviceIDs @($DeviceID)
                 $Devices.$Type += $Device
             }
             else {
-                $Devices.$Type | Where-Object {$_.Name_Norm -eq $Name_Norm} | ForEach-Object {$_.DeviceIDs += $DeviceID}
+                $Devices.$Type.$Name_Norm.$DeviceIDs += $DeviceID
             }
         }
         $DeviceID++
@@ -64,15 +64,13 @@ function Get-CommandPerDevice {
         [Int[]]$Devices
     )
     
-    if ($Devices.count -gt 0) {
-        # Only required if more than one different card in system
+    if ($Devices.count -gt 0) { # Only required if more than one different card in system
         $Tokens = @()
 
         ($Command + " ") -split "(?= --)" -split "(?= -)" | ForEach {
             $Token = $_.Trim()
             if ($Token.length -gt 0) {
-                if ($Token -match "^-[a-zA-Z0-9]{1}[a-zA-Z0-9-\+]{0,}[\s]{1,}.*,") {
-                    # -param-name[ value1[,value2[,..]]]
+                if ($Token -match "^-[a-zA-Z0-9]{1}[a-zA-Z0-9-\+]{0,}[\s]{1,}.*,") { # -param-name[ value1[,value2[,..]]]
                     $Tokens += [PSCustomObject]@{
                         Parameter = $Token.Split(" ")[0]
                         ParamValueSeparator = " "
@@ -80,8 +78,7 @@ function Get-CommandPerDevice {
                         Values = @($Token.Split(" ")[1].Split(","))
                     }
                 }
-                elseif ($Token -match "^-[a-zA-Z0-9]{1}[a-zA-Z0-9-\+]{0,}=[^=].*,") {
-                    # -param-name[=value1[,value2[,..]]]
+                elseif ($Token -match "^-[a-zA-Z0-9]{1}[a-zA-Z0-9-\+]{0,}=[^=].*,") { # -param-name[=value1[,value2[,..]]]
                     $Tokens += [PSCustomObject]@{
                         Parameter = $Token.Split("=")[0]
                         ParamValueSeparator = "="
@@ -89,8 +86,7 @@ function Get-CommandPerDevice {
                         Values = @($Token.Split("=")[1].Split(","))
                     }
                 }
-                elseif ($Token -match "^--[a-zA-Z0-9]{1}[a-zA-Z0-9-\+]{0,}==[^=].*,") {
-                    # --param-name[==value1[,value2[,..]]]
+                elseif ($Token -match "^--[a-zA-Z0-9]{1}[a-zA-Z0-9-\+]{0,}==[^=].*,") { # --param-name[==value1[,value2[,..]]]
                     $Tokens += [PSCustomObject]@{
                         Parameter = $Token.Split("==")[0]
                         ParamValueSeparator = "=="
@@ -98,8 +94,7 @@ function Get-CommandPerDevice {
                         Values = @($Token.Split("==")[2].Split(","))
                     }
                 }
-                elseif ($Token -match "^--[a-zA-Z0-9]{1}[a-zA-Z0-9-\+]{0,}=[^=].*,") {
-                    # --param-name[=value1[,value2[,..]]]
+                elseif ($Token -match "^--[a-zA-Z0-9]{1}[a-zA-Z0-9-\+]{0,}=[^=].*,") { # --param-name[=value1[,value2[,..]]]
                     $Tokens += [PSCustomObject]@{
                         Parameter = $Token.Split("=")[0]
                         ParamValueSeparator = "="
