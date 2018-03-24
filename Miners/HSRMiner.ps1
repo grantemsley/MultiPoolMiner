@@ -11,7 +11,7 @@ param(
 if (-not $Config.Miners) {return}
 
 # Hardcoded per miner version, do not allow user to change in config
-$MinerFileVersion = "2018032200" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018032400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "HSRMINER Neoscrypt Fork by Justaminer 12.03.2018"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\NVIDIA-Hsrminer\hsrminer_neoscrypt_fork_hp.exe"
@@ -30,6 +30,7 @@ $DefaultMinerConfig = [PSCustomObject]@{
     "Type" = "$Type"
     "Path" = "$Path"
     "Port" = 4068
+    "MinerFeeInPercent" = 1/60 # 1 minute per hour
     #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
     "IgnoreHWModel" = @()
     #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
@@ -187,6 +188,14 @@ $Devices.$Type | ForEach-Object {
             $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select -Index 0 # additional command line options for algorithm
         }
 
+        if ($Config.IgnoreMinerFees -or $Config.Miners.$Name.$MinerFeeInPercent -eq 0) {
+            $Fees = @($null)
+        }
+        else {
+            $HashRate = $HashRate * (1 - $Config.Miners.$Name.MinerFeeInPercent / 100)
+            $Fees = @($Config.Miners.$Name.MinerFeeInPercent)
+        }
+
         [PSCustomObject]@{
             Name             = $Miner_Name
             Type             = $Type
@@ -196,7 +205,7 @@ $Devices.$Type | ForEach-Object {
             API              = $Api
             Port             = $Port
             URI              = $Uri
-            Fees             = @($null)
+            Fees             = $Fees
             Index            = $DeviceIDs -join ';'
             ShowMinerWindows = $Config.ShowMinerWindows
         }
