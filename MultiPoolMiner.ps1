@@ -62,7 +62,7 @@ param(
     [Parameter(Mandatory = $false)]
     [Switch]$MinerInstancePerCardModel, #if true a separate miner instance will be run per hw card model, e.g if you have 3x GeForceGTX1060 and 2x GeForceGTX1070ti installed, then 2 miners would be run 
     [Parameter(Mandatory = $false)]
-    [Switch]$ShowMinerWindows #if true miner windows will be visible (they can steal focus)
+    [Switch]$ShowMinerWindows #if true miner all windows will be visible (they can steal focus)
 )
 
 $Version = "2.7.2.7"
@@ -230,7 +230,7 @@ while ($true) {
     if ($Config.Proxy) {$PSDefaultParameterValues["*:Proxy"] = $Config.Proxy}
     else {$PSDefaultParameterValues.Remove("*:Proxy")}
 
-    Get-ChildItem "APIs" | ForEach-Object {. $_.FullName}
+    Get-ChildItem "APIs" -File | ForEach-Object {. $_.FullName}
 
     $Timer = (Get-Date).ToUniversalTime()
 
