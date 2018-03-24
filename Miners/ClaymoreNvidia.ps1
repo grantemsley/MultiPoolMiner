@@ -17,7 +17,7 @@ $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty
 $Path = ".\Bin\Ethash-Claymore\EthDcrMiner64.exe"
 $Type = "NVIDIA"
 $API = "Claymore"
-$Uri = ""
+$Uri = "" # if new MinerFileVersion and new Uri MPM will download and update new binaries
 $UriManual = "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w"
 $WebLink = "https://bitcointalk.org/index.php?topic=1433925.0" # See here for more information about the miner
 
@@ -97,8 +97,8 @@ else {
             
             # Execute action, e.g force re-download of binary
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($Uri) {
-                if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to forece re-download
+            if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
+                if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
                 # Remove benchmark files, could by fine grained to remove bm files for some algos
                 # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             }
@@ -214,6 +214,9 @@ if ($Info) {
     }
 }
 
+# Starting port for first miner
+$Port = $Config.Miners.$Name.Port
+
 # Get device list
 $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Name_Norm -or $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | ForEach-Object {
     
@@ -262,8 +265,6 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
 
             if ($Pools.$MainAlgorithm_Norm.Name -eq 'NiceHash') {$EthereumStratumMode = "3"} else {$EthereumStratumMode = "2"} #Optimize stratum compatibility
             
-            $MinerPort = $Config.Miners.$Name.Port + $Devices.$Type.IndexOf($DeviceTypeModel) # make port unique
-            
             if ($_ -notmatch ";") { # single algo mining
                 $Miner_Name = "$($Miner_Name)$($MainAlgorithm_Norm -replace '^ethash', '')"
                 $HashRateMainAlgorithm = ($Stats."$($Miner_Name)_$($MainAlgorithm_Norm)_HashRate".Week)
@@ -281,10 +282,10 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                     Name             = $Miner_Name
                     Type             = $Type
                     Path             = $Config.Miners.$Name.Path
-                    Arguments        = ("-mode 1 -mport -$MinerPort -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm_Norm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand -esm $EthereumStratumMode -allpools 1 -allcoins 1 -platform 2 $($Config.Miners.$Name.CommonCommands) -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
+                    Arguments        = ("-mode 1 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm_Norm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand -esm $EthereumStratumMode -allpools 1 -allcoins 1 -platform 2 $($Config.Miners.$Name.CommonCommands) -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
                     HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm}
                     API              = $Api
-                    Port             = $MinerPort
+                    Port             = $Port
                     URI              = $Uri
                     Fees             = $Fees
                     Index            = $DeviceIDs -join ';'
@@ -316,10 +317,10 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                         Name             = $Miner_Name
                         Type             = $Type
                         Path             = $Config.Miners.$Name.Path
-                        Arguments        = ("-mode 0 -mport -$MinerPort -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand -platform 2 $($Config.Miners.$Name.CommonCommands) -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
+                        Arguments        = ("-mode 0 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand -platform 2 $($Config.Miners.$Name.CommonCommands) -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
                         HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm; "$SecondaryAlgorithm_Norm" = $HashRateSecondaryAlgorithm}
                         API              = $Api
-                        Port             = $MinerPort
+                        Port             = $Port
                         URI              = $Uri
                         Fees             = $Fees
                         Index            = $DeviceIDs -join ';'
@@ -331,10 +332,10 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                             Name             = $Miner_Name
                             Type             = $Type
                             Path             = $Config.Miners.$Name.Path
-                            Arguments        = ("-mode 0 -mport -$MinerPort -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand -platform 2 $($Config.Miners.$Name.CommonCommands) -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
+                            Arguments        = ("-mode 0 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand -platform 2 $($Config.Miners.$Name.CommonCommands) -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
                             HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm; "$SecondaryAlgorithm_Norm" = $HashRateSecondaryAlgorithm}
                             API              = $Api
-                            Port             = $MinerPort
+                            Port             = $Port
                             URI              = $Uri
                             Fees             = $Fees
                             Index            = $DeviceIDs -join ';'
@@ -345,4 +346,5 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
             }
         }
     }
+    $Port++ # next higher port for next device
 }

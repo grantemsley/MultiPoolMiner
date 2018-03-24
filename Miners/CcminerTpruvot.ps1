@@ -17,7 +17,7 @@ $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty
 $Path = ".\Bin\NVIDIA-TPruvot\ccminer-x64.exe"
 $Type = "NVIDIA"
 $API = "Ccminer"
-$Uri = "https://github.com/MSFTserver/ccminer/releases/download/2.2.5-rvn/ccminer-x64-2.2.5-rvn-cuda9.7z"
+$Uri = "https://github.com/MSFTserver/ccminer/releases/download/2.2.5-rvn/ccminer-x64-2.2.5-rvn-cuda9.7z" # if new MinerFileVersion and new Uri MPM will download and update new binaries
 $UriManual = ""
 $WebLink = "https://bitcointalk.org/?topic=770064" # See here for more information about the miner
 
@@ -89,8 +89,8 @@ else {
             
             # Execute action, e.g force re-download of binary
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($Uri) {
-                if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to forece re-download
+            if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
+                if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
                 # Remove benchmark files, could by fine grained to remove bm files for some algos
                 # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             }
@@ -174,6 +174,9 @@ if ($Info) {
     }
 }
 
+# Starting port for first miner
+$Port = $Config.Miners.$Name.Port
+
 # Get device list
 $Devices.$Type | ForEach-Object {
 
@@ -210,21 +213,20 @@ $Devices.$Type | ForEach-Object {
             $Miner_Name = $Name
             $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select -Index 0 # additional command line options for algorithm
         }
-
-        $MinerPort = $Config.Miners.$Name.Port + $Devices.$Type.IndexOf($DeviceTypeModel) # make port unique
         
         [PSCustomObject]@{
             Name             = $Miner_Name
             Type             = $Type
             Path             = $Path
-            Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($MinerPort) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
+            Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
             HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
             API              = $Api
-            Port             = $MinerPort
+            Port             = $Port
             URI              = $Uri
             Fees             = @($null)
             Index            = $DeviceIDs -join ';'
             ShowMinerWindows = $Config.ShowMinerWindows
         }
     }
+    $Port++ # next higher port for next device
 }

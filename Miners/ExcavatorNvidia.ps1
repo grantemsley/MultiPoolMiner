@@ -17,7 +17,7 @@ $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty
 $Path = ".\Bin\Excavator\excavator.exe"
 $Type = "NVIDIA"
 $API = "Nicehash"
-$Uri = ""
+$Uri = "" # if new MinerFileVersion and new Uri MPM will download and update new binaries
 $UriManual = "https://github.com/nicehash/excavator/releases/download/v1.4.4a/excavator_v1.4.4a_NVIDIA_Win64.zip"
 $WebLink = "https://github.com/nicehash/excavator" # See here for more information about the miner
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
@@ -85,8 +85,8 @@ else {
             
             # Execute action, e.g force re-download of binary
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($Uri) {
-                if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to forece re-download
+            if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
+                if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
                 # Remove benchmark files, could by fine grained to remove bm files for some algos
                 # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             }
@@ -202,10 +202,10 @@ function Build-Miner {
         Name             = $Miner_Name
         Type             = $Type
         Path             = $Path
-        Arguments        = "-p $MinerPort -c $JsonFile -na"
+        Arguments        = "-p $Port -c $JsonFile -na"
         HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
         API              = $Api
-        Port             = $MinerPort
+        Port             = $Port
         URI              = $Uri
         PrerequisitePath = $PrerequisitePath
         PrerequisiteURI  = $PrerequisiteURI
@@ -214,6 +214,9 @@ function Build-Miner {
         ShowMinerWindows = $true # Excavator cannot be run in background
     }
 }
+
+# Starting port for first miner
+$Port = $Config.Miners.$Name.Port
 
 # Get device list
 $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Name_Norm -or $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | ForEach-Object {
@@ -258,8 +261,6 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
             $Commands2gb = $Commands3gb = $Config.Miners.$Name.Commands.$_ # additional command line options for main algorithm
         }    
 
-        $MinerPort = $Config.Miners.$Name.Port + $Devices.$Type.IndexOf($DeviceTypeModel) # make port unique
-
         try {
             if ($Algorithm_Norm -ne "Decred" -and $Algorithm_Norm -ne "Sia") {
                 Build-Miner -Algorithm_Norm $Algorithm_Norm  -DeviceIDs $DeviceIDs3gb -Commands $Commands3gb
@@ -272,4 +273,5 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
         catch {
         }
     }
+    $Port++ # next higher port for next device
 }

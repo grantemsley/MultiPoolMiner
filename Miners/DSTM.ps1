@@ -17,7 +17,7 @@ $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty
 $Path = ".\Bin\Equihash-DSTM\zm.exe"
 $Type = "NVIDIA"
 $API = "DSTM"
-$Uri = ""
+$Uri = "" # if new MinerFileVersion and new Uri MPM will download and update new binaries
 $UriManual = "https://mega.nz/#!1kRxQRSD!I3ryiEI5eT7datW842QNESyBQpZY6PILYS4HNIEHpYY"
 $WebLink = "https://bitcointalk.org/index.php?topic=2021765.0" # See here for more information about the miner
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
@@ -65,8 +65,8 @@ else {
             
             # Execute action, e.g force re-download of binary
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($Uri) {
-                if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to forece re-download
+            if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
+                if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
                 # Remove benchmark files, could by fine grained to remove bm files for some algos
                 # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             }
@@ -150,6 +150,9 @@ if ($Info) {
     }
 }
 
+# Starting port for first miner
+$Port = $Config.Miners.$Name.Port
+
 # Get device list
 $Devices.$Type | ForEach-Object {
 
@@ -197,16 +200,14 @@ $Devices.$Type | ForEach-Object {
             $Fees = @($Config.Miners.$Name.MinerFeeInPercent)
         }
         
-        $MinerPort = $Config.Miners.$Name.Port + $Devices.$Type.IndexOf($DeviceTypeModel) # make port unique
-        
         [PSCustomObject]@{
             Name             = $Miner_Name
             Type             = $Type
             Path             = $Path
-            Arguments        = ("--server $(if ($Pools.$Algorithm_Norm.SSL) {'ssl://'})$($Pools.Equihash.Host) --port $($Pools.$Algorithm_Norm.Port) --user $($Pools.$Algorithm_Norm.User) --pass $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) --telemetry=0.0.0.0:$($MinerPort) --dev $($DeviceIDs -join ' ')" -replace "\s+", " ").trim()
+            Arguments        = ("--server $(if ($Pools.$Algorithm_Norm.SSL) {'ssl://'})$($Pools.Equihash.Host) --port $($Pools.$Algorithm_Norm.Port) --user $($Pools.$Algorithm_Norm.User) --pass $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) --telemetry=0.0.0.0:$($Port) --dev $($DeviceIDs -join ' ')" -replace "\s+", " ").trim()
             HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
             API              = $Api
-            Port             = $MinerPort
+            Port             = $Port
             URI              = $Uri
             Fees             = $Fees
             Index            = $DeviceIDs -join ';'
@@ -215,4 +216,5 @@ $Devices.$Type | ForEach-Object {
             ShowMinerWindows = $Config.ShowMinerWindows
         }
     }
+    $Port++ # next higher port for next device
 }
