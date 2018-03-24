@@ -26,7 +26,7 @@ function Get-Devices {
 
         $Device = @([PSCustomObject]$_)
 
-        if (-not $Devices.$Type) { # New hardware patform
+        if (-not $Devices.$Type) { # New hardware patform, start counting deviceIDs from 0
             $DeviceID = 0
             $Device | Add-Member Name_Norm $Name_Norm
             $Device | Add-Member DeviceIDs @($DeviceID)
@@ -38,8 +38,8 @@ function Get-Devices {
                 $Device | Add-Member DeviceIDs @($DeviceID)
                 $Devices.$Type += $Device
             }
-            else {
-                $Devices.$Type.$Name_Norm.$DeviceIDs += $DeviceID # Existing card model
+            else { # Existing card model
+                $Devices.$Type.$Name_Norm.$DeviceIDs += $DeviceID
             }
         }
         $DeviceID++
