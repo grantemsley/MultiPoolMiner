@@ -7,7 +7,7 @@
 
 ###### Licensed under the GNU General Public License v3.0 - Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/LICENSE
 
-README.md is based on README.txt - updated on 18/03/2018 - v1.24.00 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
+README.md is based on README.txt - updated on 26/03/2018 - v1.24.01 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
 
 
 
@@ -15,7 +15,7 @@ README.md is based on README.txt - updated on 18/03/2018 - v1.24.00 - latest ver
 
 - **Monitors crypto mining pools and coins in real-time and finds the most profitable for your machine**
 - **Controls any miner that is available via command line**
-- **Supports benchmarking, multiple platforms (AMD, NVIDIA and CPU) and mining on MiningPoolHub, Zpool, Hash Refinery, Nicehash, A Hash Pool, BlockMunch, ItalYiiMP and YiiMP pools**
+- **Supports benchmarking, multiple platforms (AMD, NVIDIA and CPU) and mining on A Hash Pool, BlazePool, BlockMasters, Hash Refinery, MiningPoolHub, Nicehash, YiiMP, ZergPool and Zpool pools**
 - **Includes Watchdog Timer to detect and handle miner failures**
 
 *Any bitcoin donations are greatly appreciated: 1MsrCoAt8qM53HUMsUxvy9gMj3QVbHLazH*
@@ -59,9 +59,8 @@ Done. You are all set to mine the most profitable coins and maximise your profit
 **-region [Europe/US/Asia]**
 Choose your region or the region closest to you.
 
-**-poolname [miningpoolhub,miningpoolhubcoins,zpool,hashrefinery,nicehash,ahashpool]**
-
-The following pools are currently supported:
+**-poolname [ahashpool, blazepool, blockmasters, blockmasterscoins, hashrefinery, miningpoolhub, miningpoolhubcoins, nicehash, yiimp, zergpool, zergpoolcoins, zpool, zpoolcoins]**
+The following pools are currently supported (in alphabetical order):
 
 - AHashPool https://www.ahashpool.com/
 
@@ -71,7 +70,7 @@ The following pools are currently supported:
 
   Payout in BTC (Bitcoin address must be provided using the -wallet command, see below)
 
-- BlockMunch / BlockmunchCoins http://www.blockmunch.club/
+- BlockMasters / BlockMastersCoins http://www.blockmasters.co/
 
   Payout in BTC (Bitcoin address must be provided using the -wallet command, see below), or any currency available in API (Advanced configuration via Config.txt required, see below)
   
@@ -123,7 +122,7 @@ Your username you use to login to MiningPoolHub.
 To identify your mining rig.
 
 **-wallet**
-Your Bitcoin payout address. Required when mining on Zpool, Hash Refinery, Nicehash, AhashPool, BlockMunch and BlazePool.
+Your Bitcoin payout address. Required when mining on AhashPool, BlazePool, Hash Refinery, Nicehash and Zpool.
 	
 **-SSL**
 Specifying the -ssl command (without a boolean value of true or false) will restrict the miner application list to include only the miners that support secure connection.
@@ -183,7 +182,6 @@ Watchdog timers reset after three times the number of seconds it takes to get to
 Report and monitor your mining rig's status by including the command above. Wallet address must be set even if you are only using MiningPoolHub as a pool. You can access the reported information by entering your wallet address on the https://multipoolminer.io/monitor web address. By using this service you understand and accept the terms and conditions detailed in this document (further below). 
 
 **--minerstatuskey**
-
 By default the MPM monitor uses the BTC address (-wallet) to identify your mining machine (rig). Use --minerstatuskey [your-miner-status-key] to anonymize your rig. To get your minerstatuskey goto to https://multipoolminer.io/monitor
 
 **-switchingprevention**
@@ -191,7 +189,6 @@ Since version 2.6, the delta value (integer) that was used to determine how ofte
 
 **-autoupdate:false**
 By default MPM will perform an automatic update on startup if a newer version is found. Set to 'false' to disable automatic update to latest MPM version. 
-
 
 
 ## SAMPLE USAGE
@@ -212,6 +209,7 @@ By default MPM will perform an automatic update on startup if a newer version is
     pwsh -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
     
     pause
+
 
 
 
@@ -539,9 +537,8 @@ This is not a fault of MultiPoolMiner and nothing can be done on our end. Please
 ###### A21. MultiPoolMiner is open-source and used by many users/rigs. It also downloads miners from github releases that are open-sourced projects. That means the code is readable and you can see for yourself it does not contain any viruses. Your antivirus generates false positives as the miner software used by MultiPoolMiner are often included in malicious programs to create botnets for someone who wants to earn a quick buck. There are other closed-source miner program included in the package such as the Claymore miners. These come from legendary ranked or trusted/respected members of the bitcointalk community and used by a large number of users/rigs worldwide. You can exlude these miners if you wish by following the instructions in FAQ#2 and delete their software from your system. 
 
 ###### Q22. How to disable dual-mining?
-###### A22. Make sure NOT to include any of the the following parameters in your start.bat after *-algorithm* or add them after the *-ExludeAlgorithm* command: 
-	decred, pascal, decrednicehash
-    
+###### A22. Make sure NOT to include any of the the following parameters in your start.bat after *-algorithm* or add them after the *-ExludeAlgorithm* command: decred, pascal, decrednicehash
+
 ###### Q23. How to download and install missing miner binaries?
 ###### A23. Some miners binaries cannot be downloaded automatically by MPM (e.g. there is no direct download). In these cases you need to download and install them manually. First find the download link "Uri" in the miner file (they are all in the folder 'Miners') and download the binaries. Next locate the destination path "$Path". You need to create the required subdirectory in the 'Miners' folder.  Finally unpack the downloaded binary to the destination directory. If the packed file contains subdirectories you must also copy them.
 
