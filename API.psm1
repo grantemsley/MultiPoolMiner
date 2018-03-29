@@ -10,6 +10,7 @@
     $newRunspace = [runspacefactory]::CreateRunspace()
     $newRunspace.Open()
     $newRunspace.SessionStateProxy.SetVariable("API", $API)
+    $newRunspace.SessionStateProxy.Path.SetLocation($(pwd))
 
     $apiserver = [PowerShell]::Create().AddScript({
 
