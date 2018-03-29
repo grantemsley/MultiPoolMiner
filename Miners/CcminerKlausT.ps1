@@ -103,7 +103,7 @@ if ($Info) {
                 Default     = $DefaultMinerConfig.Uri
                 Info        = "MPM automatically downloads the miner binaries from this link and unpacks them.`nFiles stored on Google Drive or Mega links cannot be downloaded automatically.`n"
                 Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README). "
-            }
+            },
             [PSCustomObject]@{
                 Name        = "UriManual"
                 Required    = $false
@@ -111,7 +111,7 @@ if ($Info) {
                 Default     = $DefaultMinerConfig.UriManual
                 Info        = "Download link for manual miner binaries download.`nUnpack downloaded files to '$Path'."
                 Tooltip     = "See README for manual download and unpack instruction."
-            }
+            },
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"
                 Required    = $false
@@ -119,7 +119,7 @@ if ($Info) {
                 Default     = $DefaultMinerConfig.IgnoreHWModel
                 Info        = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'.`nLeave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
-            }
+            },
             [PSCustomObject]@{
                 Name        = "IgnoreDeviceID"
                 Required    = $false
@@ -129,7 +129,7 @@ if ($Info) {
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
                 Info        = "List of device IDs you do not want to mine with this miner, e.g. '0'.`nLeave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
-            }
+            },
             [PSCustomObject]@{
                 Name        = "Commands"
                 Required    = $false
@@ -137,14 +137,14 @@ if ($Info) {
                 Default     = $DefaultMinerConfig.Commands
                 Info        = "Each line defines an algorithm that can be mined with this miner.`nOptional miner parameters can be added after the '=' sign. "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space`nTo disable an algorithm prefix it with '#'"
-            }
+            },
             [PSCustomObject]@{
                 Name        = "CommonCommands"
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.CommonCommands
                 Info        = "Optional miner parameter that gets appended to the resulting miner command line (for all algorithms). "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space"
-            }
+            },
             [PSCustomObject]@{
                 Name        = "DoNotMine"
                 Required    = $false
