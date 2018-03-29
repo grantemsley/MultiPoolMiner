@@ -101,7 +101,7 @@ $guiCmd = [PowerShell]::Create().AddScript({
     $syncHash.ManualStart = $false
     $syncHash.MultiPoolMinerProcess = $null
 
-    # Setup functions for buttons
+    #region Setup functions for buttons
     
     $syncHash.Window.Add_Closing({
         [System.Windows.Forms.Application]::Exit()
@@ -112,15 +112,10 @@ $guiCmd = [PowerShell]::Create().AddScript({
             $syncHash.Running = $false
             $syncHash.ManualStart = $false
             $syncHash.StartStop.Dispatcher.Invoke([action]{$syncHash.StartStop.Content = "Start Mining"})
-            $syncHash.StatusText.Dispatcher.Invoke([action]{$syncHash.StatusText.Text = "Stopped"})
-            #Stop-Process $syncHash.MultiPoolMinerProcess
         } else {
             $syncHash.Running = $true
             $syncHash.ManualStart = $true
             $syncHash.StartStop.Dispatcher.Invoke([action]{$syncHash.StartStop.Content = "Stop Mining"})
-            $syncHash.StatusText.Dispatcher.Invoke([action]{$syncHash.StatusText.Text = "Running"})
-            #$syncHash.MultiPoolMinerProcess = Start-Process (@{desktop = "powershell"; core = "pwsh"}.$Global:PSEdition) -ArgumentList "-executionpolicy bypass `"$(Convert-Path ".\MultiPoolMiner.ps1")`"" -PassThru
-            
         }
         
     })
@@ -171,9 +166,7 @@ $guiCmd = [PowerShell]::Create().AddScript({
         $synchash.Settings | ConvertTo-Json | Out-File '.\Launchersettings.json'
     })
 
-    $syncHash.website.add_Click({
-        Start-Process "https://multipoolminer.io/"
-    })
+    #endregion Setup functions for buttons
 
     #region Create multipoolminer script runner thread...
     # This thread is responsible for starting the script when $synchash.Running = $true, and stopping it when it's $false.
@@ -187,9 +180,10 @@ $guiCmd = [PowerShell]::Create().AddScript({
     $scriptRunner = [PowerShell]::Create().AddScript({
         Set-Location $synchash.workingdirectory
         While ($syncHash.GUIRunning) {
-            If($synchash.Running) {
+            If ($synchash.Running) {
+                $syncHash.StatusText.Dispatcher.Invoke([action]{$syncHash.StatusText.Text = "Running"})          
                 # Start script if it is not running
-                If($syncHash.MultiPoolMinerProcess -and $syncHash.MultiPoolMinerProcess.HasExited -eq $false) {
+                If ($syncHash.MultiPoolMinerProcess -and $syncHash.MultiPoolMinerProcess.HasExited -eq $false) {
                     # Script is already running, do nothing
                 } else {
                     # Start the script
@@ -230,6 +224,7 @@ $guiCmd = [PowerShell]::Create().AddScript({
                     $synchash.JobOutput = $JobOutput
                 }
             } else {
+                $syncHash.StatusText.Dispatcher.Invoke([action]{$syncHash.StatusText.Text = "Stopped"})
                 # Close script if it is running
                 if($synchash.MultiPoolMinerProcess -and $synchash.MultiPoolMinerProcess.HasExited -eq $false) {
                     $synchash.MultiPoolMinerProcess.CloseMainWindow()
@@ -386,24 +381,31 @@ namespace PInvoke.Win32 {
     $newRunspace.Open()
     $newRunspace.SessionStateProxy.SetVariable("SyncHash", $SyncHash)
     $miningupdater = [PowerShell]::Create().AddScript({
-        Set-Location $synchash.workingdirectory
-        # Can't figure out how to use 'using module' in a script like this - complains that it has to be the first statement in the script.
-        # But that's ok - using Import-Module gets everything except the Miner class, which isn't needed here.
-        Import-Module .\Include.psm1
-        # We do however need the enum for statuses. Since it doesn't get imported, need to duplicate it here.
-        enum MinerStatus {
-            Running
-            Idle
-            Failed
-        }
-
         $synchash.activeminerslastupdated = Get-Date
 
         While ($syncHash.GUIRunning) {
-            if($syncHash.Running -and (Test-Path ".\Data\ActiveMiners.json")) {
-                if((Get-ChildItem ".\Data\ActiveMiners.json").LastWriteTime -gt $synchash.activeminerslastupdated) {
-                    $synchash.activeminers = Get-Content ".\Data\ActiveMiners.json" | ConvertFrom-Json
-                    # Convert the arrays to comma separated strings
+            try {
+                $synchash.activeminers = @()
+                $synchash.TotalProfit = 0
+
+                $apidata = Invoke-RestMethod -Uri 'http://localhost:3999/runningminers'
+                $apidata | Foreach-Object {
+                    $miner = [pscustomobject]@{
+                        'Name' = $_.Name,
+                        'Type'
+                        'Pool'
+                        'Algorithm'
+                        'Current Speed'
+                        'Benchmarked Speed'
+                        'Profit'
+                        'Path'
+                        'LogFile'
+                    }
+                    $synchash.activeminers += $miner
+                }
+            } catch {
+                Start-Sleep 5
+            }
                     $synchash.activeminers | Foreach-Object {
                         $_.Type = $_.Type -join ','
                         $_.Pool = $_.Pool -join ','
@@ -419,7 +421,7 @@ namespace PInvoke.Win32 {
                 $synchash.activeminers = @{}
                 $synchash.TotalProfit = 0
             }
-            # Update profit per day in status bar
+            # Update UI
             $synchash.ProfitPerDay.Dispatcher.Invoke([action]{$synchash.ProfitPerDay.text = $synchash.TotalProfit})
             $synchash.ActiveMinersList.Dispatcher.Invoke([action]{$syncHash.ActiveMinersList.ItemsSource = $synchash.activeminers})
             $synchash.miningUpdateError = $Error

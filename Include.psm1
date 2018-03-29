@@ -612,6 +612,7 @@ class Miner {
     hidden [MinerStatus]$Status = [MinerStatus]::Idle
     $Benchmarked
     $LogFile
+    $Pools
 
     hidden StartMining() {
         $this.Status = [MinerStatus]::Failed

@@ -515,6 +515,7 @@ while ($true) {
                 Best_Comparison      = $false
                 New                  = $false
                 Benchmarked          = 0
+                Pools                = $Miner.Pools.PSObject.Properties.Value.Name
             }
         }
     }

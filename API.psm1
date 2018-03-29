@@ -10,6 +10,7 @@ Function Start-APIServer {
     $newRunspace = [runspacefactory]::CreateRunspace()
     $newRunspace.Open()
     $newRunspace.SessionStateProxy.SetVariable("API", $API)
+    $newRunspace.SessionStateProxy.Path.SetLocation($(pwd))
 
     $apiserver = [PowerShell]::Create().AddScript({
 
@@ -89,6 +90,15 @@ Function Start-APIServer {
                     $Data = "Stopping"
                     break
                 }
+                "/error" {
+                    $Data = $Error
+                    break
+                }
+                "/pwd" {
+                    $Data = pwd
+                    break
+                }
+
                 default {
                     $StatusCode = 404
                     $ContentType = "text/html"
