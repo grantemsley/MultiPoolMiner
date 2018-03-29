@@ -90,15 +90,6 @@ Function Start-APIServer {
                     $Data = "Stopping"
                     break
                 }
-                "/error" {
-                    $Data = $Error
-                    break
-                }
-                "/pwd" {
-                    $Data = pwd
-                    break
-                }
-
                 default {
                     $StatusCode = 404
                     $ContentType = "text/html"
