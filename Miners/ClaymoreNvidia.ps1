@@ -143,21 +143,21 @@ if ($Info) {
         Settings         = @(
             [PSCustomObject]@{
                 Name        = "Uri"
-                Controltype = "string"
+                ControlType = "string"
                 Default     = $DefaultMinerConfig.Uri
                 Info        = "MPM automatically downloads the miner binaries from this link and unpacks them.`nFiles stored on Google Drive or Mega links cannot be downloaded automatically.`n"
                 Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README). "
             }
             [PSCustomObject]@{
                 Name        = "UriManual"
-                Controltype = "string"
+                ControlType = "string"
                 Default     = $DefaultMinerConfig.UriManual
                 Info        = "Download link for manual miner binaries download.`nUnpack downloaded files to '$Path'."
                 Tooltip     = "See README for manual download and unpack instruction."
             }
             [PSCustomObject]@{
                 Name        = "MinerFeeInPercentSingleMode"
-                Controltype = "double"
+                ControlType = "double"
                 Min         = 0
                 Max         = 100
                 Fractions   = 2
@@ -167,7 +167,7 @@ if ($Info) {
             }
             [PSCustomObject]@{
                 Name        = "MinerFeeInPercentDualMode"
-                Controltype = "double"
+                ControlType = "double"
                 Min         = 0
                 Max         = 100
                 Fractions   = 2
@@ -177,38 +177,43 @@ if ($Info) {
             }
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"
-                Controltype = "string[($.$Device.$Type.count)]" # array of strings, max values depends on number of different card models installed
+                Required    = $false
+                ControlType = "string[0,$($Devices.$Type.count)]"
                 Default     = $DefaultMinerConfig.IgnoreHWModel
                 Info        = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'.`nLeave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
             }
             [PSCustomObject]@{
                 Name        = "IgnoreDeviceID"
-                Controltype = "int[($.$Device.$Type.DeviceIDs.count)]" # array of strings, max values depends on number of cards installed
+                Required    = $false
+                ControlType = "int[0,$($Devices.$Type.DeviceIDs)]"
+                Min         = 0
+                Max         = $Devices.$Type.DeviceIDs
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
                 Info        = "List of device IDs you do not want to mine with this miner, e.g. '0'.`nLeave empty to mine with all available hardware. "
-                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
+                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`nDo disable an algorithm prefix it with '#'"})"
             }
             [PSCustomObject]@{
                 Name        = "Commands"
-                Controltype = "PSCustomObject"
+                ControlType = "PSCustomObject[1,]"
                 Default     = $DefaultMinerConfig.Commands
                 Info        = "Each line defines an algorithm that can be mined with this miner.`nFor dual mining the two algorithms are separated with ';', intensity parameter for the secondary algorithm is defined after the ':'.`nOptional miner parameters can be added after the '=' sign. "
-                Tooltip     = "Note: Most extra parameters must be prefixed with a space"
+                Tooltip     = "Note: Most extra parameters must be prefixed with a space`nTo disable an algorithm prefix it with '#'"
             }
             [PSCustomObject]@{
                 Name        = "CommonCommands"
-                Controltype = "string[2]" # array, first value for main algo, second value for secondary algo
+                ControlType = "string[2]" # array, first value for main algo, second value for secondary algo
                 Default     = $DefaultMinerConfig.CommonCommands
                 Info        = "Optional miner parameter that gets appended to the resulting miner command line for all algorithms.\nThe first value applies to the main algorithm, the second value applies to the secondary algorithm. "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space (a notable exception is the payout currency, e.g. ',c=LTC')"
             }
             [PSCustomObject]@{
                 Name        = "DoNotMine"
-                Controltype = "PSCustomObject"
+                Required    = $false
+                ControlType = "PSCustomObject[0,]"
                 Default     = $DefaultMinerConfig.DoNotMine
-                Info        = "Optional filter parameter per algorithm and pool. MPM will not use the miner for this algorithm at the listed pool.`nSyntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")'. "
-                Tooltip     = "Not all pools are compatible with all miners and algorithms"
+                Info        = "Optional filter parameter per algorithm and pool. MPM will not use the miner for this algorithm at the listed pool. "
+                Tooltip     = "Syntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")"
             }
         )
     }
