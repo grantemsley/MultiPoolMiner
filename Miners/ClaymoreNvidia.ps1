@@ -72,7 +72,7 @@ $DefaultMinerConfig = [PSCustomObject]@{
         "ethash2gb;pascal:60" = ""
         "ethash2gb;pascal:80" = ""
     }
-    "CommonCommands" = " -eres 0 -logsmaxsize 1"
+    "CommonCommands" = @(" -eres 0 -logsmaxsize 1", "") # array, first value for main algo, sesond value for secondary algo
     "DoNotMine" = [PSCustomObject]@{ 
         # Syntax: "Algorithm" = "Poolname"
         #"ethash2gb;pascal:80" = @("Zpool", "ZpoolCoins")
@@ -177,14 +177,14 @@ if ($Info) {
             }
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"
-                Controltype = "string[]"
+                Controltype = "string[($.$Device.$Type.count)]" # array of strings, max values depends on number of different card models installed
                 Default     = $DefaultMinerConfig.IgnoreHWModel
                 Info        = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'.`nLeave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
             }
             [PSCustomObject]@{
                 Name        = "IgnoreDeviceID"
-                Controltype = "int[]"
+                Controltype = "int[($.$Device.$Type.DeviceIDs.count)]" # array of strings, max values depends on number of cards installed
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
                 Info        = "List of device IDs you do not want to mine with this miner, e.g. '0'.`nLeave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
@@ -198,10 +198,10 @@ if ($Info) {
             }
             [PSCustomObject]@{
                 Name        = "CommonCommands"
-                Controltype = "string"
+                Controltype = "string[2]" # array, first value for main algo, second value for secondary algo
                 Default     = $DefaultMinerConfig.CommonCommands
-                Info        = "Optional miner parameter that gets appended to the resulting miner command line (for all algorithms). "
-                Tooltip     = "Note: Most extra parameters must be prefixed with a space"
+                Info        = "Optional miner parameter that gets appended to the resulting miner command line for all algorithms.\nThe first value applies to the main algorithm, the second value applies to the secondary algorithm. "
+                Tooltip     = "Note: Most extra parameters must be prefixed with a space (a notable exception is the payout currency, e.g. ',c=LTC')"
             }
             [PSCustomObject]@{
                 Name        = "DoNotMine"
@@ -222,23 +222,26 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
     
     if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
+    $DeviceIDsAll = @() # array of all devices, ids will be in hex format
     $DeviceIDs3gb = @() # array of all devices with more than 3MiB VRAM, ids will be in hex format
-    $DeviceIDs2gb = @() # array of all devices, ids will be in hex format
+    $DeviceIDs4gb = @() # array of all devices with more than 4MiB VRAM, ids will be in hex format
 
     # Get DeviceIDs, filter out all disabled hw models and IDs
     if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) { # separate miner instance per hardware model
         if ($Config.Miners.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm) {
             $DeviceTypeModel.DeviceIDs | Where-Object {$Config.Miners.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
-                $DeviceIDs2gb += [Convert]::ToString($_, 16) # convert id to hex
+                $DeviceIDsAll += [Convert]::ToString($_, 16) # convert id to hex
                 if ($DeviceTypeModel.GlobalMemsize -ge 3000000000) {$DeviceIDs3gb += [Convert]::ToString($_, 16)} # convert id to hex
+                if ($DeviceTypeModel.GlobalMemsize -ge 4000000000) {$DeviceIDs4gb += [Convert]::ToString($_, 16)} # convert id to hex
             }
         }
     }
     else { # one miner instance per hw type
         $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | ForEach-Object {
             $_.DeviceIDs | Where-Object {$Config.Miners.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
-                $DeviceIDs2gb += [Convert]::ToString($_, 16) # convert id to hex
+                $DeviceIDsAll += [Convert]::ToString($_, 16) # convert id to hex
                 if ($_.GlobalMemsize -ge 3000000000) {$DeviceIDs3gb += [Convert]::ToString($_, 16)} # convert id to hex
+                if ($_.GlobalMemsize -ge 4000000000) {$DeviceIDs4gb += [Convert]::ToString($_, 16)} # convert id to hex
             }
         }
     }
@@ -248,7 +251,11 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
         $MainAlgorithm = $_.Split(";") | Select -Index 0
         $MainAlgorithm_Norm = Get-Algorithm $MainAlgorithm
         
-        if ($MainAlgorithm_Norm -eq "Ethash2gb") {$DeviceIDs = $DeviceIDs2gb} else {$DeviceIDs = $DeviceIDs3gb} #
+        Switch ($MainAlgorithm_Norm) { # default is all devices, ethash has a 4GB minimum memory limit
+            "Ethash"    {$DeviceIDs = $DeviceIDs4gb}
+            "Ethash3gb" {$DeviceIDs = $DeviceIDs3gb}
+            default     {$DeviceIDs = $DeviceIDsAll}
+        }
 
         if ($Pools.$MainAlgorithm_Norm -and $DeviceIDs) { # must have a valid pool to mine and available devices
 
@@ -282,7 +289,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                     Name             = $Miner_Name
                     Type             = $Type
                     Path             = $Config.Miners.$Name.Path
-                    Arguments        = ("-mode 1 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm_Norm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand -esm $EthereumStratumMode -allpools 1 -allcoins 1 -platform 2 $($Config.Miners.$Name.CommonCommands) -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
+                    Arguments        = ("-mode 1 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm_Norm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand$($CommonCommands | Select -Index 0) -esm $EthereumStratumMode -allpools 1 -allcoins 1 -platform 2 -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
                     HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm}
                     API              = $Api
                     Port             = $Port
@@ -317,7 +324,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                         Name             = $Miner_Name
                         Type             = $Type
                         Path             = $Config.Miners.$Name.Path
-                        Arguments        = ("-mode 0 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand -platform 2 $($Config.Miners.$Name.CommonCommands) -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
+                        Arguments        = ("-mode 0 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand$($Config.Miners.$Name.CommonCommands | Select -Index 0) -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand$($Config.Miners.$Name.CommonCommands | Select -Index 0) -platform 2 -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
                         HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm; "$SecondaryAlgorithm_Norm" = $HashRateSecondaryAlgorithm}
                         API              = $Api
                         Port             = $Port
@@ -332,7 +339,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                             Name             = $Miner_Name
                             Type             = $Type
                             Path             = $Config.Miners.$Name.Path
-                            Arguments        = ("-mode 0 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand -platform 2 $($Config.Miners.$Name.CommonCommands) -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
+                            Arguments        = ("-mode 0 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand$($Config.Miners.$Name.CommonCommands | Select -Index 0) -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand$($Config.Miners.$Name.CommonCommandss | Select -Index 1) -platform 2 -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
                             HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm; "$SecondaryAlgorithm_Norm" = $HashRateSecondaryAlgorithm}
                             API              = $Api
                             Port             = $Port
