@@ -10,36 +10,36 @@ param(
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
-$AHashPool_Request = [PSCustomObject]@{}
+$Pool_Request = [PSCustomObject]@{}
 
 try {
-    $AHashPool_Request = Invoke-RestMethod "http://www.ahashpool.com/api/status" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    $Pool_Request = Invoke-RestMethod "http://www.ahashpool.com/api/status" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
 }
 catch {
     Write-Log -Level Warn "Pool API ($Name) has failed. "
     return
 }
 
-if (($AHashPool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
+if (($Pool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
     Write-Log -Level Warn "Pool API ($Name) returned nothing. "
     return
 }
 
-$AHashPool_Regions = "us"
+$Pool_Regions = "us"
 
 #Pool allows payout in BTC only
-$AHashPool_Currencies = @("BTC") | Select-Object -Unique | Where-Object {Get-Variable $_ -ValueOnly -ErrorAction SilentlyContinue}
+$Pool_Currencies = @("BTC") | Select-Object -Unique | Where-Object {Get-Variable $_ -ValueOnly -ErrorAction SilentlyContinue}
 
-$AHashPool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$DisabledAlgorithms -inotcontains (Get-Algorithm $AHashPool_Request.$_.name) -and $AHashPool_Request.$_.hashrate -gt 0} | ForEach-Object {
-    $AHashPool_Host = "mine.ahashpool.com"
-    $AHashPool_Port = $AHashPool_Request.$_.port
-    $AHashPool_Algorithm = $AHashPool_Request.$_.name
-    $AHashPool_Algorithm_Norm = Get-Algorithm $AHashPool_Algorithm
-    $AHashPool_Coin = ""
+$Pool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$DisabledAlgorithms -inotcontains (Get-Algorithm $Pool_Request.$_.name) -and $Pool_Request.$_.hashrate -gt 0} | ForEach-Object {
+    $Pool_Host = "mine.ahashpool.com"
+    $Pool_Port = $Pool_Request.$_.port
+    $Pool_Algorithm = $Pool_Request.$_.name
+    $Pool_Algorithm_Norm = Get-Algorithm $Pool_Algorithm
+    $Pool_Coin = ""
 
     $Divisor = 1000000
 
-    switch ($AHashPool_Algorithm_Norm) {
+    switch ($Pool_Algorithm_Norm) {
         "blake2s" {$Divisor *= 1000}
         "blakecoin" {$Divisor *= 1000}
         "decred" {$Divisor *= 1000}
@@ -50,26 +50,26 @@ $AHashPool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | S
         "x11" {$Divisor *= 1000}
     }
 
-    if ((Get-Stat -Name "$($Name)_$($AHashPool_Algorithm_Norm)_Profit") -eq $null) {$Stat = Set-Stat -Name "$($Name)_$($AHashPool_Algorithm_Norm)_Profit" -Value ([Double]$AHashPool_Request.$_.estimate_last24h / $Divisor) -Duration (New-TimeSpan -Days 1)}
-    else {$Stat = Set-Stat -Name "$($Name)_$($AHashPool_Algorithm_Norm)_Profit" -Value ([Double]$AHashPool_Request.$_.estimate_current / $Divisor) -Duration $StatSpan -ChangeDetection $true}
+    if ((Get-Stat -Name "$($Name)_$($Pool_Algorithm_Norm)_Profit") -eq $null) {$Stat = Set-Stat -Name "$($Name)_$($Pool_Algorithm_Norm)_Profit" -Value ([Double]$Pool_Request.$_.estimate_last24h / $Divisor) -Duration (New-TimeSpan -Days 1)}
+    else {$Stat = Set-Stat -Name "$($Name)_$($Pool_Algorithm_Norm)_Profit" -Value ([Double]$Pool_Request.$_.estimate_current / $Divisor) -Duration $StatSpan -ChangeDetection $true}
 
-    $AHashPool_Regions | ForEach-Object {
-        $AHashPool_Region = $_
-        $AHashPool_Region_Norm = Get-Region $AHashPool_Region
+    $Pool_Regions | ForEach-Object {
+        $Pool_Region = $_
+        $Pool_Region_Norm = Get-Region $Pool_Region
 
-        $AHashPool_Currencies | ForEach-Object {
+        $Pool_Currencies | ForEach-Object {
             [PSCustomObject]@{
-                Algorithm     = $AHashPool_Algorithm_Norm
-                Info          = $AHashPool_Coin
+                Algorithm     = $Pool_Algorithm_Norm
+                Info          = $Pool_Coin
                 Price         = $Stat.Live
                 StablePrice   = $Stat.Week
                 MarginOfError = $Stat.Week_Fluctuation
                 Protocol      = "stratum+tcp"
-                Host          = "$AHashPool_Algorithm.$AHashPool_Host"
-                Port          = $AHashPool_Port
+                Host          = "$Pool_Algorithm.$Pool_Host"
+                Port          = $Pool_Port
                 User          = Get-Variable $_ -ValueOnly
                 Pass          = "$Worker,c=$_"
-                Region        = $AHashPool_Region_Norm
+                Region        = $Pool_Region_Norm
                 SSL           = $false
                 Updated       = $Stat.Updated
             }

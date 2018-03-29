@@ -1,4 +1,4 @@
-﻿using module ..\Include.psm1
+using module ..\Include.psm1
 
 param(
     [alias("Wallet")]
@@ -10,38 +10,38 @@ param(
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
-$BlockMastersCoins_Request = [PSCustomObject]@{}
+$PoolCoins_Request = [PSCustomObject]@{}
 
 try {
-    $BlockMastersCoins_Request = Invoke-RestMethod "http://www.BlockMasters.co/api/currencies" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    $PoolCoins_Request = Invoke-RestMethod "http://www.BlockMasters.co/api/currencies" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
 }
 catch {
     Write-Log -Level Warn "Pool API ($Name) has failed. "
     return
 }
 
-if (($BlockMastersCoins_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
+if (($PoolCoins_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
     Write-Log -Level Warn "Pool API ($Name) returned nothing. "
     return
 }
 
-$BlockMastersCoins_Regions = "us"
+$PoolCoins_Regions = "us"
 
 #Pool allows payout in BTC, DOGE, LTC & any currency available in API. Define desired payout currency in $Config.$Pool.<Currency>
-$BlockMastersCoins_Currencies = @("BTC", "DOGE", "LTC") + ($BlockMastersCoins_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name) | Select-Object -Unique | Where-Object {Get-Variable $_ -ValueOnly -ErrorAction SilentlyContinue}
+$PoolCoins_Currencies = @("BTC", "DOGE", "LTC") + ($PoolCoins_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name) | Select-Object -Unique | Where-Object {Get-Variable $_ -ValueOnly -ErrorAction SilentlyContinue}
 
 #Mine any coin defined in array $Config.$Pool.Coins[]
-$BlockMastersCoins_MiningCurrencies = ($BlockMastersCoins_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name) | Where-Object {$Coins.count -eq 0 -or $Coins -icontains $BlockMastersCoins_Request.$_.name} | Select-Object -Unique
-$BlockMastersCoins_MiningCurrencies | Where-Object {$DisabledCoins -inotcontains $BlockMastersCoins_Request.$_.name -and $DisabledAlgorithms -inotcontains (Get-Algorithm $BlockMastersCoins_Request.$_.algo) -and $BlockMastersCoins_Request.$_.hashrate -gt 0} | ForEach-Object {
-    $BlockMastersCoins_Host = "BlockMasters.co"
-    $BlockMastersCoins_Port = $BlockMastersCoins_Request.$_.port
-    $BlockMastersCoins_Algorithm = $BlockMastersCoins_Request.$_.algo
-    $BlockMastersCoins_Algorithm_Norm = Get-Algorithm $BlockMastersCoins_Algorithm
-    $BlockMastersCoins_Coin = $BlockMastersCoins_Request.$_.name
+$PoolCoins_MiningCurrencies = ($PoolCoins_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name) | Where-Object {$Coins.count -eq 0 -or $Coins -icontains $PoolCoins_Request.$_.name} | Select-Object -Unique
+$PoolCoins_MiningCurrencies | Where-Object {$DisabledCoins -inotcontains $PoolCoins_Request.$_.name -and $DisabledAlgorithms -inotcontains (Get-Algorithm $PoolCoins_Request.$_.algo) -and $PoolCoins_Request.$_.hashrate -gt 0} | ForEach-Object {
+    $PoolCoins_Host = "BlockMasters.co"
+    $PoolCoins_Port = $PoolCoins_Request.$_.port
+    $PoolCoins_Algorithm = $PoolCoins_Request.$_.algo
+    $PoolCoins_Algorithm_Norm = Get-Algorithm $PoolCoins_Algorithm
+    $PoolCoins_Coin = $PoolCoins_Request.$_.name
 
     $Divisor = 1000000
 
-    switch ($BlockMastersCoins_Algorithm_Norm) {
+    switch ($PoolCoins_Algorithm_Norm) {
         "blake2s" {$Divisor *= 1000}
         "blakecoin" {$Divisor *= 1000}
         "decred" {$Divisor *= 1000}
@@ -52,26 +52,26 @@ $BlockMastersCoins_MiningCurrencies | Where-Object {$DisabledCoins -inotcontains
         "x11" {$Divisor *= 1000}
     }
 
-    if ((Get-Stat -Name "$($Name)_$($BlockMastersCoins_Algorithm_Norm)_Profit") -eq $null) {$Stat = Set-Stat -Name "$($Name)_$($BlockMastersCoins_Algorithm_Norm)_Profit" -Value ([Double]$BlockMastersCoins_Request.$_.estimate_last24h / $Divisor) -Duration (New-TimeSpan -Days 1)}
-    else {$Stat = Set-Stat -Name "$($Name)_$($BlockMastersCoins_Algorithm_Norm)_Profit" -Value ([Double]$BlockMastersCoins_Request.$_.estimate_current / $Divisor) -Duration $StatSpan -ChangeDetection $true}
+    if ((Get-Stat -Name "$($Name)_$($PoolCoins_Algorithm_Norm)_Profit") -eq $null) {$Stat = Set-Stat -Name "$($Name)_$($PoolCoins_Algorithm_Norm)_Profit" -Value ([Double]$PoolCoins_Request.$_.estimate_last24h / $Divisor) -Duration (New-TimeSpan -Days 1)}
+    else {$Stat = Set-Stat -Name "$($Name)_$($PoolCoins_Algorithm_Norm)_Profit" -Value ([Double]$PoolCoins_Request.$_.estimate_current / $Divisor) -Duration $StatSpan -ChangeDetection $true}
 
-    $BlockMastersCoins_Regions | ForEach-Object {
-        $BlockMastersCoins_Region = $_
-        $BlockMastersCoins_Region_Norm = Get-Region $BlockMastersCoins_Region
+    $PoolCoins_Regions | ForEach-Object {
+        $PoolCoins_Region = $_
+        $PoolCoins_Region_Norm = Get-Region $PoolCoins_Region
 
-        $BlockMastersCoins_Currencies | ForEach-Object {
+        $PoolCoins_Currencies | ForEach-Object {
             [PSCustomObject]@{
-                Algorithm     = $BlockMastersCoins_Algorithm_Norm
-                Info          = $BlockMastersCoins_Coin
+                Algorithm     = $PoolCoins_Algorithm_Norm
+                Info          = $PoolCoins_Coin
                 Price         = $Stat.Live
                 StablePrice   = $Stat.Week
                 MarginOfError = $Stat.Week_Fluctuation
                 Protocol      = "stratum+tcp"
-                Host          = $BlockMastersCoins_Host
-                Port          = $BlockMastersCoins_Port
+                Host          = $PoolCoins_Host
+                Port          = $PoolCoins_Port
                 User          = Get-Variable $_ -ValueOnly
                 Pass          = "$Worker,c=$_"
-                Region        = $BlockMastersCoins_Region_Norm
+                Region        = $PoolCoins_Region_Norm
                 SSL           = $false
                 Updated       = $Stat.Updated
             }
