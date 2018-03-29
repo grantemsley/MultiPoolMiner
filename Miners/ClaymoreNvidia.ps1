@@ -135,7 +135,7 @@ if ($Info) {
         MinerFileVersion = $MinerFileVersion
         MinerBinaryInfo  = $MinerBinaryInfo
         Uri              = $Uri
-        UriInfo          = $UriManual
+        UriDescription   = $UriManual
         Type             = $Type
         Path             = $Path
         Port             = $Port
@@ -145,14 +145,14 @@ if ($Info) {
                 Name        = "Uri"
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.Uri
-                Info        = "MPM automatically downloads the miner binaries from this link and unpacks them.`nFiles stored on Google Drive or Mega links cannot be downloaded automatically.`n"
+                Description = "MPM automatically downloads the miner binaries from this link and unpacks them.`nFiles stored on Google Drive or Mega links cannot be downloaded automatically.`n"
                 Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README). "
             },
             [PSCustomObject]@{
                 Name        = "UriManual"
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.UriManual
-                Info        = "Download link for manual miner binaries download.`nUnpack downloaded files to '$Path'."
+                Description = "Download link for manual miner binaries download.`nUnpack downloaded files to '$Path'."
                 Tooltip     = "See README for manual download and unpack instruction."
             },
             [PSCustomObject]@{
@@ -162,7 +162,7 @@ if ($Info) {
                 Max         = 100
                 Fractions   = 2
                 Default     = $DefaultMinerConfig.MinerFeeInPercentSingleMode
-                Info        = "Single mode: 1%, dual mode 1.5%, 2GB cards: 0%; Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee. "
+                Description = "Single mode: 1%, dual mode 1.5%, 2GB cards: 0%; Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee. "
                 Tooltip     = "Fees will not be deducted if `$Miners.IgnoreMinerFees is set to 'true'"
             },
             [PSCustomObject]@{
@@ -172,7 +172,7 @@ if ($Info) {
                 Max         = 100
                 Fractions   = 2
                 Default     = $DefaultMinerConfig.MinerFeeInPercentDualMode
-                Info        = "Dual mode 1.5%, 2GB cards: 0%; Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee. "
+                Description = "Dual mode 1.5%, 2GB cards: 0%; Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee. "
                 Tooltip     = "Fees will not be deducted if `$Miners.IgnoreMinerFees is set to 'true'"
             },
             [PSCustomObject]@{
@@ -180,7 +180,7 @@ if ($Info) {
                 Required    = $false
                 ControlType = "string[0,$($Devices.$Type.count)]"
                 Default     = $DefaultMinerConfig.IgnoreHWModel
-                Info        = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'.`nLeave empty to mine with all available hardware. "
+                Description = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'.`nLeave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
             }
             [PSCustomObject]@{
@@ -190,21 +190,21 @@ if ($Info) {
                 Min         = 0
                 Max         = $Devices.$Type.DeviceIDs
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
-                Info        = "List of device IDs you do not want to mine with this miner, e.g. '0'.`nLeave empty to mine with all available hardware. "
+                Description = "List of device IDs you do not want to mine with this miner, e.g. '0'.`nLeave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`nDo disable an algorithm prefix it with '#'"})"
             },
             [PSCustomObject]@{
                 Name        = "Commands"
                 ControlType = "PSCustomObject[1,]"
                 Default     = $DefaultMinerConfig.Commands
-                Info        = "Each line defines an algorithm that can be mined with this miner.`nFor dual mining the two algorithms are separated with ';', intensity parameter for the secondary algorithm is defined after the ':'.`nOptional miner parameters can be added after the '=' sign. "
+                Description = "Each line defines an algorithm that can be mined with this miner.`nFor dual mining the two algorithms are separated with ';', intensity parameter for the secondary algorithm is defined after the ':'.`nOptional miner parameters can be added after the '=' sign. "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space`nTo disable an algorithm prefix it with '#'"
             }
             [PSCustomObject]@{
                 Name        = "CommonCommands"
                 ControlType = "string[2]" # array, first value for main algo, second value for secondary algo
                 Default     = $DefaultMinerConfig.CommonCommands
-                Info        = "Optional miner parameter that gets appended to the resulting miner command line for all algorithms.\nThe first value applies to the main algorithm, the second value applies to the secondary algorithm. "
+                Description = "Optional miner parameter that gets appended to the resulting miner command line for all algorithms.\nThe first value applies to the main algorithm, the second value applies to the secondary algorithm. "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space (a notable exception is the payout currency, e.g. ',c=LTC')"
             },
             [PSCustomObject]@{
@@ -212,7 +212,7 @@ if ($Info) {
                 Required    = $false
                 ControlType = "PSCustomObject[0,]"
                 Default     = $DefaultMinerConfig.DoNotMine
-                Info        = "Optional filter parameter per algorithm and pool. MPM will not use the miner for this algorithm at the listed pool. "
+                Description = "Optional filter parameter per algorithm and pool. MPM will not use the miner for this algorithm at the listed pool. "
                 Tooltip     = "Syntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")"
             }
         )
