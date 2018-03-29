@@ -113,7 +113,7 @@ if ($Info) {
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"
                 Required    = $false
-                ControlType = "string[]"
+                ControlType = "string[0,$($Devices.$Type.count)]"
                 Default     = $DefaultMinerConfig.IgnoreHWModel
                 Info        = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'.`nLeave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
@@ -121,7 +121,9 @@ if ($Info) {
             [PSCustomObject]@{
                 Name        = "IgnoreDeviceID"
                 Required    = $false
-                ControlType = "int[];0;99"
+                ControlType = "int[0,$($Devices.$Type.DeviceIDs)]"
+                Min         = 0
+                Max         = $Devices.$Type.DeviceIDs
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
                 Info        = "List of device IDs you do not want to mine with this miner, e.g. '0'.`nLeave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
@@ -129,10 +131,10 @@ if ($Info) {
             [PSCustomObject]@{
                 Name        = "Commands"
                 Required    = $false
-                ControlType = "PSCustomObject"
+                ControlType = "PSCustomObject[1,]"
                 Default     = $DefaultMinerConfig.Commands
                 Info        = "Each line defines an algorithm that can be mined with this miner.`nOptional miner parameters can be added after the '=' sign. "
-                Tooltip     = "Note: Most extra parameters must be prefixed with a space"
+                Tooltip     = "Note: Most extra parameters must be prefixed with a space`nTo disable an algorithm prefix it with '#'"
             }
             [PSCustomObject]@{
                 Name        = "CommonCommands"
@@ -145,10 +147,10 @@ if ($Info) {
             [PSCustomObject]@{
                 Name        = "DoNotMine"
                 Required    = $false
-                ControlType = "PSCustomObject"
+                ControlType = "PSCustomObject[0,]"
                 Default     = $DefaultMinerConfig.DoNotMine
-                Info        = "Optional filter parameter per algorithm and pool. MPM will not use the miner for this algorithm at the listed pool.`nSyntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")'. "
-                Tooltip     = "Not all pools are compatible with all miners and algorithms"
+                Info        = "Optional filter parameter per algorithm and pool. MPM will not use the miner for this algorithm at the listed pool. "
+                Tooltip     = "Syntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")"
             }
         )
     }

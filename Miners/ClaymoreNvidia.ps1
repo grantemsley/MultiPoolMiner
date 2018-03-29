@@ -360,3 +360,4 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
     }
     $Port++ # next higher port for next device
 }
+Sleep 0
