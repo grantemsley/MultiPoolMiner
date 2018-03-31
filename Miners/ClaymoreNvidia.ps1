@@ -11,8 +11,8 @@ param(
 if (-not $Config.Miners) {return}
 
 # Hardcoded per miner version, do not allow user to change in config
-$MinerFileVersion = "2018032200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.5"
+$MinerFileVersion = "2018033100" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.6"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\Ethash-Claymore\EthDcrMiner64.exe"
 $Type = "NVIDIA"
@@ -32,7 +32,6 @@ $DefaultMinerConfig = [PSCustomObject]@{
     "Port" = 23333
     "MinerFeeInPercentSingleMode" = 1.0
     "MinerFeeInPercentDualMode" = 1.5
-    "MinerFeeInfo" = "Single mode: 1%, dual mode 1.5%, 2GB cards: 0%; Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee."
     #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
     "IgnoreHWModel" = @()
     #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
@@ -73,9 +72,7 @@ $DefaultMinerConfig = [PSCustomObject]@{
         "ethash2gb;pascal:80" = ""
     }
     "CommonCommands" = @(" -eres 0 -logsmaxsize 1", "") # array, first value for main algo, sesond value for secondary algo
-    "DoNotMine" = [PSCustomObject]@{ 
-        # Syntax: "Algorithm" = "Poolname"
-        #"ethash2gb;pascal:80" = @("Zpool", "ZpoolCoins")
+    "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
     }
 }
 
@@ -99,12 +96,14 @@ else {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
                 if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
-                # Remove benchmark files, could by fine grained to remove bm files for some algos
+                # Remove benchmark files
                 # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+                # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             }
 
-            # Always update MinerFileVersion and download link, -Force to enforce setting
+            # Always update MinerFileVersion, MinerBinaryInfo and download link, -Force to enforce setting
             $NewConfig.Miners.$Name | Add-member MinerFileVersion "$MinerFileVersion" -Force
+            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo "$MinerBinaryInfo" -Force
             $NewConfig.Miners.$Name | Add-member Uri "$Uri" -Force
 
             # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
@@ -143,6 +142,7 @@ if ($Info) {
         Settings         = @(
             [PSCustomObject]@{
                 Name        = "Uri"
+                Required    = $false
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.Uri
                 Description = "MPM automatically downloads the miner binaries from this link and unpacks them.`nFiles stored on Google Drive or Mega links cannot be downloaded automatically.`n"
@@ -150,6 +150,7 @@ if ($Info) {
             },
             [PSCustomObject]@{
                 Name        = "UriManual"
+                Required    = $false
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.UriManual
                 Description = "Download link for manual miner binaries download.`nUnpack downloaded files to '$Path'."
@@ -157,22 +158,24 @@ if ($Info) {
             },
             [PSCustomObject]@{
                 Name        = "MinerFeeInPercentSingleMode"
+                Required    = $false
                 ControlType = "double"
                 Min         = 0
                 Max         = 100
                 Fractions   = 2
                 Default     = $DefaultMinerConfig.MinerFeeInPercentSingleMode
-                Description = "Single mode: 1%, dual mode 1.5%, 2GB cards: 0%`n Fees will not be deducted if `$Miners.IgnoreMinerFees is set to 'true'. "
+                Description = "Single mode: 1%, dual mode 1.5%, 2GB cards: 0%`nSet to 0 to ignore miner fees"
                 Tooltip     = "Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee"
             },
             [PSCustomObject]@{
                 Name        = "MinerFeeInPercentDualMode"
+                Required    = $false
                 ControlType = "double"
                 Min         = 0
                 Max         = 100
                 Fractions   = 2
                 Default     = $DefaultMinerConfig.MinerFeeInPercentDualMode
-                Description = "Dual mode 1.5%, 2GB cards: 0%`nFees will not be deducted if `$Miners.IgnoreMinerFees is set to 'true'. "
+                Description = "Dual mode 1.5%, 2GB cards: 0%`nSet to 0 to ignore miner fees"
                 Tooltip     = "Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee"
             },
             [PSCustomObject]@{
@@ -281,12 +284,12 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                 $Miner_Name = "$($Miner_Name)$($MainAlgorithm_Norm -replace '^ethash', '')"
                 $HashRateMainAlgorithm = ($Stats."$($Miner_Name)_$($MainAlgorithm_Norm)_HashRate".Week)
 
-                if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.$MinerFeeInPercentSingleMode -eq 0) {
-                    $Fees = @($null)
-                }
-                else {
+                if (-not $Config.IgnoreMinerFee -and $Config.Miners.$Name.MinerFeeInPercentSingleMode -gt 0) {
                     $HashRateMainAlgorithm = $HashRateMainAlgorithm * (1 - $Config.Miners.$Name.MinerFeeInPercentSingleMode / 100)
                     $Fees = @($Config.Miners.$Name.MinerFeeInPercentSingleMode)
+                }
+                else {
+                    $Fees = @($null)
                 }
 
                 # Single mining mode
@@ -315,12 +318,12 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                 $HashRateSecondaryAlgorithm = ($Stats."$($Miner_Name)_$($SecondaryAlgorithm_Norm)_HashRate".Week)
 
                 #Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee
-                if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.MinerFeeInPercentDualMode -eq 0) {
-                    $Fees = @($null)
-                }
-                else {
+                if (-not $Config.IgnoreMinerFee -and $Config.Miners.$Name.MinerFeeInPercentDualMode -gt 0) {
                     $HashRateMainAlgorithm = $HashRateMainAlgorithm * (1 - $Config.Miners.$Name.MinerFeeInPercentDualMode / 100)
                     $Fees = @($Config.Miners.$Name.MinerFeeInPercentDualMode, 0)
+                }
+                else {
+                    $Fees = @($null)
                 }
 
                 if ($Pools.$SecondaryAlgorithm_Norm -and $SecondaryAlgorithmIntensity -gt 0) { # must have a valid pool to mine and positive intensity
@@ -360,4 +363,3 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
     }
     $Port++ # next higher port for next device
 }
-Sleep 0

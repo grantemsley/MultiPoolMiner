@@ -65,9 +65,7 @@ $DefaultMinerConfig = [PSCustomObject]@{
         "x17" = "" #X17
     }
     "CommonCommands" = " --submit-stale"
-    "DoNotMine" = [PSCustomObject]@{ 
-        # Syntax: "Algorithm" = "Poolname"
-        #"x17" = @("Zpool", "ZpoolCoins")
+    "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
     }
 }
 
@@ -91,12 +89,14 @@ else {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
                 if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
-                # Remove benchmark files, could by fine grained to remove bm files for some algos
+                # Remove benchmark files
                 # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+                # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             }
 
-            # Always update MinerFileVersion and download link, -Force to enforce setting
+            # Always update MinerFileVersion, MinerBinaryInfo and download link, -Force to enforce setting
             $NewConfig.Miners.$Name | Add-member MinerFileVersion "$MinerFileVersion" -Force
+            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo "$MinerBinaryInfo" -Force
             $NewConfig.Miners.$Name | Add-member Uri "$Uri" -Force
 
             # Save config to file

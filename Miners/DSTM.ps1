@@ -41,9 +41,7 @@ $DefaultMinerConfig = [PSCustomObject]@{
         "equihash" = @() #Equihash
     }
     "CommonCommands" = " --color"
-    "DoNotMine" = [PSCustomObject]@{ 
-        # Syntax: "Algorithm" = "Poolname"
-        #"equihash" = @("Zpool", "ZpoolCoins")
+    "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
     }
 }
 
@@ -67,12 +65,14 @@ else {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
                 if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
-                # Remove benchmark files, could by fine grained to remove bm files for some algos
+                # Remove benchmark files
                 # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+                # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             }
 
-            # Always update MinerFileVersion and download link, -Force to enforce setting
+            # Always update MinerFileVersion, MinerBinaryInfo and download link, -Force to enforce setting
             $NewConfig.Miners.$Name | Add-member MinerFileVersion "$MinerFileVersion" -Force
+            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo "$MinerBinaryInfo" -Force
             $NewConfig.Miners.$Name | Add-member Uri "$Uri" -Force
 
             # Save config to file
@@ -112,6 +112,17 @@ if ($Info) {
                 Default     = $DefaultMinerConfig.UriManual
                 Description = "Download link for manual miner binaries download.`nUnpack downloaded files to '$Path'."
                 Tooltip     = "See README for manual download and unpack instruction."
+            },
+            [PSCustomObject]@{
+                Name        = "MinerFeeInPercent"
+                Required    = $false
+                ControlType = "double"
+                Min         = 0
+                Max         = 100
+                Fractions   = 2
+                Default     = $DefaultMinerConfig.MinerFeeInPercent
+                Description = "Contains $($DefaultMinerConfig.MinerFeeInPercent) dev fee`nSet to 0 to ignore miner fees"
+                Tooltip     = "Miner does not allow to disable miner dev fee"
             },
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"

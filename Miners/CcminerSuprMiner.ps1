@@ -11,13 +11,13 @@ param(
 if (-not $Config.Miners) {return}
 
 # Hardcoded per miner version, do not allow user to change in config
-$MinerFileVersion = "2018032200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "suprminer 1.2.7 (March 2018) optimized x16r algo without any dev fee"
+$MinerFileVersion = "2018033100" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "suprminer 1.3.7 (March 2018) optimized x16r algo without any dev fee"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\NVIDIA-SuprMiner\ccminer.exe"
 $Type = "NVIDIA"
 $API = "Ccminer"
-$Uri = "https://github.com/ocminer/suprminer/releases/download/1.2/suprminer-1.2.7z" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+$Uri = "https://github.com/ocminer/suprminer/releases/download/1.3/suprminer-1.3.7z" # if new MinerFileVersion and new Uri MPM will download and update new binaries
 $UriManual = ""    
 $WebLink = "https://github.com/ocminer/suprminer" # See here for more information about the miner
 
@@ -39,9 +39,7 @@ $DefaultMinerConfig = [PSCustomObject]@{
         "x16s"  = "" #X16S PigeonCoin
     }
     "CommonCommands" = ""
-    "DoNotMine" = [PSCustomObject]@{ 
-        # Syntax: "Algorithm" = "Poolname"
-        #"neoscrypt" = @("Zpool", "ZpoolCoins")
+    "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
     }
 }
 
@@ -65,12 +63,14 @@ else {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
                 if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
-                # Remove benchmark files, could by fine grained to remove bm files for some algos
-                # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+                # Remove benchmark files
+                if (Test-Path ".\Stats\$($Name)_X16r_hashrate.txt") {Remove-Item ".\Stats\$($Name)_X16r_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+                if (Test-Path ".\Stats\$($Name)-*_X16r_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_X16r_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             }
 
-            # Always update MinerFileVersion and download link, -Force to enforce setting
+            # Always update MinerFileVersion, MinerBinaryInfo and download link, -Force to enforce setting
             $NewConfig.Miners.$Name | Add-member MinerFileVersion "$MinerFileVersion" -Force
+            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo "$MinerBinaryInfo" -Force
             $NewConfig.Miners.$Name | Add-member Uri "$Uri" -Force
 
             # Save config to file

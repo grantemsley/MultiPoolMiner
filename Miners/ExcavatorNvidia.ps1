@@ -61,9 +61,7 @@ $DefaultMinerConfig = [PSCustomObject]@{
         "pascal:2"          = @() #Pascal
     }
     "CommonCommands" = ""
-    "DoNotMine" = [PSCustomObject]@{ 
-        # Syntax: "Algorithm" = "Poolname"
-        #"pascal:2" = @("Zpool", "ZpoolCoins")
+    "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
     }
 }
 
@@ -87,12 +85,14 @@ else {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
                 if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
-                # Remove benchmark files, could by fine grained to remove bm files for some algos
+                # Remove benchmark files
                 # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+                # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             }
 
-            # Always update MinerFileVersion and download link, -Force to enforce setting
+            # Always update MinerFileVersion, MinerBinaryInfo and download link, -Force to enforce setting
             $NewConfig.Miners.$Name | Add-member MinerFileVersion "$MinerFileVersion" -Force
+            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo "$MinerBinaryInfo" -Force
             $NewConfig.Miners.$Name | Add-member Uri "$Uri" -Force
 
             # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
@@ -127,6 +127,7 @@ if ($Info) {
         Settings         = @(
             [PSCustomObject]@{
                 Name        = "Uri"
+                Required    = $false
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.Uri
                 Description = "MPM automatically downloads the miner binaries from this link and unpacks them.`nFiles stored on Google Drive or Mega links cannot be downloaded automatically.`n"
@@ -134,10 +135,11 @@ if ($Info) {
             },
             [PSCustomObject]@{
                 Name        = "UriManual"
+                Required    = $false
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.UriManual
-                Description = "Due to NiceHash special EULA excavator must be downloaded and extracted manually.`nUnpack downloaded files to '$Path'."
-                Tooltip     = "See README for manual download and unpack instruction."
+                Description = "Due to the NiceHash special EULA excavator must be downloaded and extracted manually.`nUnpack downloaded files to '$Path'."
+                Tooltip     = "See README for manual download and unpack instructions."
             },
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"
@@ -159,6 +161,7 @@ if ($Info) {
             },
             [PSCustomObject]@{
                 Name        = "Commands"
+                Required    = $true
                 ControlType = "PSCustomObject"
                 Default     = $DefaultMinerConfig.Commands
                 Description = "Each line defines an algorithm that can be mined with this miner.`nThe number of threads (default:1) are defined after the ':'.`nOptional miner parameters can be added after the '=' sign. "
@@ -166,6 +169,7 @@ if ($Info) {
             },
             [PSCustomObject]@{
                 Name        = "CommonCommands"
+                Required    = $false
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.CommonCommands
                 Description = "Optional miner parameter that gets appended to the resulting miner command line (for all algorithms). "
