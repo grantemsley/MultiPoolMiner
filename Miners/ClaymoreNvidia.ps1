@@ -162,8 +162,8 @@ if ($Info) {
                 Max         = 100
                 Fractions   = 2
                 Default     = $DefaultMinerConfig.MinerFeeInPercentSingleMode
-                Description = "Single mode: 1%, dual mode 1.5%, 2GB cards: 0%; Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee. "
-                Tooltip     = "Fees will not be deducted if `$Miners.IgnoreMinerFees is set to 'true'"
+                Description = "Single mode: 1%, dual mode 1.5%, 2GB cards: 0%`n Fees will not be deducted if `$Miners.IgnoreMinerFees is set to 'true'. "
+                Tooltip     = "Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee"
             },
             [PSCustomObject]@{
                 Name        = "MinerFeeInPercentDualMode"
@@ -172,8 +172,8 @@ if ($Info) {
                 Max         = 100
                 Fractions   = 2
                 Default     = $DefaultMinerConfig.MinerFeeInPercentDualMode
-                Description = "Dual mode 1.5%, 2GB cards: 0%; Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee. "
-                Tooltip     = "Fees will not be deducted if `$Miners.IgnoreMinerFees is set to 'true'"
+                Description = "Dual mode 1.5%, 2GB cards: 0%`nFees will not be deducted if `$Miners.IgnoreMinerFees is set to 'true'. "
+                Tooltip     = "Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee"
             },
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"
@@ -281,7 +281,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                 $Miner_Name = "$($Miner_Name)$($MainAlgorithm_Norm -replace '^ethash', '')"
                 $HashRateMainAlgorithm = ($Stats."$($Miner_Name)_$($MainAlgorithm_Norm)_HashRate".Week)
 
-                if ($Config.IgnoreMinerFees -or $Config.Miners.$Name.$MinerFeeInPercentSingleMode -eq 0) {
+                if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.$MinerFeeInPercentSingleMode -eq 0) {
                     $Fees = @($null)
                 }
                 else {
@@ -315,7 +315,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                 $HashRateSecondaryAlgorithm = ($Stats."$($Miner_Name)_$($SecondaryAlgorithm_Norm)_HashRate".Week)
 
                 #Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee
-                if ($Config.IgnoreMinerFees -or $Config.Miners.$Name.MinerFeeInPercentDualMode -eq 0) {
+                if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.MinerFeeInPercentDualMode -eq 0) {
                     $Fees = @($null)
                 }
                 else {

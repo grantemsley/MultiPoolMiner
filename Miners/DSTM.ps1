@@ -201,7 +201,7 @@ $Devices.$Type | ForEach-Object {
 
         $HashRate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
 
-        if ($Config.IgnoreMinerFees -or $Config.Miners.$Name.$MinerFeeInPercent -eq 0) {
+        if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.$MinerFeeInPercent -eq 0) {
             $Fees = @($null)
         }
         else {
