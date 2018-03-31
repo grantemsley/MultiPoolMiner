@@ -157,7 +157,6 @@ $Devices.$Type | ForEach-Object {
     if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
     $DeviceIDs = @() # array of all devices, ids will be in hex format
-    $DeviceIDs2gb = @() # array of all devices with less than 3MiB VRAM, ids will be in hex format
 
     # Get DeviceIDs, filter out all disabled hw models and IDs
     if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) { # separate miner instance per hardware model
