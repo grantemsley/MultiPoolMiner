@@ -45,11 +45,11 @@ $DefaultMinerConfig = [PSCustomObject]@{
 
 if (-not $Config.Miners.$Name.MinerFileVersion) {
     # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-    $NewConfig = Get-Content -Path 'config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
     # Apply default
     $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
     # Save config to file
-    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "config.txt" -Force -ErrorAction Stop
+    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
     # Apply config, must re-read from file to expand variables
     $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
 }

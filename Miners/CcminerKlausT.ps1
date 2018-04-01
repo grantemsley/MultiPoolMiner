@@ -46,11 +46,13 @@ $DefaultMinerConfig = [PSCustomObject]@{
 
 if (-not $Config.Miners.$Name.MinerFileVersion) {
     # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-    $NewConfig = Get-Content -Path 'config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
     # Apply default
     $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
     # Save config to file
-    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "config.txt" -Force -ErrorAction Stop
+    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
+    # Update log
+    Write-Log -Level Info "Added miner config ($Name [$MinerFileVersion]) to Config.txt. "
     # Apply config, must re-read from file to expand variables
     $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
 }
@@ -64,6 +66,8 @@ else {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
                 if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
+                # Update log
+                Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
                 # Remove benchmark files
                 # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
                 # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
@@ -76,6 +80,8 @@ else {
 
             # Save config to file
             $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
+            # Update log
+            Write-Log -Level Info "Updated miner config ($Name [$MinerFileVersion]) in Config.txt. "
             # Apply config, must re-read from file to expand variables
             $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
         }
