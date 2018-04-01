@@ -71,6 +71,14 @@ if ($Info) {
             Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         },
         [PSCustomObject]@{
+            Name        = "DisabledCoin"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of disabled coins for this miner. "
+            Tooltip     = "Case insensitive, leave empty to mine all coins"
+        },
+        [PSCustomObject]@{
             Name        = "PoolFee"
             Required    = $false
             ControlType = "double"
