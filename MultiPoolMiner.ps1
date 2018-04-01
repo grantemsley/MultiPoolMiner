@@ -272,6 +272,9 @@ while ($true) {
         } | ForEach-Object {$_.Content | Add-Member Name $_.Name -PassThru}
     }
 
+    #Give API access to the current running configuration
+    $API.NewPools = $NewPools
+    
     # This finds any pools that were already in $AllPools (from a previous loop) but not in $NewPools. Add them back to the list. Their API likely didn't return in time, but we don't want to cut them off just yet
     # since mining is probably still working.  Then it filters out any algorithms that aren't being used.
     $AllPools = @($NewPools) + @(Compare-Object @($NewPools | Select-Object -ExpandProperty Name -Unique) @($AllPools | Select-Object -ExpandProperty Name -Unique) | Where-Object SideIndicator -EQ "=>" | Select-Object -ExpandProperty InputObject | ForEach-Object {$AllPools | Where-Object Name -EQ $_}) | 
@@ -280,6 +283,10 @@ while ($true) {
         Where-Object {$Config.ExcludePoolName.Count -eq 0 -or (Compare-Object $Config.ExcludePoolName $_.Name -IncludeEqual -ExcludeDifferent | Measure-Object).Count -eq 0} |
         Where-Object {$Config.ExcludeCurrency.Count -eq 0 -or (Compare-Object $Config.ExcludeCurrency $_.Currency -IncludeEqual -ExcludeDifferent | Measure-Object).Count -eq 0} | 
         Where-Object {-not $_.Workers -or $_.Workers -ge $Config.MinWorker}
+    
+    #Give API access to the current running configuration
+    $API.AllPools = $AllPools
+    
     #Apply watchdog to pools
     $AllPools = $AllPools | Where-Object {
         $Pool = $_

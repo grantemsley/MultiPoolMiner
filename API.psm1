@@ -61,6 +61,14 @@
                     $Data = $API.Pools | ConvertTo-Json
                     Break
                 }
+                "/newpools" {
+                    $Data = $API.NewPools | ConvertTo-Json
+                    Break
+                }
+                "/allpools" {
+                    $Data = $API.AllPools | ConvertTo-Json
+                    Break
+                }
                 "/miners" {
                     $Data = $API.Miners | ConvertTo-Json
                     Break
