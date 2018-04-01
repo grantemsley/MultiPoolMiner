@@ -6,106 +6,177 @@ param(
     [alias("WorkerName")]
     [String]$Worker, 
     [TimeSpan]$StatSpan,
-    [bool]$Info = $false
+    [bool]$Info = $false,
+    [PSCustomObject]$Config
 )
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
-$Pool_Request = [PSCustomObject]@{}
+# Default pool config values, these need to be present for pool logic
+$Default_PoolFee = 0.9
+$Config.Pools.$Name | Add-Member PoolFee $Default_PoolFee -ErrorAction SilentlyContinue # ignore error if value exists
+
+$Pool_APIUrl = "http://miningpoolhub.com/index.php?page=api&action=getautoswitchingandprofitsstatistics"
+
+$APIRequest = [PSCustomObject]@{}
 
 if ($Info) {
     # Just return info about the pool for use in setup
-    $SupportedAlgorithms = @()
+    $Description  = "Payout and automatic conversion is configured through their website"
+    $WebSite      = "https://miningpoolhub.com"
+    $Note         = "Registration required" 
+
     try {
-        $Pool_Request = Invoke-RestMethod "http://miningpoolhub.com/index.php?page=api&action=getautoswitchingandprofitsstatistics" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-        $Pool_Request.return | Foreach-Object {
-            $SupportedAlgorithms += Get-Algorithm $_.algo
-        }
-    } Catch {
-        Write-Warning "Unable to load supported algorithms for $Name - may not be able to configure all pool settings"
-        $SupportedAlgorithms = @()
+        $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    } 
+    Catch {
+        Write-Warning "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
     }
+
+    # Define the settings this pool uses.
+    $SupportedAlgorithms = @($APIRequest.return | Foreach-Object {Get-Algorithm $_.algo} | Select-Object -Unique)
+    $Settings = @(
+         [PSCustomObject]@{
+            Name        = "Username"
+            Required    = $true
+            Default     = $User
+            ControlType = "string"
+            Description = "$($Name) username"
+            Tooltip     = "Registration at pool required"    
+        },
+        [PSCustomObject]@{
+            Name        = "Worker"
+            Required    = $true
+            Default     = $Worker
+            ControlType = "string"
+            Description = "Worker name to report to pool "
+            Tooltip     = ""    
+        },
+         [PSCustomObject]@{
+            Name        = "API_Key"
+            Required    = $false
+            Default     = $Worker
+            ControlType = "string"
+            Description = "Used to retrieve balances"
+            Tooltip     = "API key can be found on the web page"    
+        },
+        [PSCustomObject]@{
+            Name        = "DisabledAlgorithm"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of disabled algorithms for this miner. "
+            Tooltip     = "Case insensitive, leave empty to mine all algorithms"
+        },
+        [PSCustomObject]@{
+            Name        = "PoolFee"
+            Required    = $false
+            ControlType = "double"
+            Min         = 0
+            Max         = 100
+            Fractions   = 2
+            Default     = $Default_PoolFee
+            Description = "Pool fee (in %)`nSet to 0 to ignore pool fees"
+            Tooltip     = "$($Name) applies same fee for all algorithms"
+        }
+    )
 
     return [PSCustomObject]@{
-        Name = $Name
-        Website = "https://miningpoolhub.com"
-        Description = "Payout and automatic conversion is configured through their website"
-        Algorithms = $SupportedAlgorithms
-        Note = "Registration required" # Note is shown beside each pool in setup
-        # Define the settings this pool uses.
-        Settings = @(
-            @{Name='Username'; Required=$true; Description='MiningPoolHub username'},
-            @{Name='Worker'; Required=$true; Description='Worker name to report to pool'},
-            @{Name='API_Key'; Required=$false; Description='Used to retrieve balances'}
-        )
+        Name        = $Name
+        WebSite     = $WebSite
+        Description = $Description
+        Algorithms  = $SupportedAlgorithms
+        Note        = $Note
+        Settings    = $Settings
     }
 }
 
-try {
-    $Pool_Request = Invoke-RestMethod "http://miningpoolhub.com/index.php?page=api&action=getautoswitchingandprofitsstatistics" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-}
-catch {
-    Write-Log -Level Warn "Pool API ($Name) has failed. "
-    return
-}
+if ($User) {
+    try {
+        $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    }
+    catch {
+        Write-Log -Level Warn "Pool API ($Name) has failed. "
+        return
+    }
 
-if (($Pool_Request.return | Measure-Object).Count -le 1) {
-    Write-Log -Level Warn "Pool API ($Name) returned nothing. "
-    return
-}
+    if (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
+        Write-Log -Level Warn "Pool API ($Name) returned nothing. "
+        return
+    }
 
-$Pool_Regions = "europe", "us", "asia"
+    $Regions = "europe", "us", "asia"
 
-$Pool_Request.return | Where-Object {$DisabledCoins -inotcontains $_.current_mining_coin -and $DisabledAlgorithms -inotcontains (Get-Algorithm $_.algo)} | ForEach-Object {
-    $Pool_Hosts = $_.all_host_list.split(";")
-    $Pool_Port = $_.algo_switch_port
-    $Pool_Algorithm = $_.algo
-    $Pool_Algorithm_Norm = Get-Algorithm $Pool_Algorithm
-    $Pool_Coin = (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " "
+    $APIRequest.return | 
+        # filter disabled algorithms
+        Where-Object {$Config.Pools.$Name.DisabledAlgorithm -inotcontains (Get-Algorithm $_)} |
 
-    if ($Pool_Algorithm_Norm -eq "Sia") {$Pool_Algorithm_Norm = "SiaClaymore"} #temp fix
+        # filter disabled coins
+        Where-Object {$Config.Pools.$Name.DisabledCoin -inotcontains (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " "} |
+        
+        ForEach-Object {
+        $Hosts          = $_.all_host_list.split(";")
+        $Port           = $_.algo_switch_port
+        $Algorithm      = $_.algo
+        $Algorithm_Norm = Get-Algorithm $Algorithm
+        $Coin           = (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " "
+        
+        # leave fee empty if IgnorePoolFee
+        if (-not $Config.IgnorePoolFee -and $Config.Pools.$Name.PoolFee -gt 0) {
+            $FeeInPercent = $Config.Pools.$Name.PoolFee
+        }
+        
+        if ($FeeInPercent) {
+            $FeeFactor = 1 - $FeeInPercent / 100
+        }
+        else {
+            $FeeFactor = 1
+        }
 
-    $Divisor = 1000000000
+        if ($Algorithm_Norm -eq "Sia") {$Algorithm_Norm = "SiaClaymore"} #temp fix
 
-    $Stat = Set-Stat -Name "$($Name)_$($Pool_Algorithm_Norm)_Profit" -Value ([Double]$_.profit / $Divisor) -Duration $StatSpan -ChangeDetection $true
+        $Divisor = 1000000000
 
-    $Pool_Regions | ForEach-Object {
-        $Pool_Region = $_
-        $Pool_Region_Norm = Get-Region $Pool_Region
+        $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$_.profit / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
-        if ($User) {
+        $Regions | ForEach-Object {
+            $Region = $_
+            $Region_Norm = Get-Region $Region
+
             [PSCustomObject]@{
-                Algorithm     = $Pool_Algorithm_Norm
-                Info          = $Pool_Coin
-                Price         = $Stat.Live
-                StablePrice   = $Stat.Week
+                Algorithm     = $Algorithm_Norm
+                Info          = $Coin
+                Price         = $Stat.Live * $FeeFactor
+                StablePrice   = $Stat.Week * $FeeFactor
                 MarginOfError = $Stat.Week_Fluctuation
                 Protocol      = "stratum+tcp"
-                Host          = $Pool_Hosts | Sort-Object -Descending {$_ -ilike "$Pool_Region*"} | Select-Object -First 1
-                Port          = $Pool_Port
+                Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
+                Port          = $Port
                 User          = "$User.$Worker"
                 Pass          = "x"
-                Region        = $Pool_Region_Norm
+                Region        = $Region_Norm
                 SSL           = $false
                 Updated       = $Stat.Updated
+                Fee           = $FeeInPercent
             }
 
-            if ($Pool_Algorithm_Norm -eq "Cryptonight" -or $Pool_Algorithm_Norm -eq "Equihash") {
+            if ($Algorithm_Norm -eq "Cryptonight" -or $Algorithm_Norm -eq "Equihash") {
                 [PSCustomObject]@{
-                    Algorithm     = $Pool_Algorithm_Norm
-                    Info          = $Pool_Coin
-                    Price         = $Stat.Live
-                    StablePrice   = $Stat.Week
+                    Algorithm     = $Algorithm_Norm
+                    Info          = $Coin
+                    Price         = $Stat.Live * $FeeFactor
+                    StablePrice   = $Stat.Week * $FeeFactor
                     MarginOfError = $Stat.Week_Fluctuation
                     Protocol      = "stratum+ssl"
-                    Host          = $Pool_Hosts | Sort-Object -Descending {$_ -ilike "$Pool_Region*"} | Select-Object -First 1
-                    Port          = $Pool_Port
+                    Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
+                    Port          = $Port
                     User          = "$User.$Worker"
                     Pass          = "x"
-                    Region        = $Pool_Region_Norm
+                    Region        = $Region_Norm
                     SSL           = $true
                     Updated       = $Stat.Updated
-                }
+                    Fee           = $FeeInPercent
+               }
             }
         }
     }

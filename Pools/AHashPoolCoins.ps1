@@ -12,25 +12,27 @@ param(
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
-$Pool_APIUrl =  "http://www.ahashpool.com/api/status"
+$Pool_APIUrl           = "http://www.ahashpool.com/api/status"
+$Pool_CurrenciesAPIUrl = "http://www.ahashpool.com/api/currencies"
 
-$APIRequest = [PSCustomObject]@{}
+$APIRequest           = [PSCustomObject]@{}
+$APICurrenciesRequest = [PSCustomObject]@{}
 
 if ($Info) {
     # Just return info about the pool for use in setup
     $Description  = "Pool allows payout in BTC only"
-    $WebSite      = "https://zpool.com"
-    $Note         = "To receive payouts specify a valid BTC wallet" 
+    $WebSite      = "http://www.ahashpool.com"
+    $Note         = "To receive payouts specify at valid BTC wallet" # Note is shown beside each pool in setup
 
     try {
-        $Pool_APIUrl = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+        $APICurrenciesRequest = Invoke-RestMethod $Pool_CurrenciesAPIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
     } 
     Catch {
         Write-Warning "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
     }
 
     # Define the settings this pool uses.
-    $SupportedAlgorithms = @($Pool_APIUrl | Foreach-Object {Get-Algorithm $Pool_APIUrl.$_.algo} | Select-Object -Unique)
+    $SupportedAlgorithms = @($Payout_Currencies | Foreach-Object {Get-Algorithm $APICurrenciesRequest.$_.algo} | Select-Object -Unique)
     $Settings = @(
         [PSCustomObject]@{
             Name        = "Worker"
@@ -64,15 +66,16 @@ if ($Info) {
             Description = "Tick to disable pool fee calculation for this pool"
             Tooltip     = "If ticked MPM will NOT take pool fees into account"
         },
-        [PSCustomObject]@{
-            Name        = "MinWorker"
-            ControlType = "int"
-            Min         = 0
-            Max         = 999
-            Default     = $Config.MinWorker
-            Description = "Minimum number of workers that must be mining an alogrithm.`nLow worker numbers will cause long delays until payout. "
-            Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
-        },
+# AHashPool does not list workers in currencies API 
+#        [PSCustomObject]@{
+#            Name        = "MinWorker"
+#            ControlType = "int"
+#            Min         = 0
+#            Max         = 999
+#            Default     = $Config.MinWorker
+#            Description = "Minimum number of workers that must be mining an alogrithm.`nLow worker numbers will cause long delays until payout. "
+#            Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
+#        },
         [PSCustomObject]@{
             Name        = "BTC"
             Required    = $false
@@ -94,43 +97,56 @@ if ($Info) {
 }
 
 try {
-    $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    $APIRequest           = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop # required for fees
+    $APICurrenciesRequest = Invoke-RestMethod $Pool_CurrenciesAPIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
 }
 catch {
-    Write-Log -Level Warn "Pool API ($Name) has failed. "
+    Write-Log -Level Warn "Pool API for ($Name) has failed. "
     return
 }
 
-if ((($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) -or (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1)) {
-    Write-Log -Level Warn "Pool API ($Name) returned nothing. "
+if (($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
+    Write-Log -Level Warn "Pool API for ($Name) returned nothing. "
     return
 }
 
 $Regions = "us"
 
-#Pool allows payout in BTC only
+#Pool allows payout in BTC
 $Payout_Currencies = @("BTC")
 
-$APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | 
+# Some currencies are suffixed with algo name (e.g. AUR-myr-gr), these have the currency in property symbol. Need to add symbol to all the others
+$APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {
+    if (-not $APICurrenciesRequest.$_.Symbol) {$APICurrenciesRequest.$_ | Add-Member symbol $_}
+}
 
+$APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name |  
     # do not mine if there is no one else is mining (undesired quasi-solo-mining)
-    Where-Object {$APIRequest.$_.hashrate -gt 0} |
+    # Where-Object {$APICurrenciesRequest.$_.hashrate -gt 0} | #AHashPool does not list hashrate in currencies API
 
     # a minimum of $MinWorkers is required. Low worker numbers will cause long delays until payout
-    Where-Object {$APIRequest.$_.workers -gt $Config.Pools.$Name.MinWorker} |
+    # Where-Object {$APICurrenciesRequest.$_.workers -gt $Config.Pools.$Name.MinWorker} | #AHashPool does not list workers in currencies API 
 
-    # filter disabled algorithms (pool and global  definition)
-    Where-Object {$Config.Pools.$Name.DisabledAlgorithm -inotcontains (Get-Algorithm $_)} |
+    # allow well defined currencies only
+    Where-Object {$Config.Pools.$Name.Currency.Count -eq 0 -or ($Config.Pools.$Name.Currency -icontains $APICurrenciesRequest.$_.symbol)} | 
 
-    ForEach-Object {
+    # filter disabled currencies
+    Where-Object {$Config.Pools.$Name.DisabledCurrency -inotcontains $APICurrenciesRequest.$_.symbol} |
+
+    # filter disabled coins
+    Where-Object {$Config.Pools.$Name.DisabledCoin -inotcontains $APICurrenciesRequest.$_.name} |
+
+    # filter disabled algorithms (pool and global definition)
+    Where-Object {$Config.Pools.$Name.DisabledAlgorithm -inotcontains (Get-Algorithm $APICurrenciesRequest.$_.algo)} | Foreach-Object {
 
     $Pool_Host      = "mine.ahashpool.com"
-    $Port           = $APIRequest.$_.port
-    $Algorithm      = $APIRequest.$_.name
+    $Port           = $APICurrenciesRequest.$_.port
+    $Algorithm      = $APICurrenciesRequest.$_.algo
     $Algorithm_Norm = Get-Algorithm $Algorithm
-    $Coin           = ""
-    $Workers        = $APIRequest.$_.workers
-
+    $Coin           = $APICurrenciesRequest.$_.name
+    $Currency       = $APICurrenciesRequest.$_.symbol
+    $Workers        = $APICurrenciesRequest.$_.workers
+    
     # leave fee empty if IgnorePoolFee
     if (-not $Config.IgnorePoolFee -and -not $Config.Pools.$Name.IgnorePoolFee) {$FeeInPercent = $APIRequest.$Algorithm.Fees}
     
@@ -141,7 +157,7 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
         $FeeFactor = 1
     }
 
-    $Divisor = 1000000
+    $Divisor = 1000000000
 
     switch ($Algorithm_Norm) {
         "blake2s"   {$Divisor *= 1000}
@@ -153,9 +169,7 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
         "scrypt"    {$Divisor *= 1000}
         "x11"       {$Divisor *= 1000}
     }
-
-    if ((Get-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit") -eq $null) {$Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APIRequest.$_.estimate_last24h / $Divisor) -Duration (New-TimeSpan -Days 1)}
-    else {$Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APIRequest.$_.estimate_current / $Divisor) -Duration $StatSpan -ChangeDetection $true}
+    $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APICurrenciesRequest.$_.estimate / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
     $Regions | ForEach-Object {
         $Region = $_
@@ -178,6 +192,7 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
                 Updated       = $Stat.Updated
                 Fee           = $FeeInPercent
                 Workers       = $Workers
+                Currency      = $Currency
             }
         }
     }
