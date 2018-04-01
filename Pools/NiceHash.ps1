@@ -22,7 +22,8 @@ $Config.Pools.$Name | Add-Member IsInternalWallet $Default_IsInternalWallet -Err
 
 $Pool_APIUrl = "http://api.nicehash.com/api?method=simplemultialgo.info"
 
-$APIRequest = [PSCustomObject]@{}
+#Pool allows payout in BTC only
+$Payout_Currencies = @("BTC")
 
 if ($Info) {
     # Just return info about the pool for use in setup
@@ -32,13 +33,17 @@ if ($Info) {
 
     try {
         $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-    } 
-    Catch {
-        Write-Warning "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
+    }
+    catch {
+        Write-Log -Level Warn "Pool API ($Name) has failed. "
+    }
+
+    if ($APIRequest.result.simplemultialgo.count -le 1) {
+        Write-Warning  "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
     }
 
     # Define the settings this pool uses.
-    $SupportedAlgorithms = @($APIRequest.result.simplemultialgo | Foreach-Object {Get-Algorithm $_.name} | Select-Object -Unique)
+    $SupportedAlgorithms = @($APIRequest.result.simplemultialgo | Foreach-Object {Get-Algorithm $_.name} | Select-Object -Unique | Sort-Object)
     $Settings = @(
         [PSCustomObject]@{
             Name        = "Worker"
@@ -49,28 +54,12 @@ if ($Info) {
             Tooltip     = ""    
         },
         [PSCustomObject]@{
-            Name        = "DisabledCurrency"
-            Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of disabled currencies for this miner. "
-            Tooltip     = "Case insensitive, leave empty to mine all currencies"    
-        },
-        [PSCustomObject]@{
-            Name        = "DisabledAlgorithm"
-            Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of disabled algorithms for this miner. "
-            Tooltip     = "Case insensitive, leave empty to mine all algorithms"
-        },
-        [PSCustomObject]@{
             Name        = "BTC"
-            Required    = $false
-            Default     = $Config.Wallet
+            Required    = $true
+            Default     = "$($Config.Wallet)"
             ControlType = "string"
-            Description = "Bitcoin payout address`nTo receive payouts in another currency than BTC clear address and define another address below. "
-            Tooltip     = "Enter Bitcoin wallet address if you want to receive payouts in BTC"    
+            Description = "Bitcoin payout address "
+            Tooltip     = "Enter Bitcoin wallet address to receive payouts in BTC"    
         },
         [PSCustomObject]@{
             Name        = "IsInternalWallet"
@@ -101,20 +90,24 @@ if ($Info) {
             Default     = $Default_PoolFeeExternalWallet
             Description = "Pool fee (in %) for external wallet`nSet to 0 to ignore pool fees"
             Tooltip     = "$($Name) applies different pool fees for internal and external wallets"
+        },
+        [PSCustomObject]@{
+            Name        = "DisabledCurrency"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of disabled currencies for this miner. "
+            Tooltip     = "Case insensitive, leave empty to mine all currencies"    
+        },
+        [PSCustomObject]@{
+            Name        = "DisabledAlgorithm"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of disabled algorithms for this miner. "
+            Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         }
     )
-
-#    #add all possible payout currencies, currently NiceHash allows payout in BTC only
-#    $Payout_Currencies | Foreach-Object {
-#        $Settings += [PSCustomObject]@{
-#            Name        = "$_"
-#            Required    = $false
-#            Default     = "$($Config.Pools.$Name.$_)"
-#            ControlType = "string"
-#            Description = "$($APICurrenciesRequest.$_.Name) payout address "
-#            Tooltip     = "Only enter $($APICurrenciesRequest.$_.Name) wallet address if you want to receive payouts in $($_)"    
-#        }
-#    }
 
     return [PSCustomObject]@{
         Name        = $Name
@@ -126,57 +119,57 @@ if ($Info) {
     }
 }
 
-try {
-    $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-}
-catch {
-    Write-Log -Level Warn "Pool API ($Name) has failed. "
-    return
-}
+$Payout_Currencies | Foreach-Object {
+    try {
+        $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop # required for fees
+    }
+    catch {
+        Write-Log -Level Warn "Pool API ($Name) has failed. "
+        return
+    }
 
-if (($APIRequest.result.simplemultialgo | Measure-Object).Count -le 1) {
-    Write-Log -Level Warn "Pool API ($Name) returned nothing. "
-    return
-}
+    if ($APIRequest.result.simplemultialgo.count -le 1) {
+        Write-Log -Level Warn "Pool API ($Name) returned nothing. "
+        return
+    }
 
-$Regions = "eu", "usa", "hk", "jp", "in", "br"
+    $Regions = "eu", "usa", "hk", "jp", "in", "br"
 
-$APIRequest.result.simplemultialgo | Where-Object {$DisabledAlgorithms -inotcontains (Get-Algorithm $_.name)} | ForEach-Object {
-    $Pool_Host      = "nicehash.com"
-    $Port           = $_.port
-    $Algorithm      = $_.name
-    $Algorithm_Norm = Get-Algorithm $Algorithm
-    $Currency       = ""
-    
-    # leave fee empty if IgnorePoolFee
-    if (-not $Config.IgnorePoolFee -and -not $Config.Pools.$Name.IgnorePoolFee) {
-        if ($Config.Pools.$Name.IsInternalWallet) {
-            $FeeInPercent = $Config.Pools.$Name.PoolFeeInternalWallet
+    $APIRequest.result.simplemultialgo | Where-Object {$DisabledAlgorithms -inotcontains (Get-Algorithm $_.name)} | ForEach-Object {
+        $Pool_Host      = "nicehash.com"
+        $Port           = $_.port
+        $Algorithm      = $_.name
+        $Algorithm_Norm = Get-Algorithm $Algorithm
+        $Currency       = ""
+        
+        # leave fee empty if IgnorePoolFee
+        if (-not $Config.IgnorePoolFee -and -not $Config.Pools.$Name.IgnorePoolFee) {
+            if ($Config.Pools.$Name.IsInternalWallet) {
+                $FeeInPercent = $Config.Pools.$Name.PoolFeeInternalWallet
+            }
+            else {
+                $FeeInPercent = $Config.Pools.$Name.PoolFeeExternalWallet
+            }
+        }
+        
+        if ($FeeInPercent) {
+            $FeeFactor = 1 - $FeeInPercent / 100
         }
         else {
-            $FeeInPercent = $Config.Pools.$Name.PoolFeeExternalWallet
+            $FeeFactor = 1
         }
-    }
-    
-    if ($FeeInPercent) {
-        $FeeFactor = 1 - $FeeInPercent / 100
-    }
-    else {
-        $FeeFactor = 1
-    }
 
-    if ($Algorithm_Norm -eq "Sia") {$Algorithm_Norm = "SiaNiceHash"} #temp fix
-    if ($Algorithm_Norm -eq "Decred") {$Algorithm_Norm = "DecredNiceHash"} #temp fix
+        if ($Algorithm_Norm -eq "Sia") {$Algorithm_Norm = "SiaNiceHash"} #temp fix
+        if ($Algorithm_Norm -eq "Decred") {$Algorithm_Norm = "DecredNiceHash"} #temp fix
 
-    $Divisor = 1000000000
+        $Divisor = 1000000000
 
-    $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$_.paying / $Divisor) -Duration $StatSpan -ChangeDetection $true
+        $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$_.paying / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
-    $Regions | ForEach-Object {
-        $Region = $_
-        $Region_Norm = Get-Region $Region
+        $Regions | ForEach-Object {
+            $Region = $_
+            $Region_Norm = Get-Region $Region
 
-        if ($BTC) {
             [PSCustomObject]@{
                 Algorithm     = $Algorithm_Norm
                 Info          = $Currency

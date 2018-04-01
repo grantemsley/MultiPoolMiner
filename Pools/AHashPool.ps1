@@ -14,8 +14,6 @@ $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty Ba
 
 $Pool_APIUrl =  "http://www.ahashpool.com/api/status"
 
-$APIRequest = [PSCustomObject]@{}
-
 if ($Info) {
     # Just return info about the pool for use in setup
     $Description  = "Pool allows payout in BTC only"
@@ -23,14 +21,18 @@ if ($Info) {
     $Note         = "To receive payouts specify a valid BTC wallet" 
 
     try {
-        $Pool_APIUrl = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-    } 
-    Catch {
-        Write-Warning "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
+        $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    }
+    catch {
+        Write-Log -Level Warn "Pool API ($Name) has failed. "
+    }
+
+    if (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
+        Write-Warning  "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
     }
 
     # Define the settings this pool uses.
-    $SupportedAlgorithms = @($Pool_APIUrl | Foreach-Object {Get-Algorithm $Pool_APIUrl.$_.algo} | Select-Object -Unique)
+    $SupportedAlgorithms = @($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {Get-Algorithm $_} | Select-Object -Unique | Sort-Object)
     $Settings = @(
         [PSCustomObject]@{
             Name        = "Worker"
@@ -41,20 +43,12 @@ if ($Info) {
             Tooltip     = ""    
         },
         [PSCustomObject]@{
-            Name        = "DisabledCurrency"
-            Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of disabled currencies for this miner. "
-            Tooltip     = "Case insensitive, leave empty to mine all currencies"    
-        },
-        [PSCustomObject]@{
-            Name        = "DisabledAlgorithm"
-            Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of disabled algorithms for this miner. "
-            Tooltip     = "Case insensitive, leave empty to mine all algorithms"
+            Name        = "BTC"
+            Required    = $true
+            Default     = $Config.Wallet
+            ControlType = "string"
+            Description = "Enter a valid Bitcoin payout address, otherwise payouts will fail "
+            Tooltip     = "Enter Bitcoin wallet address to receive payouts in BTC"    
         },
         [PSCustomObject]@{
             Name        = "IgnorePoolFee"
@@ -74,12 +68,20 @@ if ($Info) {
             Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
         },
         [PSCustomObject]@{
-            Name        = "BTC"
+            Name        = "DisabledCurrency"
             Required    = $false
-            Default     = $Config.Wallet
-            ControlType = "string"
-            Description = "Bitcoin payout address`nTo receive payouts in another currency than BTC clear address and define another address below. "
-            Tooltip     = "Enter Bitcoin wallet address if you want to receive payouts in BTC"    
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of disabled currencies for this miner. "
+            Tooltip     = "Case insensitive, leave empty to mine all currencies"    
+        },
+        [PSCustomObject]@{
+            Name        = "DisabledAlgorithm"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of disabled algorithms for this miner. "
+            Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         }
     )
 
@@ -94,14 +96,14 @@ if ($Info) {
 }
 
 try {
-    $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop # required for fees
 }
 catch {
     Write-Log -Level Warn "Pool API ($Name) has failed. "
     return
 }
 
-if ((($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) -or (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1)) {
+if (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
     Write-Log -Level Warn "Pool API ($Name) returned nothing. "
     return
 }

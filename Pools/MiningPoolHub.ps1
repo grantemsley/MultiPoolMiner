@@ -18,8 +18,6 @@ $Config.Pools.$Name | Add-Member PoolFee $Default_PoolFee -ErrorAction SilentlyC
 
 $Pool_APIUrl = "http://miningpoolhub.com/index.php?page=api&action=getautoswitchingandprofitsstatistics"
 
-$APIRequest = [PSCustomObject]@{}
-
 if ($Info) {
     # Just return info about the pool for use in setup
     $Description  = "Payout and automatic conversion is configured through their website"
@@ -28,22 +26,18 @@ if ($Info) {
 
     try {
         $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-    } 
-    Catch {
-        Write-Warning "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
+    }
+    catch {
+        Write-Log -Level Warn "Pool API ($Name) has failed. "
+    }
+
+    if ($APIRequest.return.count -le 1) {
+        Write-Warning  "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
     }
 
     # Define the settings this pool uses.
-    $SupportedAlgorithms = @($APIRequest.return | Foreach-Object {Get-Algorithm $_.algo} | Select-Object -Unique)
+    $SupportedAlgorithms = @($APIRequest.return | Foreach-Object {Get-Algorithm $_.algo} | Select-Object -Unique | Sort-Object)
     $Settings = @(
-         [PSCustomObject]@{
-            Name        = "Username"
-            Required    = $true
-            Default     = $User
-            ControlType = "string"
-            Description = "$($Name) username"
-            Tooltip     = "Registration at pool required"    
-        },
         [PSCustomObject]@{
             Name        = "Worker"
             Required    = $true
@@ -52,7 +46,15 @@ if ($Info) {
             Description = "Worker name to report to pool "
             Tooltip     = ""    
         },
-         [PSCustomObject]@{
+        [PSCustomObject]@{
+            Name        = "Username"
+            Required    = $true
+            Default     = $User
+            ControlType = "string"
+            Description = "$($Name) username"
+            Tooltip     = "Registration at pool required"    
+        },
+        [PSCustomObject]@{
             Name        = "API_Key"
             Required    = $false
             Default     = $Worker
@@ -93,14 +95,14 @@ if ($Info) {
 
 if ($User) {
     try {
-        $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+        $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop # required for fees
     }
     catch {
         Write-Log -Level Warn "Pool API ($Name) has failed. "
         return
     }
 
-    if (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
+    if ($APIRequest.return.count -le 1) {
         Write-Log -Level Warn "Pool API ($Name) returned nothing. "
         return
     }

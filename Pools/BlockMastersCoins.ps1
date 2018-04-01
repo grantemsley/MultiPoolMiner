@@ -15,9 +15,6 @@ $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty Ba
 $Pool_APIUrl           = "http://www.blockmasters.co/api/status"
 $Pool_CurrenciesAPIUrl = "http://www.blockmasters.co/api/currencies"
 
-$APIRequest           = [PSCustomObject]@{}
-$APICurrenciesRequest = [PSCustomObject]@{}
-
 if ($Info) {
     # Just return info about the pool for use in setup
     $Description  = "Pool allows payout in BTC, DOGE, LTC & any currency available in API"
@@ -26,13 +23,22 @@ if ($Info) {
 
     try {
         $APICurrenciesRequest = Invoke-RestMethod $Pool_CurrenciesAPIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-    } 
-    Catch {
-        Write-Warning "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
+    }
+    catch {
+        Write-Log -Level Warn "Pool API ($Name) has failed. "
+        return
+    }
+
+    if (($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
+        Write-Log -Level Warn "Pool API ($Name) returned nothing. "
+        return
     }
 
     # Define the settings this pool uses.
-    $SupportedAlgorithms = @($Payout_Currencies | Foreach-Object {Get-Algorithm $APICurrenciesRequest.$_.algo} | Select-Object -Unique)
+    $SupportedAlgorithms = @($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {Get-Algorithm $APICurrenciesRequest.$_.algo} | Select-Object -Unique | Sort-Object)
+    $Payout_Currencies = @($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {
+        if ($APICurrenciesRequest.$_.symbol) {$APICurrenciesRequest.$_.symbol} else {$_} # filter ...-algo
+    } | Select-Object -Unique | Sort-Object )
     $Settings = @(
         [PSCustomObject]@{
             Name        = "Worker"
@@ -43,21 +49,42 @@ if ($Info) {
             Tooltip     = ""    
         },
         [PSCustomObject]@{
-            Name        = "DisabledCurrency"
+            Name        = "BTC"
             Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of disabled currencies for this miner. "
-            Tooltip     = "Case insensitive, leave empty to mine all currencies"    
+            Default     = $Config.Wallet
+            ControlType = "string"
+            Description = "Bitcoin payout address "
+            Tooltip     = "Enter Bitcoin wallet address to receive payouts in BTC"    
         },
         [PSCustomObject]@{
-            Name        = "DisabledAlgorithm"
+            Name        = "DOGE"
             Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of disabled algorithms for this miner. "
-            Tooltip     = "Case insensitive, leave empty to mine all algorithms"
+            Default     = $Config.Wallet
+            ControlType = "string"
+            Description = "DogeCoin payout address "
+            Tooltip     = "Enter DogeCoin wallet address to receive payouts in DOGE"    
         },
+        [PSCustomObject]@{
+            Name        = "LTC"
+            Required    = $false
+            Default     = $Config.Wallet
+            ControlType = "string"
+            Description = "LiteCoin payout address "
+            Tooltip     = "Enter LiteCoin wallet address to receive payouts in LTC"    
+        }
+    )
+    #add all possible payout currencies
+    $Payout_Currencies | Foreach-Object {
+        $Settings += [PSCustomObject]@{
+            Name        = "$_"
+            Required    = $false
+            Default     = "$($Config.Pools.$Name.$_)"
+            ControlType = "string"
+            Description = "$($APICurrenciesRequest.$_.Name) payout address "
+            Tooltip     = "Only enter $($APICurrenciesRequest.$_.Name) wallet address receive payouts in $($_)"    
+        }
+    }
+    $Settings += @(
         [PSCustomObject]@{
             Name        = "IgnorePoolFee"
             Required    = $false
@@ -76,26 +103,22 @@ if ($Info) {
             Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
         },
         [PSCustomObject]@{
-            Name        = "BTC"
+            Name        = "DisabledCurrency"
             Required    = $false
-            Default     = $Config.Wallet
-            ControlType = "string"
-            Description = "Bitcoin payout address`nTo receive payouts in another currency than BTC clear address and define another address below. "
-            Tooltip     = "Enter Bitcoin wallet address if you want to receive payouts in BTC"    
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of disabled currencies for this miner. "
+            Tooltip     = "Case insensitive, leave empty to mine all currencies"    
+        },
+        [PSCustomObject]@{
+            Name        = "DisabledAlgorithm"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of disabled algorithms for this miner. "
+            Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         }
     )
-
-    #add all possible payout currencies
-    $Payout_Currencies | Foreach-Object {
-        $Settings += [PSCustomObject]@{
-            Name        = "$_"
-            Required    = $false
-            Default     = "$($Config.Pools.$Name.$_)"
-            ControlType = "string"
-            Description = "$($APICurrenciesRequest.$_.Name) payout address "
-            Tooltip     = "Only enter $($APICurrenciesRequest.$_.Name) wallet address if you want to receive payouts in $($_)"    
-        }
-    }
 
     return [PSCustomObject]@{
         Name        = $Name
@@ -112,12 +135,12 @@ try {
     $APICurrenciesRequest = Invoke-RestMethod $Pool_CurrenciesAPIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
 }
 catch {
-    Write-Log -Level Warn "Pool API for ($Name) has failed. "
+    Write-Log -Level Warn "Pool API ($Name) has failed. "
     return
 }
 
-if (($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
-    Write-Log -Level Warn "Pool API for ($Name) returned nothing. "
+if (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1 -or ($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
+    Write-Log -Level Warn "Pool API ($Name) returned nothing. "
     return
 }
 
@@ -128,7 +151,7 @@ $Payout_Currencies = @("BTC", "DOGE", "LTC") + ($APICurrenciesRequest | Get-Memb
 
 # Some currencies are suffixed with algo name (e.g. AUR-myr-gr), these have the currency in property symbol. Need to add symbol to all the others
 $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {
-    if (-not $APICurrenciesRequest.$_.Symbol) {$APICurrenciesRequest.$_ | Add-Member symbol $_}
+    if (-not $APICurrenciesRequest.$_.symbol) {$APICurrenciesRequest.$_ | Add-Member symbol $_}
 }
 
 $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name |  
