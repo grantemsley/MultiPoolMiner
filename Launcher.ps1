@@ -96,10 +96,12 @@ $guiCmd = [PowerShell]::Create().AddScript({
     $syncHash.IdleDelay.Text = $synchash.Settings.IdleDelay
     $syncHash.StartWhenIdle.IsChecked = $synchash.Settings.StartWhenIdle
 
-    # Set mining status variables.
+    # Set variables.
     $syncHash.Running = $false
     $syncHash.ManualStart = $false
     $syncHash.MultiPoolMinerProcess = $null
+    $synchash.Rates = [PSCustomObject]@{BTC = [Double]1}
+    $synchash.Currency = @()
 
     # Setup functions for buttons
     
@@ -329,54 +331,64 @@ namespace PInvoke.Win32 {
         # Can't figure out how to use 'using module' in a script like this - complains that it has to be the first statement in the script.
         # But that's ok - using Import-Module gets everything except the Miner class, which isn't needed here.
         Import-Module .\Include.psm1
-        $Rates = [PSCustomObject]@{BTC = [Double]1}
         $Balances = [PSCustomObject]
 
         While ($synchash.GUIRunning) {
             $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
 
             # Don't include BTC as one of the currencies to show
-            [array]$Currency = $Config.Currency | Where-Object {$_ -ne "BTC"}
+            [array]$synchash.Currency = $Config.Currency | Where-Object {$_ -ne "BTC"}
 
             # Set columns for currencies
-            $synchash.PoolBalancesListTotal1Header = if($currency[0]) {"Total $($Currency[0])"} else {""}
-            $synchash.PoolBalancesListTotal2Header = if($currency[1]) {"Total $($Currency[1])"} else {""}
-            $synchash.PoolBalancesListTotal3Header = if($currency[2]) {"Total $($Currency[2])"} else {""}
-            $synchash.PoolBalancesListTotal1.Dispatcher.Invoke([action]{$syncHash.PoolBalancesListTotal1.Header = $synchash.PoolBalancesListTotal1Header})
-            $synchash.PoolBalancesListTotal2.Dispatcher.Invoke([action]{$syncHash.PoolBalancesListTotal2.Header = $synchash.PoolBalancesListTotal2Header})
-            $synchash.PoolBalancesListTotal3.Dispatcher.Invoke([action]{$syncHash.PoolBalancesListTotal3.Header = $synchash.PoolBalancesListTotal3Header})
+            if($synchash.currency[0]) {
+                $synchash.PoolBalancesListTotal1.Dispatcher.Invoke([action]{$synchash.PoolBalancesListTotal1.Header = "Total $($synchash.Currency[0])"})
+            } else {
+                $synchash.PoolBalancesListTotal1.Dispatcher.Invoke([action]{$synchash.PoolBalancesListTotal1.Width = 0.0})
+            }
+
+            if($synchash.currency[1]) {
+                $synchash.PoolBalancesListTotal2.Dispatcher.Invoke([action]{$synchash.PoolBalancesListTotal2.Header = "Total $($synchash.Currency[1])"})
+            } else {
+                $synchash.PoolBalancesListTotal2.Dispatcher.Invoke([action]{$synchash.PoolBalancesListTotal2.Width = 0.0})
+            }
+
+            if($synchash.currency[2]) {
+                $synchash.PoolBalancesListTotal3.Dispatcher.Invoke([action]{$synchash.PoolBalancesListTotal3.Header = "Total $($synchash.Currency[2])"})
+            } else {
+                $synchash.PoolBalancesListTotal3.Dispatcher.Invoke([action]{$synchash.PoolBalancesListTotal3.Width = 0.0})
+            }
 
             # Update exchange rates
             $NewRates = Invoke-RestMethod "https://api.coinbase.com/v2/exchange-rates?currency=BTC" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop | Select-Object -ExpandProperty data | Select-Object -ExpandProperty rates
-            $Currency | Where-Object {$NewRates.$_} | ForEach-Object {$Rates | Add-Member $_ ([Double]$NewRates.$_) -Force}
+            $synchash.Currency | Where-Object {$NewRates.$_} | ForEach-Object {$synchash.Rates | Add-Member $_ ([Double]$NewRates.$_) -Force}
 
             # Set exchange rates on status bar
             $synchash.exchangerate = ""
-            $rates | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name | Where-Object { $_ -ne 'BTC' } | ForEach-Object {$synchash.exchangerate += " $_`: {0:N2} " -f $rates.$_}
+            $synchash.Rates | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name | Where-Object { $_ -ne 'BTC' } | ForEach-Object {$synchash.exchangerate += " $_`: {0:N2} " -f $synchash.rates.$_}
             $synchash.ExchangeRates.Dispatcher.Invoke([action]{$synchash.ExchangeRates.Text = $synchash.exchangerate})
 
             # Get pool balances and format the way the listview expects
-            Get-Balances -Rates $Rates -Config $Config | ForEach-Object {$Balances | Add-Member $_.Name $_.Content -Force}
+            Get-Balances -Rates $synchash.Rates -Config $Config | ForEach-Object {$Balances | Add-Member $_.Name $_.Content -Force}
             $BalanceNames = $Balances | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name
             $synchash.balances = $BalanceNames | Select-Object -Property @{Name='Name';Expression={$_}}, @{Name='Updated';Expression={$Balances.$_.lastupdated}},
                 @{Name='Confirmed';Expression={"{0:N8}" -f $Balances.$_.balance}},
                 @{Name='Pending';Expression={"{0:N8}" -f $Balances.$_.pending}},
                 @{Name='Total';Expression={"{0:N8}" -f $Balances.$_.total}},
-                @{Name='Total1';Expression={"{0:N2}" -f $Balances.$_."total_$($Currency[0])"}},
-                @{Name='Total2';Expression={"{0:N2}" -f $Balances.$_."total_$($Currency[1])"}},
-                @{Name='Total3';Expression={"{0:N2}" -f $Balances.$_."total_$($Currency[2])"}}
+                @{Name='Total1';Expression={"{0:N2}" -f $Balances.$_."total_$($synchash.Currency[0])"}},
+                @{Name='Total2';Expression={"{0:N2}" -f $Balances.$_."total_$($synchash.Currency[1])"}},
+                @{Name='Total3';Expression={"{0:N2}" -f $Balances.$_."total_$($synchash.Currency[2])"}}
 
             # Add the total
             $synchash.balances += [pscustomobject]@{Name="----------"}
 
             $synchash.balances += [pscustomobject]@{
                 Name="Total"
-                Confirmed= ($synchash.balances | Where-Object {$_.Confirmed -ne ""} | Measure-Object Confirmed -Sum).sum
-                Pending= ($synchash.balances | Where-Object {$_.Pending -ne ""} |Measure-Object Pending -Sum).sum
-                Total= ($synchash.balances | Where-Object {$_.Total -ne ""} |Measure-Object Total -Sum).sum
-                Total1= ($synchash.balances | Where-Object {$_.Total1 -ne ""} |Measure-Object Total1 -Sum).sum
-                Total2= ($synchash.balances | Where-Object {$_.Total2 -ne ""} |Measure-Object Total2 -Sum).sum
-                Total3= ($synchash.balances | Where-Object {$_.Total3 -ne ""} |Measure-Object Total3 -Sum).sum
+                Confirmed= "{0:N8}" -f ($synchash.balances | Where-Object {$_.Confirmed -ne ""} | Measure-Object Confirmed -Sum).sum
+                Pending= "{0:N8}" -f ($synchash.balances | Where-Object {$_.Pending -ne ""} |Measure-Object Pending -Sum).sum
+                Total= "{0:N8}" -f ($synchash.balances | Where-Object {$_.Total -ne ""} |Measure-Object Total -Sum).sum
+                Total1= "{0:N2}" -f ($synchash.balances | Where-Object {$_.Total1 -ne ""} |Measure-Object Total1 -Sum).sum
+                Total2= "{0:N2}" -f ($synchash.balances | Where-Object {$_.Total2 -ne ""} |Measure-Object Total2 -Sum).sum
+                Total3= "{0:N2}" -f ($synchash.balances | Where-Object {$_.Total3 -ne ""} |Measure-Object Total3 -Sum).sum
             }
 
             # Tell list to update
@@ -400,43 +412,64 @@ namespace PInvoke.Win32 {
     $newRunspace.SessionStateProxy.SetVariable("SyncHash", $SyncHash)
     $miningupdater = [PowerShell]::Create().AddScript({
         Set-Location $synchash.workingdirectory
-        # Can't figure out how to use 'using module' in a script like this - complains that it has to be the first statement in the script.
-        # But that's ok - using Import-Module gets everything except the Miner class, which isn't needed here.
         Import-Module .\Include.psm1
-        # We do however need the enum for statuses. Since it doesn't get imported, need to duplicate it here.
-        enum MinerStatus {
-            Running
-            Idle
-            Failed
-        }
-
-        $synchash.activeminerslastupdated = Get-Date
-
         While ($syncHash.GUIRunning) {
-            if($syncHash.Running -and (Test-Path ".\Data\ActiveMiners.json")) {
-                if((Get-ChildItem ".\Data\ActiveMiners.json").LastWriteTime -gt $synchash.activeminerslastupdated) {
-                    $synchash.activeminers = Get-Content ".\Data\ActiveMiners.json" | ConvertFrom-Json
-                    # Convert the arrays to comma separated strings
-                    $synchash.activeminers | Foreach-Object {
-                        $_.Type = $_.Type -join ','
-                        $_.Pool = $_.Pool -join ','
-                        $_.Algorithm = $_.Algorithm -join ','
-                        $_.CurrentSpeed = $_.CurrentSpeed -join ','
-                        $_.BenchmarkedSpeed = $_.BenchmarkedSpeed -join ','
-                    }
+            Start-Sleep 5
+            Try {
 
-                    $synchash.activeminerslastupdated = Get-Date
-                    $synchash.TotalProfit = ($synchash.activeminers | Measure-Object -Sum Profit).Sum
+                # Set columns for currencies - the currency and rates are updated by the balance checking thread
+                if($synchash.currency[0]) {
+                    $synchash.MinerProfit1.Dispatcher.Invoke([action]{$synchash.MinerProfit1.Header = "$($synchash.Currency[0])/Day"})
+                } else {
+                    $synchash.MinerProfit1.Dispatcher.Invoke([action]{$synchash.MinerProfit1.Width = 0.0})
                 }
-            } else {
+
+                if($synchash.currency[1]) {
+                    $synchash.MinerProfit2.Dispatcher.Invoke([action]{$synchash.MinerProfit2.Header = "$($synchash.Currency[1])/Day"})
+                } else {
+                    $synchash.MinerProfit2.Dispatcher.Invoke([action]{$synchash.MinerProfit2.Width = 0.0})
+                }
+
+                if($synchash.currency[2]) {
+                    $synchash.MinerProfit3.Dispatcher.Invoke([action]{$synchash.MinerProfit3.Header = "$($synchash.Currency[2])/Day"})
+                } else {
+                    $synchash.MinerProfit3.Dispatcher.Invoke([action]{$synchash.MinerProfit3.Width = 0.0})
+                }
+
+                # Try to load data from script API
+                $synchash.activeminers = Invoke-RestMethod "http://localhost:3999/runningminers" -ErrorAction Stop -TimeoutSec 5
+
+                If ($synchash.activeminers.PSObject.Properties.Name -match "Error") {
+                    Throw $synchash.activeminers.error
+                }
+
+                # Change the arrays to comma separated strings and format numbers
+                $synchash.activeminers | Foreach-Object {
+                    $_.Type = $_.Type -join ','
+                    $_.Pool = $_.Pool -join ','
+                    $_.Algorithm = $_.Algorithm -join ','
+                    $_.Speed = ($_.Speed | ConvertTo-Hash) -join ','
+                    $_.Speed_Live = ($_.Speed_Live | ConvertTo-Hash) -join ','
+                    $_.Active = "$($_.Active.Days) Days $($_.Active.Hours) Hours $($_.Active.Minutes) Minutes"
+                    $_.Profit = "{0:N8}" -f [double]$_.Profit
+                }
+
+                # Calculate the profits in specified currencies
+                $synchash.activeminers | Add-Member -Type ScriptProperty -Name Profit1 -Value {"{0:N2}" -f ([double]$this.Profit * $synchash.Rates.($synchash.currency[0]))}
+                $synchash.activeminers | Add-Member -Type ScriptProperty -Name Profit2 {"{0:N2}" -f ([double]$this.Profit * $synchash.Rates.($synchash.currency[1]))}
+                $synchash.activeminers | Add-Member -Type ScriptProperty -Name Profit3 {"{0:N2}" -f ([double]$this.Profit * $synchash.Rates.($synchash.currency[2]))}
+
+                $synchash.TotalProfit = ($synchash.activeminers | Measure-Object -Sum Profit).Sum
+            } Catch {
                 $synchash.activeminers = @{}
                 $synchash.TotalProfit = 0
             }
-            # Update profit per day in status bar
+
+            # Update miners list and profit per day in status bar
             $synchash.ProfitPerDay.Dispatcher.Invoke([action]{$synchash.ProfitPerDay.text = $synchash.TotalProfit})
             $synchash.ActiveMinersList.Dispatcher.Invoke([action]{$syncHash.ActiveMinersList.ItemsSource = $synchash.activeminers})
             $synchash.miningUpdateError = $Error
-            Start-Sleep 10
+            Start-Sleep 5
         }
     })
     $miningupdater.Runspace = $newRunspace
