@@ -352,7 +352,7 @@ namespace PInvoke.Win32 {
 
             # Set exchange rates on status bar
             $synchash.exchangerate = ""
-            $rates | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name | ForEach-Object {$synchash.exchangerate += "  $_`: {0:N2}  " -f $rates.$_}
+            $rates | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name | Where-Object { $_ -ne 'BTC' } | ForEach-Object {$synchash.exchangerate += " $_`: {0:N2} " -f $rates.$_}
             $synchash.ExchangeRates.Dispatcher.Invoke([action]{$synchash.ExchangeRates.Text = $synchash.exchangerate})
 
             # Get pool balances and format the way the listview expects
@@ -365,7 +365,20 @@ namespace PInvoke.Win32 {
                 @{Name='Total1';Expression={"{0:N2}" -f $Balances.$_."total_$($Currency[0])"}},
                 @{Name='Total2';Expression={"{0:N2}" -f $Balances.$_."total_$($Currency[1])"}},
                 @{Name='Total3';Expression={"{0:N2}" -f $Balances.$_."total_$($Currency[2])"}}
-            
+
+            # Add the total
+            $synchash.balances += [pscustomobject]@{Name="----------"}
+
+            $synchash.balances += [pscustomobject]@{
+                Name="Total"
+                Confirmed= ($synchash.balances | Where-Object {$_.Confirmed -ne ""} | Measure-Object Confirmed -Sum).sum
+                Pending= ($synchash.balances | Where-Object {$_.Pending -ne ""} |Measure-Object Pending -Sum).sum
+                Total= ($synchash.balances | Where-Object {$_.Total -ne ""} |Measure-Object Total -Sum).sum
+                Total1= ($synchash.balances | Where-Object {$_.Total1 -ne ""} |Measure-Object Total1 -Sum).sum
+                Total2= ($synchash.balances | Where-Object {$_.Total2 -ne ""} |Measure-Object Total2 -Sum).sum
+                Total3= ($synchash.balances | Where-Object {$_.Total3 -ne ""} |Measure-Object Total3 -Sum).sum
+            }
+
             # Tell list to update
             $synchash.PoolsBalancesList.Dispatcher.Invoke([action]{$syncHash.PoolsBalancesList.ItemsSource = $synchash.balances})
             $syncHash.balanceerror = $error
