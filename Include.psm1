@@ -402,7 +402,7 @@ function ConvertTo-LocalCurrency {
 
     $Number = $Number * $BTCRate
 
-    switch ([math]::truncate(10 - $Offset - [math]::log($BTCRate, [Math]::Pow(10, 1)))) {
+    switch ([math]::truncate(10 - $Offset - [math]::log($BTCRate, 10))) {
         0 {$Number.ToString("N0")}
         1 {$Number.ToString("N1")}
         2 {$Number.ToString("N2")}
@@ -499,10 +499,10 @@ function Expand-WebRequest {
         $Path_Old = (Join-Path (Split-Path $Path) ([IO.FileInfo](Split-Path $Uri -Leaf)).BaseName)
         $Path_New = (Join-Path (Split-Path $Path) (Split-Path $Path -Leaf))
 
-        if (Test-Path $Path_Old) {Remove-Item $Path_Old -Recurse}
+        if (Test-Path $Path_Old) {Remove-Item $Path_Old -Recurse -Force}
         Start-Process "7z" "x `"$([IO.Path]::GetFullPath($FileName))`" -o`"$([IO.Path]::GetFullPath($Path_Old))`" -y -spe" -Wait
 
-        if (Test-Path $Path_New) {Remove-Item $Path_New -Recurse}
+        if (Test-Path $Path_New) {Remove-Item $Path_New -Recurse -Force}
         if (Get-ChildItem $Path_Old | Where-Object PSIsContainer -EQ $false) {
             Rename-Item $Path_Old (Split-Path $Path -Leaf)
         }
