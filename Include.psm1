@@ -614,6 +614,10 @@ class Miner {
     $LogFile
     $Pool
 
+    [String[]]GetProcessNames() {
+        return @(([IO.FileInfo]($this.Path | Split-Path -Leaf -ErrorAction Ignore)).BaseName)
+    }
+
     hidden StartMining() {
         $this.Status = [MinerStatus]::Failed
         # Create log file and get full path. This makes sure the file exists when other programs try to read it or resolve to a relative path
