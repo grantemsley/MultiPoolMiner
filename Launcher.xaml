@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        Height='350' Width='900'
+        Height='550' Width='1200'
         Title="MultiPoolMiner GUI">
     <Window.TaskbarItemInfo>
         <TaskbarItemInfo/>
@@ -82,13 +82,6 @@
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header="Active">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Active}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
                                 <GridViewColumn Header="Type">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
@@ -151,7 +144,14 @@
                                             <TextBlock Text="{Binding Path=Profit3}" TextAlignment="Right" />
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
-                                </GridViewColumn>                                
+                                </GridViewColumn>
+                                <GridViewColumn Header="Active">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Path=Active}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
                                 <GridViewColumn Header="Path">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
