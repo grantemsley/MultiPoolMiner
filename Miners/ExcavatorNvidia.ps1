@@ -226,7 +226,7 @@ function Build-Miner {
         PrerequisiteURI  = $PrerequisiteURI
         Fees             = @($null)
         Index            = $DeviceIDs -join ';'
-        ShowMinerWindows = $true # Excavator cannot be run in background
+        ShowMinerWindow  = $true # Excavator cannot be run in background
     }
 }
 

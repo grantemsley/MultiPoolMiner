@@ -239,7 +239,7 @@ $Devices.$Type | ForEach-Object {
             Index            = $DeviceIDs -join ';'
             PrerequisitePath = $PrerequisitePath
             PrerequisiteURI  = $PrerequisiteURI               
-            ShowMinerWindows = $Config.ShowMinerWindows
+            ShowMinerWindow  = $Config.ShowMinerWindow
         }
     }
     $Port++ # next higher port for next device

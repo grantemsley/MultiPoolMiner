@@ -212,7 +212,7 @@ $Devices.$Type | ForEach-Object {
             URI              = $Uri
             Fees             = @($null)
             Index            = $DeviceIDs -join ';'
-            ShowMinerWindows = $Config.ShowMinerWindows
+            ShowMinerWindow  = $Config.ShowMinerWindow
         }
     }
     $Port++ # next higher port for next device

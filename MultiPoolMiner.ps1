@@ -62,7 +62,7 @@ param(
     [Parameter(Mandatory = $false)]
     [Switch]$MinerInstancePerCardModel, #if true a separate miner instance will be run per hw card model, e.g if you have 3x GeForceGTX1060 and 2x GeForceGTX1070ti installed, then 2 miners would be run 
     [Parameter(Mandatory = $false)]
-    [Switch]$ShowMinerWindows #if true all miner windows will be visible (they can steal focus)
+    [Switch]$ShowMinerWindow #if true all miner windows will be visible (they can steal focus)
 )
 
 $Version = "2.7.2.7"
@@ -148,7 +148,7 @@ while ($true) {
             MinerStatusKey            = $MinerStatusKey
             SwitchingPrevention       = $SwitchingPrevention
             MinerInstancePerCardModel = $MinerInstancePerCardMode
-            ShowMinerWindows          = $ShowMinerWindows
+            ShowMinerWindow           = $ShowMinerWindow
         } | Select-Object -ExpandProperty Content
     }
     else {
@@ -174,7 +174,7 @@ while ($true) {
             MinerStatusKey            = $MinerStatusKey
             SwitchingPrevention       = $SwitchingPrevention
             MinerInstancePerCardModel = $MinerInstancePerCardModel
-            ShowMinerWindows          = $ShowMinerWindows
+            ShowMinerWindow           = $ShowMinerWindow
         }
     }
 
@@ -480,7 +480,7 @@ while ($true) {
             $ActiveMiner.Profit_Unbias = $Miner.Profit_Unbias
             $ActiveMiner.Speed = $Miner.HashRates.PSObject.Properties.Value #temp fix, must use 'PSObject.Properties' to preserve order
             $ActiveMiner.Pools = $Miner.Pools
-            $ActiveMiner.ShowMinerWindows = $Miner.ShowMinerWindows
+            $ActiveMiner.ShowMinerWindow  = $Miner.ShowMinerWindow
         }
         else {
             $ActiveMiners += New-Object $Miner.API -Property @{
@@ -507,7 +507,7 @@ while ($true) {
                 New                  = $false
                 Benchmarked          = 0
                 Pools                = $Miner.Pools
-                ShowMinerWindows     = $Miner.ShowMinerWindows
+                ShowMinerWindow      = $Miner.ShowMinerWindow
             }
         }
     }

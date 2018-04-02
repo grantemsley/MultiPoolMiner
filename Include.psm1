@@ -601,7 +601,7 @@ class Miner {
     $Benchmarked
     $LogFile
     [Array]$Pools = @()
-    $ShowMinerWindows
+    $ShowMinerWindow
 
     hidden StartMining() {
         $this.Status = [MinerStatus]::Failed
@@ -621,7 +621,7 @@ class Miner {
         }
 
         if (-not $this.Process) {
-            if ($this.ShowMinerWindows) {
+            if ($this.ShowMinerWindow) {
                 $this.Process = Start-Job ([ScriptBlock]::Create("Start-Process $(@{desktop = "powershell"; core = "pwsh"}.$Global:PSEdition) `"-command ```$Process = (Start-Process '$($this.Path)' '$($this.Arguments)' -WorkingDirectory '$(Split-Path $this.Path)' -WindowStyle Minimized -PassThru).Id; Wait-Process -Id `$PID; Stop-Process -Id ```$Process`" -WindowStyle Hidden -Wait"))
             }
             else {

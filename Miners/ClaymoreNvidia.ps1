@@ -310,7 +310,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                     URI              = $Uri
                     Fees             = $Fees
                     Index            = $DeviceIDs -join ';'
-                    ShowMinerWindows = $Config.ShowMinerWindows
+                    ShowMinerWindow  = $Config.ShowMinerWindow
                 }
             }
             elseif ($_ -match "^.+;.+:\d+$") { # valid dual mining parameter set
@@ -345,7 +345,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                         URI              = $Uri
                         Fees             = $Fees
                         Index            = $DeviceIDs -join ';'
-                        ShowMinerWindows = $Config.ShowMinerWindows
+                        ShowMinerWindow  = $Config.ShowMinerWindow
                     }
                     if ($SecondaryAlgorithm_Norm -eq "Sia" -or $SecondaryAlgorithm_Norm -eq "Decred") {
                         $SecondaryAlgorithm_Norm = "$($SecondaryAlgorithm_Norm)NiceHash"
@@ -360,7 +360,7 @@ $Devices.$Type | Where-Object {$Config.Miners.IgnoreHWModel -inotcontains $_.Nam
                             URI              = $Uri
                             Fees             = $Fees
                             Index            = $DeviceIDs -join ';'
-                            ShowMinerWindows = $Config.ShowMinerWindows
+                            ShowMinerWindow  = $Config.ShowMinerWindow
                         }
                     }
                 }
