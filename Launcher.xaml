@@ -45,7 +45,7 @@
             <Separator />
             <StatusBarItem>
                 <WrapPanel>
-                    <TextBlock Margin="0,0,10,0">Worker BTC/day:</TextBlock>
+                    <TextBlock Margin="0,0,10,0">Worker Profit:</TextBlock>
                     <TextBlock Name="ProfitPerDay"></TextBlock>
                 </WrapPanel>
             </StatusBarItem>

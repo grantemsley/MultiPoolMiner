@@ -459,7 +459,11 @@ namespace PInvoke.Win32 {
                 $synchash.activeminers | Add-Member -Type ScriptProperty -Name Profit2 {"{0:N2}" -f ([double]$this.Profit * $synchash.Rates.($synchash.currency[1]))}
                 $synchash.activeminers | Add-Member -Type ScriptProperty -Name Profit3 {"{0:N2}" -f ([double]$this.Profit * $synchash.Rates.($synchash.currency[2]))}
 
-                $synchash.TotalProfit = ($synchash.activeminers | Measure-Object -Sum Profit).Sum
+                $synchash.TotalProfit = "BTC: $(($synchash.activeminers | Measure-Object -Sum Profit).Sum)"
+                if($synchash.currency[0]) { $synchash.TotalProfit += "  $($synchash.currency[0]): $(($synchash.activeminers | Measure-Object -Sum Profit1).Sum)" }
+                if($synchash.currency[1]) { $synchash.TotalProfit += "  $($synchash.currency[1]): $(($synchash.activeminers | Measure-Object -Sum Profit2).Sum)" }
+                if($synchash.currency[2]) { $synchash.TotalProfit += "  $($synchash.currency[2]): $(($synchash.activeminers | Measure-Object -Sum Profit3).Sum)" }
+
             } Catch {
                 $synchash.activeminers = @{}
                 $synchash.TotalProfit = 0
@@ -469,7 +473,7 @@ namespace PInvoke.Win32 {
             $synchash.ProfitPerDay.Dispatcher.Invoke([action]{$synchash.ProfitPerDay.text = $synchash.TotalProfit})
             $synchash.ActiveMinersList.Dispatcher.Invoke([action]{$syncHash.ActiveMinersList.ItemsSource = $synchash.activeminers})
             $synchash.miningUpdateError = $Error
-            Start-Sleep 5
+            Start-Sleep 55
         }
     })
     $miningupdater.Runspace = $newRunspace
