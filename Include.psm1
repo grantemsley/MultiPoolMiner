@@ -122,7 +122,6 @@ Function Write-Log {
 
     Begin { }
     Process {
-
         # Inherit the same verbosity settings as the script importing this
         if (-not $PSBoundParameters.ContainsKey('InformationPreference')) { $InformationPreference = $PSCmdlet.GetVariableValue('InformationPreference') }
         if (-not $PSBoundParameters.ContainsKey('Verbose')) { $VerbosePreference = $PSCmdlet.GetVariableValue('VerbosePreference') }
