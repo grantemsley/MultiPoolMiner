@@ -114,15 +114,10 @@ $guiCmd = [PowerShell]::Create().AddScript({
             $syncHash.Running = $false
             $syncHash.ManualStart = $false
             $syncHash.StartStop.Dispatcher.Invoke([action]{$syncHash.StartStop.Content = "Start Mining"})
-            $syncHash.StatusText.Dispatcher.Invoke([action]{$syncHash.StatusText.Text = "Stopped"})
-            #Stop-Process $syncHash.MultiPoolMinerProcess
         } else {
             $syncHash.Running = $true
             $syncHash.ManualStart = $true
             $syncHash.StartStop.Dispatcher.Invoke([action]{$syncHash.StartStop.Content = "Stop Mining"})
-            $syncHash.StatusText.Dispatcher.Invoke([action]{$syncHash.StatusText.Text = "Running"})
-            #$syncHash.MultiPoolMinerProcess = Start-Process (@{desktop = "powershell"; core = "pwsh"}.$Global:PSEdition) -ArgumentList "-executionpolicy bypass `"$(Convert-Path ".\MultiPoolMiner.ps1")`"" -PassThru
-            
         }
         
     })
@@ -190,6 +185,14 @@ $guiCmd = [PowerShell]::Create().AddScript({
         Set-Location $synchash.workingdirectory
         While ($syncHash.GUIRunning) {
             If($synchash.Running) {
+
+                # Update status text
+                if($syncHash.ManualStart) {
+                    $syncHash.StatusText.Dispatcher.Invoke([action]{$syncHash.StatusText.Text = "Running"})
+                } else {
+                    $syncHash.StatusText.Dispatcher.Invoke([action]{$syncHash.StatusText.Text = "Running (Idle)"})
+                }
+
                 # Start script if it is not running
                 If($syncHash.MultiPoolMinerProcess -and $syncHash.MultiPoolMinerProcess.HasExited -eq $false) {
                     # Script is already running, do nothing
@@ -232,6 +235,9 @@ $guiCmd = [PowerShell]::Create().AddScript({
                     $synchash.JobOutput = $JobOutput
                 }
             } else {
+                # Update status text
+                $syncHash.StatusText.Dispatcher.Invoke([action]{$syncHash.StatusText.Text = "Stopped"})
+
                 # Close script if it is running
                 if($synchash.MultiPoolMinerProcess -and $synchash.MultiPoolMinerProcess.HasExited -eq $false) {
                     $synchash.MultiPoolMinerProcess.CloseMainWindow()
