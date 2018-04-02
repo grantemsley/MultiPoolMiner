@@ -172,7 +172,7 @@ if ($User) {
 
             if ($Algorithm_Norm -eq "Cryptonight" -or $Algorithm_Norm -eq "Equihash") {
                 [PSCustomObject]@{
-                    Algorithm     = $Algorithm_Norm
+                    Algorithm     = "$($Algorithm_Norm)2gb"
                     Info          = $Coin
                     Price         = $Stat.Live * $FeeFactor
                     StablePrice   = $Stat.Week * $FeeFactor
