@@ -2,9 +2,10 @@
 
 Add-Type -Path .\OpenCL\*.cs
 
+function Get-Devices {
     [CmdletBinding()]
 	
-    $Devices = [PSCustomObject]@{}
+    $Devices  = [PSCustomObject]@{}
     $DeviceID = 0
     
     $OpenGlDevices = @([OpenCl.Platform]::GetPlatformIDs() | ForEach-Object {[OpenCl.Device]::GetDeviceIDs($_, [OpenCl.DeviceType]::All)})
@@ -14,7 +15,7 @@ Add-Type -Path .\OpenCL\*.cs
 
         $Name_Norm = (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
 
-        if ($$Device.Type -eq "Cpu") {
+        if ($Device.Type -eq "Cpu") {
             $Type = "CPU"
         }
         else {
