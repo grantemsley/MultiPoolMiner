@@ -8,7 +8,7 @@ param(
 )
 
 # Compatibility check with old MPM builds
-#if (-not $Config.Miners) {return}
+if (-not $Config.Miners) {return}
 
 # Hardcoded per miner version, do not allow user to change in config
 $MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
