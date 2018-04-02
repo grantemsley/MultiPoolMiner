@@ -11,7 +11,7 @@ param(
 #if (-not $Config.Miners) {return}
 
 # Hardcoded per miner version, do not allow user to change in config
-$MinerFileVersion = "2018032200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "NiceHash Excavator 1.4.4 alpha (x64)"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\Excavator\excavator.exe"
