@@ -183,6 +183,7 @@ while ($true) {
         Write-Log -Level Error "*********************************************************** "
         Write-Log -Level Error "Critical error: Config.txt is invalid. MPM cannot continue. "
         Write-Log -Level Error "*********************************************************** "
+        Start-Sleep 10
         Exit
     }
 
@@ -314,7 +315,7 @@ while ($true) {
         $Pools | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {$Pools.$_ | Add-Member Price_Bias ($Pools.$_.Price * (1 - ($Pools.$_.MarginOfError * $Config.SwitchingPrevention * [Math]::Pow($DecayBase, $DecayExponent)))) -Force}
         $Pools | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {$Pools.$_ | Add-Member Price_Unbias $Pools.$_.Price -Force}
     }
-    #Give API access to the pool information
+    #Give API access to the pools information
     $API.Pools = $Pools
 
     #Load information about the miners
@@ -357,7 +358,6 @@ while ($true) {
             $Miner_Profits_Bias | Add-Member $_ ([Double]$Miner.HashRates.$_ * $Pools.$_.Price_Bias)
             $Miner_Profits_Unbias | Add-Member $_ ([Double]$Miner.HashRates.$_ * $Pools.$_.Price_Unbias)
         }
-
         $Miner_Profit = [Double]($Miner_Profits.PSObject.Properties.Value | Measure-Object -Sum).Sum
         $Miner_Profit_Comparison = [Double]($Miner_Profits_Comparison.PSObject.Properties.Value | Measure-Object -Sum).Sum
         $Miner_Profit_Bias = [Double]($Miner_Profits_Bias.PSObject.Properties.Value | Measure-Object -Sum).Sum
@@ -411,6 +411,8 @@ while ($true) {
 
         $Miner.Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Miner.Path)
         if ($Miner.PrerequisitePath) {$Miner.PrerequisitePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Miner.PrerequisitePath)}
+
+        if ($Miner.Arguments -isnot [String]) {$Miner.Arguments = $Miner.Arguments | ConvertTo-Json -Compress}
 
         if (-not $Miner.API) {$Miner | Add-Member API "Miner" -Force}
     }
@@ -479,8 +481,7 @@ while ($true) {
             $ActiveMiner.Profit_Bias = $Miner.Profit_Bias
             $ActiveMiner.Profit_Unbias = $Miner.Profit_Unbias
             $ActiveMiner.Speed = $Miner.HashRates.PSObject.Properties.Value #temp fix, must use 'PSObject.Properties' to preserve order
-            $ActiveMiner.Pools = $Miner.Pools
-            $ActiveMiner.ShowMinerWindow  = $Miner.ShowMinerWindow
+            $ActiveMiner.ShowMinerWindow = $Miner.ShowMinerWindow
         }
         else {
             $ActiveMiners += New-Object $Miner.API -Property @{
@@ -506,7 +507,7 @@ while ($true) {
                 Best_Comparison      = $false
                 New                  = $false
                 Benchmarked          = 0
-                Pools                = $Miner.Pools
+                Pool                 = $Miner.Pools.PSObject.Properties.Value.Name
                 ShowMinerWindow      = $Miner.ShowMinerWindow
             }
         }
@@ -612,7 +613,7 @@ while ($true) {
         }
     }
     
-    Get-Process -Name @($ActiveMiners | ForEach-Object {([IO.FileInfo]($_.Path | Split-Path -Leaf -ErrorAction Ignore)).BaseName}) -ErrorAction Ignore | Select-Object -ExpandProperty ProcessName | Compare-Object @($ActiveMiners | Where-Object Best -EQ $true | Where-Object {$_.GetStatus() -eq "Running"} | ForEach-Object {([IO.FileInfo]($_.Path | Split-Path -Leaf -ErrorAction Ignore)).BaseName}) | Where-Object SideIndicator -EQ "=>" | Select-Object -ExpandProperty InputObject | Select-Object -Unique | ForEach-Object {Stop-Process -Name $_ -Force -ErrorAction Ignore}
+    Get-Process -Name @($ActiveMiners | ForEach-Object {$_.GetProcessNames()}) -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProcessName | Compare-Object @($ActiveMiners | Where-Object Best -EQ $true | Where-Object {$_.GetStatus() -eq "Running"} | ForEach-Object {$_.GetProcessNames()}) | Where-Object SideIndicator -EQ "=>" | Select-Object -ExpandProperty InputObject | Select-Object -Unique | ForEach-Object {Stop-Process -Name $_ -Force -ErrorAction Ignore}
     if ($Downloader) {$Downloader | Receive-Job}
     Start-Sleep $Config.Delay #Wait to prevent BSOD
     $ActiveMiners | Where-Object Best -EQ $true | ForEach-Object {
@@ -702,7 +703,7 @@ while ($true) {
     #Give API access to WatchdogTimers information
     $API.WatchdogTimers = $WatchdogTimers
 
-    # Update API Data
+    #Update API miner information
     $API.ActiveMiners = $ActiveMiners
     $API.RunningMiners = $ActiveMiners | Where-Object {$_.GetStatus() -eq [MinerStatus]::Running}
     $API.FailedMiners = $ActiveMiners | Where-Object {$_.GetStatus() -eq [MinerStatus]::Failed}
@@ -715,7 +716,7 @@ while ($true) {
     Write-Log "Start waiting before next run. "
     for ($i = $Strikes; $i -gt 0 -or $Timer -lt $StatEnd; $i--) {
         if ($Downloader) {$Downloader | Receive-Job}
-        if ($API.Stop) { Exit }
+        if ($API.Stop) {Exit}
         Start-Sleep 10
         $Timer = (Get-Date).ToUniversalTime()
     }
