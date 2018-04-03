@@ -260,17 +260,17 @@
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header='Online'>
+                                <GridViewColumn Header='Status'>
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text='{Binding Path=Online}' />
+                                            <TextBlock Text='{Binding Path=Status}' />
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>                                
                                 <GridViewColumn Header='Last Seen'>
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text='{Binding Path=LastSeen}' />
+                                            <TextBlock Text='{Binding Path=TimeSinceLastSeen}' />
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>

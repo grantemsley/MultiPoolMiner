@@ -486,6 +486,64 @@ namespace PInvoke.Win32 {
     [void]$Jobs.Add(([pscustomobject]@{MiningUpdater = $miningupdater; Runspace = $miningupdater.BeginInvoke() }))
     #endregion Create mining list updating thread
 
+    #region Create remote worker thread
+    $newRunspace = [runspacefactory]::CreateRunspace()
+    $newRunspace.ApartmentState = "STA"
+    $newRunspace.ThreadOptions = "ReuseThread"
+    $newRunspace.Open()
+    $newRunspace.SessionStateProxy.SetVariable("SyncHash", $SyncHash)
+    $remoteworker = [PowerShell]::Create().AddScript({
+        Set-Location $synchash.workingdirectory
+        Import-Module .\Include.psm1
+        While ($synchash.GUIRunning) {
+            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
+            If($Config.MinerStatusURL -and $Config.MinerStatusKey) {
+                Try {
+                    $apiurl = $Config.Minerstatusurl.Substring(0, $Config.Minerstatusurl.lastIndexOf("/")) + "/stats.php?address=$($Config.MinerStatusKey)"
+                    $synchash.remoteminers = Invoke-RestMethod $apiurl -ErrorAction Stop -TimeoutSec 30
+
+                    If($synchash.remoteminers.PSObject.Properties.Name -Match "error") {
+                        Throw $synchash.remoteminers.error
+                    }
+
+                    $synchash.remoteminers | Foreach-Object {
+                        # Convert last seen to a datetime, accounting for timezone differences (timestamp is always in UTC)
+                        $lastseen = [TimeZone]::CurrentTimeZone.ToLocalTime(([datetime]'1/1/1970').AddSeconds($_.lastseen))
+                        $now = Get-Date
+                        $timebetween = New-TimeSpan -Start $lastseen -End $now
+                        # Set online/offline status
+                        if ($timebetween.TotalSeconds -gt 300) {
+                            $_ | Add-Member Status "Offline"
+                        } else {
+                            $_ | Add-Member Status "Online"
+                        }
+                        # Set time since last seen
+                        if ($timebetween.Days -gt 1) {
+                            $_ | Add-Member TimeSinceLastSeen ("{0:N0} days ago" -f $timebetween.TotalDays)
+                        } elseif ($timebetween.Hours -gt 1) {
+                            $_ | Add-Member TimeSinceLastSeen ("{0:N0} hours ago" -f $timebetween.TotalHours)
+                        } elseif ($timebetween.Minutes -gt 1) {
+                            $_ | Add-Member TimeSinceLastSeen ("{0:N0} minutes ago" -f $timebetween.TotalMinutes)
+                        } else {
+                            $_ | Add-Member TimeSinceLastSeen ("{0:N0} seconds ago" -f $timebetween.TotalSeconds)
+                        }
+                        # Format profit to 8 digits
+                        $_.Profit = "{0:N8}" -f $_.Profit
+                    }
+                } Catch {
+                    $synchash.remoteminers = @()
+                }
+
+                $synchash.WorkersList.Dispatcher.Invoke([action]{$synchash.WorkersList.ItemsSource = $synchash.remoteminers})
+                $syncHash.RemoteMinerErrors = $error
+            }
+            Start-Sleep 120
+        }
+    })
+    $remoteworker.Runspace = $newRunspace
+    [void]$Jobs.Add(([pscustomobject]@{RemoteWorker = $remoteworker; Runspace = $remoteworker.BeginInvoke() }))
+    #endregion Create remote worker thread
+
     #region Open window
     # See https://blog.netnerds.net/2016/01/showdialog-sucks-use-applicationcontexts-instead/ for an explaination of why not just use .ShowDialog()
     [System.Windows.Forms.Integration.ElementHost]::EnableModelessKeyboardInterop($synchash.Window)
