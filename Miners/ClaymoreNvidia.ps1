@@ -217,9 +217,6 @@ if ($Info) {
     }
 }
 
-# Starting port for first miner
-$Port = $Config.Miners.$Name.Port
-
 # Get device list
 $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -or $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | ForEach-Object {
     
@@ -275,12 +272,12 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
                 $Miner_Name = "$($Miner_Name)$($MainAlgorithm_Norm -replace '^ethash', '')"
                 $HashRateMainAlgorithm = ($Stats."$($Miner_Name)_$($MainAlgorithm_Norm)_HashRate".Week)
 
-                if (-not $Config.IgnoreMinerFee -and $Config.Miners.$Name.MinerFeeInPercentSingleMode -gt 0) {
-                    $HashRateMainAlgorithm = $HashRateMainAlgorithm * (1 - $Config.Miners.$Name.MinerFeeInPercentSingleMode / 100)
-                    $Fees = @($Config.Miners.$Name.MinerFeeInPercentSingleMode)
+                if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
+                    $Fees = @($null)
                 }
                 else {
-                    $Fees = @($null)
+                    $HashRateMainAlgorithm = $HashRateMainAlgorithm * (1 - $Config.Miners.$Name.MinerFeeInPercentSingleMode / 100)
+                    $Fees = @($Config.Miners.$Name.MinerFeeInPercentSingleMode)
                 }
 
                 # Single mining mode
@@ -309,12 +306,12 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
                 $HashRateSecondaryAlgorithm = ($Stats."$($Miner_Name)_$($SecondaryAlgorithm_Norm)_HashRate".Week)
 
                 #Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee
-                if (-not $Config.IgnoreMinerFee -and $Config.Miners.$Name.MinerFeeInPercentDualMode -gt 0) {
-                    $HashRateMainAlgorithm = $HashRateMainAlgorithm * (1 - $Config.Miners.$Name.MinerFeeInPercentDualMode / 100)
-                    $Fees = @($Config.Miners.$Name.MinerFeeInPercentDualMode, 0)
+                if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
+                    $Fees = @($null)
                 }
                 else {
-                    $Fees = @($null)
+                    $HashRateMainAlgorithm = $HashRateMainAlgorithm * (1 - $Config.Miners.$Name.MinerFeeInPercentDualMode / 100)
+                    $Fees = @($Config.Miners.$Name.MinerFeeInPercentDualMode, 0)
                 }
 
                 if ($Pools.$SecondaryAlgorithm_Norm -and $SecondaryAlgorithmIntensity -gt 0) { # must have a valid pool to mine and positive intensity

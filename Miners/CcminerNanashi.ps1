@@ -166,9 +166,6 @@ if ($Info) {
     }
 }
 
-# Starting port for first miner
-$Port = $Config.Miners.$Name.Port
-
 # Get device list
 $Devices.$Type | ForEach-Object {
 

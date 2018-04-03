@@ -212,9 +212,6 @@ if ($Info) {
     }
 }
 
-# Starting port for first miner
-$Port = $Config.Miners.$Name.Port
-
 # Get device list
 $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -or $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | ForEach-Object {
     
