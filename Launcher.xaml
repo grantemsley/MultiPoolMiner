@@ -251,10 +251,10 @@
                                 <Setter Property='HorizontalContentAlignment' Value='Stretch' />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Path=Status}" Value="Online">
-                                        <Setter Property="ListViewItem.Background" Value="Green" />
+                                        <Setter Property="ListViewItem.Background" Value="LightGreen" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Path=Status}" Value="Offline">
-                                        <Setter Property="ListViewItem.Background" Value="Red" />
+                                        <Setter Property="ListViewItem.Background" Value="LightPink" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -286,6 +286,27 @@
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBlock Text='{Binding Path=Profit}' />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn x:Name="RemoteProfit1" Header="" Width="100">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Path=Profit1}" TextAlignment="Right" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn x:Name="RemoteProfit2" Header="" Width="100">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Path=Profit2}" TextAlignment="Right" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn x:Name="RemoteProfit3" Header="" Width="100">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Path=Profit3}" TextAlignment="Right" />
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
