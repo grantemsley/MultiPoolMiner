@@ -18,6 +18,7 @@ $Port = 8550
 
 $MinerFileVersion = "2018040400" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "Eminer v0.6.1-rc2 (x64)"
+$MinerFeeInPercent = 2.0
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config, required for setup

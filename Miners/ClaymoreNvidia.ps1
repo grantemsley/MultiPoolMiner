@@ -276,8 +276,8 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
                     $Fees = @($null)
                 }
                 else {
-                    $HashRateMainAlgorithm = $HashRateMainAlgorithm * (1 - $Config.Miners.$Name.MinerFeeInPercentSingleMode / 100)
-                    $Fees = @($Config.Miners.$Name.MinerFeeInPercentSingleMode)
+                    $HashRateMainAlgorithm = $HashRateMainAlgorithm * (1 - $MinerFeeInPercentSingleMode / 100)
+                    $Fees = @($MinerFeeInPercentSingleMode)
                 }
 
                 # Single mining mode
@@ -310,8 +310,8 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
                     $Fees = @($null)
                 }
                 else {
-                    $HashRateMainAlgorithm = $HashRateMainAlgorithm * (1 - $Config.Miners.$Name.MinerFeeInPercentDualMode / 100)
-                    $Fees = @($Config.Miners.$Name.MinerFeeInPercentDualMode, 0)
+                    $HashRateMainAlgorithm = $HashRateMainAlgorithm * (1 - $MinerFeeInPercentDualMode / 100)
+                    $Fees = @($MinerFeeInPercentDualMode, 0)
                 }
 
                 if ($Pools.$SecondaryAlgorithm_Norm -and $SecondaryAlgorithmIntensity -gt 0) { # must have a valid pool to mine and positive intensity
