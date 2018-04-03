@@ -249,6 +249,14 @@
                         <ListView.ItemContainerStyle>
                             <Style TargetType='ListViewItem'>
                                 <Setter Property='HorizontalContentAlignment' Value='Stretch' />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Path=Status}" Value="Online">
+                                        <Setter Property="ListViewItem.Background" Value="Green" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Path=Status}" Value="Offline">
+                                        <Setter Property="ListViewItem.Background" Value="Red" />
+                                    </DataTrigger>
+                                </Style.Triggers>
                             </Style>
                         </ListView.ItemContainerStyle>
                         <ListView.View>
