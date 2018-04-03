@@ -11,30 +11,28 @@ param(
 if (-not $Config.Miners) {return}
 
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
-$Path = ".\Bin\NVIDIA-KlausT\ccminer.exe"
+$Path = ".\Bin\Polytimos-NVIDIA\ccminer.exe"
 $Type = "NVIDIA"
 $API  = "Ccminer"
 $Port = 4068
 
-$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Ccminer (x64) 8.21 by KlausT"
+$MinerFileVersion = "2018040300" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "Ccminer Polytimos by punxsutawneyphil"
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config, required for setup
     $DefaultMinerConfig = [PSCustomObject]@{
         "MinerFileVersion" = $MinerFileVersion
         "MinerBinaryInfo" = $MinerBinaryInfo
-        "Uri" = "https://github.com/KlausT/ccminer/releases/download/8.21/ccminer-821-cuda91-x64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "Uri" = "https://github.com/punxsutawneyphil/ccminer/releases/download/polytimosv2/ccminer-polytimos_v2.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
         "UriManual" = ""    
-        "WebLink" = "https://github.com/KlausT/ccminer" # See here for more information about the miner
+        "WebLink" = "https://bitcointalk.org/?topic=770064" # See here for more information about the miner
         #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
         "IgnoreHWModel" = @()
         #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
         "IgnoreDeviceID" = @()
         "Commands" = [PSCustomObject]@{
-            "groestl" = "" #Groestl
-            "myr-gr" = "" #MyriadGroestl
-            "neoscrypt" = "" #NeoScrypt
+            "poly" = "" #Polytimos
         }
         "CommonCommands" = ""
         "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
@@ -144,7 +142,7 @@ if ($Info) {
                 ControlType = "PSCustomObject[1,]"
                 Default     = $DefaultMinerConfig.Commands
                 Description = "Each line defines an algorithm that can be mined with this miner. Optional miner parameters can be added after the '=' sign. "
-                Tooltip     = "Note: Most extra parameters must be prefixed with a space`nTo disable an algorithm prefix it with '#'"
+                Tooltip     = "Note: Most extra parameters must be prefixed with a space.^nTo disable an algorithm prefix it with '#'"
             },
             [PSCustomObject]@{
                 Name        = "CommonCommands"

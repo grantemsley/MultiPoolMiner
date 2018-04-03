@@ -10,60 +10,55 @@ param(
 # Compatibility check with old MPM builds
 if (-not $Config.Miners) {return}
 
-# Hardcoded per miner version, do not allow user to change in config
-$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "suprminer 1.5.7 (April 2018) optimized x16r algo without any dev fee"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\NVIDIA-SuprMiner\ccminer.exe"
 $Type = "NVIDIA"
-$API = "Ccminer"
-$Uri = "https://github.com/ocminer/suprminer/releases/download/1.5/suprminer-1.5.7z" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-$UriManual = ""    
-$WebLink = "https://github.com/ocminer/suprminer" # See here for more information about the miner
+$API  = "Ccminer"
+$Port = 4068
 
-# Create default miner config, required for setup
-$DefaultMinerConfig = [PSCustomObject]@{
-    "MinerFileVersion" = "$MinerFileVersion"
-    "MinerBinaryInfo" = "$MinerBinaryInfo"
-    "Uri" = "$Uri"
-    "UriInfo" = "$UriManual"    
-    "Type" = "$Type"
-    "Path" = "$Path"
-    "Port" = 4068
-    #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-    "IgnoreHWModel" = @()
-    #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-    "IgnoreDeviceID" = @()
-    "Commands" = [PSCustomObject]@{
-        "x16r"  = "" #X16R RavenCoin
-        "x16s"  = "" #X16S PigeonCoin
-    }
-    "CommonCommands" = ""
-    "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
-    }
-}
+$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "suprminer 1.5.7 (April 2018) optimized x16r algo without any dev fee"
 
-if (-not $Config.Miners.$Name.MinerFileVersion) {
-    # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-    $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-    # Apply default
-    $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
-    # Save config to file
-    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
-    # Update log
-    Write-Log -Level Info "Added miner config ($Name [$MinerFileVersion]) to Config.txt. "
-    # Apply config, must re-read from file to expand variables
-    $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
-}
-else {
-    if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    # Create default miner config, required for setup
+    $DefaultMinerConfig = [PSCustomObject]@{
+        "MinerFileVersion" = $MinerFileVersion
+        "MinerBinaryInfo" = $MinerBinaryInfo
+        "Uri" = "https://github.com/ocminer/suprminer/releases/download/1.5/suprminer-1.5.7z" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "UriManual" = ""    
+        "WebLink" = "https://github.com/ocminer/suprminer" # See here for more information about the miner
+        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+        "IgnoreHWModel" = @()
+        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
+        "IgnoreDeviceID" = @()
+        "Commands" = [PSCustomObject]@{
+            "x16r"  = "" #X16R RavenCoin
+            "x16s"  = "" #X16S PigeonCoin
+        }
+        "CommonCommands" = ""
+        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        }
+    }
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
+        # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
+        $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        # Apply default
+        $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
+        # Save config to file
+        $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
+        # Update log
+        Write-Log -Level Info "Added miner config ($Name [$MinerFileVersion]) to Config.txt. "
+        # Apply config, must re-read from file to expand variables
+        $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
+    }
+    else { # Update existing miner config
         try {
             # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
             $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
             
             # Execute action, e.g force re-download of binary
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
+            if ($DefaultMinerConfig.Uri -and $DefaultMinerConfig.Uri -ne $Config.Miners.$Name.Uri) {
                 if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
                 # Update log
                 Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
@@ -73,9 +68,9 @@ else {
             }
 
             # Always update MinerFileVersion, MinerBinaryInfo and download link, -Force to enforce setting
-            $NewConfig.Miners.$Name | Add-member MinerFileVersion "$MinerFileVersion" -Force
-            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo "$MinerBinaryInfo" -Force
-            $NewConfig.Miners.$Name | Add-member Uri "$Uri" -Force
+            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo $MinerBinaryInfo -Force
+            $NewConfig.Miners.$Name | Add-member Uri $DefaultMinerConfig.Uri -Force
 
             # Save config to file
             $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
@@ -92,48 +87,55 @@ if ($Info) {
     # Just return info about the miner for use in setup
     # attributes without a curresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
     return [PSCustomObject]@{
-        MinerFileVersion = $MinerFileVersion
-        MinerBinaryInfo  = $MinerBinaryInfo
-        Uri              = $Uri
-        UriManual        = $UriManual
-        Type             = $Type
-        Path             = $Path
-        Port             = $Port
-        WebLink          = $WebLink        
-        Settings         = @(
+        MinerFileVersion  = $MinerFileVersion
+        MinerBinaryInfo   = $MinerBinaryInfo
+        Uri               = $Uri
+        UriManual         = $UriManual
+        Type              = $Type
+        Path              = $Path
+        Port              = $Port
+        WebLink           = $WebLink
+        Settings          = @(
             [PSCustomObject]@{
                 Name        = "Uri"
                 Controltype = "string"
                 Default     = $DefaultMinerConfig.Uri
-                Description = "MPM automatically downloads the miner binaries from this link and unpacks them.`nFiles stored on Google Drive or Mega links cannot be downloaded automatically.`n"
-                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README). "
+                Description = "MPM automatically downloads the miner binaries from this link and unpacks them. Files stored on Google Drive or Mega links cannot be downloaded automatically. "
+                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README)"
             },
             [PSCustomObject]@{
                 Name        = "UriManual"
                 Controltype = "string"
                 Default     = $DefaultMinerConfig.UriManual
-                Description = "Download link for manual miner binaries download.`nUnpack downloaded files to '$Path'."
-                Tooltip     = "See README for manual download and unpack instruction."
+                Description = "Download link for manual miner binaries download. Unpack downloaded files to '$Path'. "
+                Tooltip     = "See README for manual download and unpack instruction"
+            },
+            [PSCustomObject]@{
+                Name        = "WebLink"
+                Required    = $false
+                ControlType = "string"
+                Default     = $DefaultMinerConfig.WebLink
+                Description = "See here for more information about the miner. "
             },
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"
                 Controltype = "string[]"
                 Default     = $DefaultMinerConfig.IgnoreHWModel
-                Description = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'.`nLeave empty to mine with all available hardware. "
+                Description = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'. Leave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
             },
             [PSCustomObject]@{
                 Name        = "IgnoreDeviceID"
                 Controltype = "int[]"
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
-                Description = "List of device IDs you do not want to mine with this miner, e.g. '0'.`nLeave empty to mine with all available hardware. "
+                Description = "List of device IDs you do not want to mine with this miner, e.g. '0'. Leave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
             },
             [PSCustomObject]@{
                 Name        = "Commands"
                 Controltype = "PSCustomObject"
                 Default     = $DefaultMinerConfig.Commands
-                Description = "Each line defines an algorithm that can be mined with this miner.`nOptional miner parameters can be added after the '=' sign. "
+                Description = "Each line defines an algorithm that can be mined with this miner. Optional miner parameters can be added after the '=' sign. "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space"
             },
             [PSCustomObject]@{

@@ -11,35 +11,34 @@ param(
 if (-not $Config.Miners) {return}
 
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
-$Path = ".\Bin\NVIDIA-KlausT\ccminer.exe"
+$Path = ".\Bin\Sib-NVIDIA\ccminer_x11gost.exe"
 $Type = "NVIDIA"
 $API  = "Ccminer"
 $Port = 4068
 
-$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Ccminer (x64) 8.21 by KlausT"
+$MinerFileVersion = "2018040300" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$DefaultMinerConfig = "Optimized ccminer for x11gost algorithm by Nicehash"
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config, required for setup
     $DefaultMinerConfig = [PSCustomObject]@{
         "MinerFileVersion" = $MinerFileVersion
         "MinerBinaryInfo" = $MinerBinaryInfo
-        "Uri" = "https://github.com/KlausT/ccminer/releases/download/8.21/ccminer-821-cuda91-x64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "Uri" = "https://github.com/nicehash/ccminer-x11gost/releases/download/ccminer-x11gost_windows/ccminer_x11gost.7z" # if new MinerFileVersion and new Uri MPM will download and update new binaries
         "UriManual" = ""    
-        "WebLink" = "https://github.com/KlausT/ccminer" # See here for more information about the miner
+        "WebLink" = "https://github.com/nicehash/ccminer-x11gost" # See here for more information about the miner
         #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
         "IgnoreHWModel" = @()
         #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
         "IgnoreDeviceID" = @()
         "Commands" = [PSCustomObject]@{
-            "groestl" = "" #Groestl
-            "myr-gr" = "" #MyriadGroestl
-            "neoscrypt" = "" #NeoScrypt
+            "sib" = "" #Sib
         }
         "CommonCommands" = ""
         "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
         }
     }
+
     if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
         # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
         $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
@@ -103,7 +102,7 @@ if ($Info) {
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.Uri
                 Description = "MPM automatically downloads the miner binaries from this link and unpacks them. Files stored on Google Drive or Mega links cannot be downloaded automatically. "
-                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README)"
+                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README). "
             },
             [PSCustomObject]@{
                 Name        = "UriManual"

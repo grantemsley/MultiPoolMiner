@@ -10,73 +10,67 @@ param(
 # Compatibility check with old MPM builds
 #if (-not $Config.Miners) {return}
 
-# Hardcoded per miner version, do not allow user to change in config
-$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "cpuminer-multi v1.3.1 windows by Tpruvot (x64)"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\CPU-TPruvot\cpuminer-gw64-avx2.exe"
 $Type = "CPU"
-$API = "Ccminer"
-$Uri = "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.1-multi/cpuminer-multi-rel1.3.1-x64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-$UriManual = ""    
-$WebLink = "https://github.com/tpruvot/cpuminer-multi" # See here for more information about the miner
+$API  = "Ccminer"
+$Port = 4048
 
-# Create default miner config, required for setup
-$DefaultMinerConfig = [PSCustomObject]@{
-    "MinerFileVersion" = "$MinerFileVersion"
-    "MinerBinaryInfo" = "$MinerBinaryInfo"
-    "Uri" = "$Uri"
-    "UriInfo" = "$UriManual"    
-    "Type" = "$Type"
-    "Path" = "$Path"
-    "Port" = 4048
-    "Commands" = [PSCustomObject]@{
-        "blake2s" = "" #Blake2s
-        "blakecoin" = "" #Blakecoin
-        "vanilla" = "" #BlakeVanilla
-        "c11" = "" #C11
-        "cryptonight" = "" #CryptoNight
-        "decred" = "" #Decred
-        "groestl" = "" #Groestl
-        "keccak" = "" #Keccak
-        "lyra2rev2" = "" #Lyra2RE2
-        "myr-gr" = "" #MyriadGroestl
-        "neoscrypt" = "" #NeoScrypt
-        "nist5" = "" #Nist5
-        "sib" = "" #Sib
-        "skein" = "" #Skein
-        "timetravel" = "" #Timetravel
-        "x11evo" = "" #X11evo
-        "x17" = "" #X17
-        "xevan" = "" #Xevan
-        "yescrypt" = "" #Yescrypt
+$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "cpuminer-multi v1.3.1 windows by Tpruvot (x64)"
+if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    # Create default miner config, required for setup
+    $DefaultMinerConfig = [PSCustomObject]@{
+        "MinerFileVersion" = $MinerFileVersion
+        "MinerBinaryInfo" = $MinerBinaryInfo
+        "Uri" = "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.1-multi/cpuminer-multi-rel1.3.1-x64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "UriManual" = ""    
+        "WebLink" = "https://github.com/tpruvot/cpuminer-multi" # See here for more information about the miner
+        "Commands" = [PSCustomObject]@{
+            "blake2s" = "" #Blake2s
+            "blakecoin" = "" #Blakecoin
+            "vanilla" = "" #BlakeVanilla
+            "c11" = "" #C11
+            "cryptonight" = "" #CryptoNight
+            "decred" = "" #Decred
+            "groestl" = "" #Groestl
+            "keccak" = "" #Keccak
+            "lyra2rev2" = "" #Lyra2RE2
+            "myr-gr" = "" #MyriadGroestl
+            "neoscrypt" = "" #NeoScrypt
+            "nist5" = "" #Nist5
+            "sib" = "" #Sib
+            "skein" = "" #Skein
+            "timetravel" = "" #Timetravel
+            "x11evo" = "" #X11evo
+            "x17" = "" #X17
+            "xevan" = "" #Xevan
+            "yescrypt" = "" #Yescrypt
+        }
+        "CommonCommands" = ""
+        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        }
     }
-    "CommonCommands" = ""
-    "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
+        # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
+        $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        # Apply default
+        $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
+        # Save config to file
+        $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
+        # Update log
+        Write-Log -Level Info "Added miner config ($Name [$MinerFileVersion]) to Config.txt. "
+        # Apply config, must re-read from file to expand variables
+        $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
     }
-}
-
-if (-not $Config.Miners.$Name.MinerFileVersion) {
-    # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-    $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-    # Apply default
-    $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
-    # Save config to file
-    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
-    # Update log
-    Write-Log -Level Info "Added miner config ($Name [$MinerFileVersion]) to Config.txt. "
-    # Apply config, must re-read from file to expand variables
-    $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
-}
-else {
-    if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    else { # Update existing miner config
         try {
             # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
             $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
             
             # Execute action, e.g force re-download of binary
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
+            if ($DefaultMinerConfig.Uri -and $DefaultMinerConfig.Uri -ne $Config.Miners.$Name.Uri) {
                 if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
                 # Update log
                 Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
@@ -86,9 +80,9 @@ else {
             }
 
             # Always update MinerFileVersion, MinerBinaryInfo and download link, -Force to enforce setting
-            $NewConfig.Miners.$Name | Add-member MinerFileVersion "$MinerFileVersion" -Force
-            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo "$MinerBinaryInfo" -Force
-            $NewConfig.Miners.$Name | Add-member Uri "$Uri" -Force
+            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo $MinerBinaryInfo -Force
+            $NewConfig.Miners.$Name | Add-member Uri $DefaultMinerConfig.Uri -Force
 
             # Save config to file
             $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
@@ -105,30 +99,37 @@ if ($Info) {
     # Just return info about the miner for use in setup
     # attributes without a curresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
     return [PSCustomObject]@{
-        MinerFileVersion = $MinerFileVersion
-        MinerBinaryInfo  = $MinerBinaryInfo
-        Uri              = $Uri
-        UriManual        = $UriManual
-        Type             = $Type
-        Path             = $Path
-        Port             = $Port
-        WebLink          = $WebLink        
-        Settings         = @(
+        MinerFileVersion  = $MinerFileVersion
+        MinerBinaryInfo   = $MinerBinaryInfo
+        Uri               = $Uri
+        UriManual         = $UriManual
+        Type              = $Type
+        Path              = $Path
+        Port              = $Port
+        WebLink           = $WebLink
+        Settings          = @(
             [PSCustomObject]@{
                 Name        = "Uri"
                 Required    = $false
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.Uri
-                Description = "MPM automatically downloads the miner binaries from this link and unpacks them.`nFiles stored on Google Drive or Mega links cannot be downloaded automatically.`n"
-                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README). "
+                Description = "MPM automatically downloads the miner binaries from this link and unpacks them. Files stored on Google Drive or Mega links cannot be downloaded automatically. "
+                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README)"
             },
             [PSCustomObject]@{
                 Name        = "UriManual"
                 Required    = $false
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.UriManual
-                Description = "Download link for manual miner binaries download.`nUnpack downloaded files to '$Path'."
-                Tooltip     = "See README for manual download and unpack instruction."
+                Description = "Download link for manual miner binaries download. Unpack downloaded files to '$Path'. "
+                Tooltip     = "See README for manual download and unpack instruction"
+            },
+            [PSCustomObject]@{
+                Name        = "WebLink"
+                Required    = $false
+                ControlType = "string"
+                Default     = $DefaultMinerConfig.WebLink
+                Description = "See here for more information about the miner. "
             },
             [PSCustomObject]@{
                 Name        = "CPUThread"
@@ -137,8 +138,8 @@ if ($Info) {
                 Min         = 1
                 Max         = $Devices.$Type.MaxComputeUnits
                 Default     = $Devices.$Type.MaxComputeUnits.sum * 2
-                Description = "Number of parallel CPU threads the miner wil execute "
-                Tooltip     = "MPM has found $($Devices.$Type.count) with a total of $($Devices.$Type.MaxComputeUnits.sum) compute units "
+                Description = "Number of parallel CPU threads the miner wil execute. "
+                Tooltip     = "MPM has found $($Devices.$Type.count) with a total of $($Devices.$Type.MaxComputeUnits.sum) compute units"
             }
             [PSCustomObject]@{
                 Name        = "Commands"

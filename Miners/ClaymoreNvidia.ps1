@@ -8,95 +8,90 @@ param(
 )
 
 # Compatibility check with old MPM builds
-if (-not $Config.Miners) {return}
+#if (-not $Config.Miners) {return}
 
-# Hardcoded per miner version, do not allow user to change in config
-$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.6"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\Ethash-Claymore\EthDcrMiner64.exe"
 $Type = "NVIDIA"
-$API = "Claymore"
-$Uri = "" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-$UriManual = "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w"
-$WebLink = "https://bitcointalk.org/index.php?topic=1433925.0" # See here for more information about the miner
+$API  = "Claymore"
+$Port = 23333
 
-# Create default miner config, required for setup
-$DefaultMinerConfig = [PSCustomObject]@{
-    "MinerFileVersion" = "$MinerFileVersion"
-    "MinerBinaryInfo" = "$MinerBinaryInfo"
-    "Uri" = "$Uri"
-    "UriManual" = "$UriManual"
-    "Type" = "$Type"
-    "Path" = "$Path"
-    "Port" = 23333
-    "MinerFeeInPercentSingleMode" = 1.0
-    "MinerFeeInPercentDualMode" = 1.5
-    #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-    "IgnoreHWModel" = @()
-    #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-    "IgnoreDeviceID" = @()
-    "Commands" = [PSCustomObject]@{
-        "ethash" = ""
-        "ethash2gb" = ""
-        "ethash;blake2s:40" = ""
-        "ethash;blake2s:60" = ""
-        "ethash;blake2s:80" = ""
-        "ethash;decred:" = ""
-        "ethash;decred:130" = ""
-        "ethash;decred:160" = ""
-        "ethash;keccak:70" = ""
-        "ethash;keccak:90" = ""
-        "ethash;keccak:110" = ""
-        "ethash;lbry:60" = ""
-        "ethash;lbry:75" = ""
-        "ethash;lbry:90" = ""
-        "ethash;pascal:40" = ""
-        "ethash;pascal:60" = ""
-        "ethash;pascal:80" = ""
-        "ethash;pascal:100" = ""
-        "ethash2gb;blake2s:75" = ""
-        "ethash2gb;blake2s:100" = ""
-        "ethash2gb;blake2s:125" =  ""
-        "ethash2gb;decred:100" = ""
-        "ethash2gb;decred:130" = ""
-        "ethash2gb;decred:160" = ""
-        "ethash2gb;keccak:70" = ""
-        "ethash2gb;keccak:90" = ""
-        "ethash2gb;keccak:110" = ""
-        "ethash2gb;lbry:60" = ""
-        "ethash2gb;lbry:75" = ""
-        "ethash2gb;lbry:90" = ""
-        "ethash2gb;pascal:40" = ""
-        "ethash2gb;pascal:60" = ""
-        "ethash2gb;pascal:80" = ""
-    }
-    "CommonCommands" = @(" -eres 0 -logsmaxsize 1", "") # array, first value for main algo, sesond value for secondary algo
-    "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
-    }
-}
+$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.6"
+$MinerFeeInPercentSingleMode = 1.0
+$MinerFeeInPercentDualMode = 1.5
 
-if (-not $Config.Miners.$Name.MinerFileVersion) {
-    # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-    $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-    # Apply default
-    $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
-    # Save config to file
-    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
-    # Update log
-    Write-Log -Level Info "Added miner config ($Name [$MinerFileVersion]) to Config.txt. "
-    # Apply config, must re-read from file to expand variables
-    $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
-}
-else {
-    if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    # Create default miner config, required for setup
+    $DefaultMinerConfig = [PSCustomObject]@{
+        "MinerFileVersion" = $MinerFileVersion
+        "MinerBinaryInfo" = $MinerBinaryInfo
+        "Uri" = "" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "UriManual" = "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w"
+        "WebLink" = "https://bitcointalk.org/index.php?topic=1433925.0" # See here for more information about the miner
+        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+        "IgnoreHWModel" = @()
+        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
+        "IgnoreDeviceID" = @()
+        "Commands" = [PSCustomObject]@{
+            "ethash" = ""
+            "ethash2gb" = ""
+            "ethash;blake2s:40" = ""
+            "ethash;blake2s:60" = ""
+            "ethash;blake2s:80" = ""
+            "ethash;decred:" = ""
+            "ethash;decred:130" = ""
+            "ethash;decred:160" = ""
+            "ethash;keccak:70" = ""
+            "ethash;keccak:90" = ""
+            "ethash;keccak:110" = ""
+            "ethash;lbry:60" = ""
+            "ethash;lbry:75" = ""
+            "ethash;lbry:90" = ""
+            "ethash;pascal:40" = ""
+            "ethash;pascal:60" = ""
+            "ethash;pascal:80" = ""
+            "ethash;pascal:100" = ""
+            "ethash2gb;blake2s:75" = ""
+            "ethash2gb;blake2s:100" = ""
+            "ethash2gb;blake2s:125" =  ""
+            "ethash2gb;decred:100" = ""
+            "ethash2gb;decred:130" = ""
+            "ethash2gb;decred:160" = ""
+            "ethash2gb;keccak:70" = ""
+            "ethash2gb;keccak:90" = ""
+            "ethash2gb;keccak:110" = ""
+            "ethash2gb;lbry:60" = ""
+            "ethash2gb;lbry:75" = ""
+            "ethash2gb;lbry:90" = ""
+            "ethash2gb;pascal:40" = ""
+            "ethash2gb;pascal:60" = ""
+            "ethash2gb;pascal:80" = ""
+        }
+        "CommonCommands" = @(" -eres 0 -logsmaxsize 1", "") # array, first value for main algo, sesond value for secondary algo
+        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        }
+    }
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
+        # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
+        $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        # Apply default
+        $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
+        # Save config to file
+        $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
+        # Update log
+        Write-Log -Level Info "Added miner config ($Name [$MinerFileVersion]) to Config.txt. "
+        # Apply config, must re-read from file to expand variables
+        $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
+    }
+    else { # Update existing miner config
         try {
             # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
             $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
             
             # Execute action, e.g force re-download of binary
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
+            if ($DefaultMinerConfig.Uri -and $DefaultMinerConfig.Uri -ne $Config.Miners.$Name.Uri) {
                 if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
                 # Update log
                 Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
@@ -106,9 +101,9 @@ else {
             }
 
             # Always update MinerFileVersion, MinerBinaryInfo and download link, -Force to enforce setting
-            $NewConfig.Miners.$Name | Add-member MinerFileVersion "$MinerFileVersion" -Force
-            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo "$MinerBinaryInfo" -Force
-            $NewConfig.Miners.$Name | Add-member Uri "$Uri" -Force
+            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo $MinerBinaryInfo -Force
+            $NewConfig.Miners.$Name | Add-member Uri $DefaultMinerConfig.Uri -Force
 
             # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
             $NewConfig.Miners.$Name | Foreach-Object {
@@ -137,59 +132,53 @@ if ($Info) {
     # Just return info about the miner for use in setup
     # attributes without a curresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
     return [PSCustomObject]@{
-        MinerFileVersion = $MinerFileVersion
-        MinerBinaryInfo  = $MinerBinaryInfo
-        Uri              = $Uri
-        UriDescription   = $UriManual
-        Type             = $Type
-        Path             = $Path
-        Port             = $Port
-        WebLink          = $WebLink
+        MinerFileVersion  = $MinerFileVersion
+        MinerBinaryInfo   = $MinerBinaryInfo
+        Uri               = $Uri
+        UriManual         = $UriManual
+        Type              = $Type
+        Path              = $Path
+        Port              = $Port
+        WebLink           = $WebLink
+        MinerFeeInPercentSingleMode = $MinerFeeInPercentSingleMode
+        MinerFeeInPercentDualMode   = $MinerFeeInPercentDualMode
         Settings         = @(
             [PSCustomObject]@{
                 Name        = "Uri"
                 Required    = $false
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.Uri
-                Description = "MPM automatically downloads the miner binaries from this link and unpacks them.`nFiles stored on Google Drive or Mega links cannot be downloaded automatically.`n"
-                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README). "
+                Description = "MPM automatically downloads the miner binaries from this link and unpacks them. Files stored on Google Drive or Mega links cannot be downloaded automatically. "
+                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README)"
             },
             [PSCustomObject]@{
                 Name        = "UriManual"
                 Required    = $false
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.UriManual
-                Description = "Download link for manual miner binaries download.`nUnpack downloaded files to '$Path'."
-                Tooltip     = "See README for manual download and unpack instruction."
+                Description = "Download link for manual miner binaries download. Unpack downloaded files to '$Path'. "
+                Tooltip     = "See README for manual download and unpack instruction"
             },
             [PSCustomObject]@{
-                Name        = "MinerFeeInPercentSingleMode"
+                Name        = "WebLink"
                 Required    = $false
-                ControlType = "double"
-                Min         = 0
-                Max         = 100
-                Fractions   = 2
-                Default     = $DefaultMinerConfig.MinerFeeInPercentSingleMode
-                Description = "Single mode: 1%, dual mode 1.5%, 2GB cards: 0%`nSet to 0 to ignore miner fees"
-                Tooltip     = "Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee"
+                ControlType = "string"
+                Default     = $DefaultMinerConfig.WebLink
+                Description = "See here for more information about the miner. "
             },
             [PSCustomObject]@{
-                Name        = "MinerFeeInPercentDualMode"
-                Required    = $false
-                ControlType = "double"
-                Min         = 0
-                Max         = 100
-                Fractions   = 2
-                Default     = $DefaultMinerConfig.MinerFeeInPercentDualMode
-                Description = "Dual mode 1.5%, 2GB cards: 0%`nSet to 0 to ignore miner fees"
-                Tooltip     = "Second coin (Decred/Siacoin/Lbry/Pascal/Blake2s/Keccak) is mined without developer fee"
+                Name        = "IgnoreMinerFee"
+                ControlType = "switch"
+                Default     = $false
+                Description = "Miner contains dev fee: Single mode $($MinerFeeInPercentSingleMode)%, dual mode $($MinerFeeInPercentDualMode)%. Tick to ignore miner fees in internal calculations. "
+                Tooltip     = "Miner does not allow to disable miner dev fee"
             },
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"
                 Required    = $false
                 ControlType = "string[0,$($Devices.$Type.count)]"
                 Default     = $DefaultMinerConfig.IgnoreHWModel
-                Description = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'.`nLeave empty to mine with all available hardware. "
+                Description = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'. Leave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
             }
             [PSCustomObject]@{
@@ -199,21 +188,21 @@ if ($Info) {
                 Min         = 0
                 Max         = $Devices.$Type.DeviceIDs
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
-                Description = "List of device IDs you do not want to mine with this miner, e.g. '0'.`nLeave empty to mine with all available hardware. "
+                Description = "List of device IDs you do not want to mine with this miner, e.g. '0'. Leave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`nDo disable an algorithm prefix it with '#'"})"
             },
             [PSCustomObject]@{
                 Name        = "Commands"
                 ControlType = "PSCustomObject[1,]"
                 Default     = $DefaultMinerConfig.Commands
-                Description = "Each line defines an algorithm that can be mined with this miner.`nFor dual mining the two algorithms are separated with ';', intensity parameter for the secondary algorithm is defined after the ':'.`nOptional miner parameters can be added after the '=' sign. "
+                Description = "Each line defines an algorithm that can be mined with this miner. For dual mining the two algorithms are separated with ';', intensity parameter for the secondary algorithm is defined after the ':'. Optional miner parameters can be added after the '=' sign. "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space`nTo disable an algorithm prefix it with '#'"
             }
             [PSCustomObject]@{
                 Name        = "CommonCommands"
                 ControlType = "string[2]" # array, first value for main algo, second value for secondary algo
                 Default     = $DefaultMinerConfig.CommonCommands
-                Description = "Optional miner parameter that gets appended to the resulting miner command line for all algorithms.\nThe first value applies to the main algorithm, the second value applies to the secondary algorithm. "
+                Description = "Optional miner parameter that gets appended to the resulting miner command line for all algorithms. The first value applies to the main algorithm, the second value applies to the secondary algorithm. "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space (a notable exception is the payout currency, e.g. ',c=LTC')"
             },
             [PSCustomObject]@{

@@ -10,82 +10,77 @@ param(
 # Compatibility check with old MPM builds
 if (-not $Config.Miners) {return}
 
-# Hardcoded per miner version, do not allow user to change in config
-$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "NiceHash Excavator 1.4.4 alpha (x64)"
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\Excavator\excavator.exe"
 $Type = "NVIDIA"
-$API = "Excavator"
-$Uri = "https://github.com/nicehash/excavator/releases/download/v1.4.4a/excavator_v1.4.4a_NVIDIA_Win64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-$UriManual = "" # Link for manual miner download
-$WebLink = "https://github.com/nicehash/excavator" # See here for more information about the miner
+$API  = "Excavator"
+$Port = 23456
+
+$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "NiceHash Excavator 1.4.4 alpha (x64)"
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
 $PrerequisiteURI = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"
 
-# Create default miner config, required for setup
-$DefaultMinerConfig = [PSCustomObject]@{
-    "MinerFileVersion" = "$MinerFileVersion"
-    "MinerBinaryInfo" = "$MinerBinaryInfo"
-    "Uri" = "$Uri"
-    "UriManual" = "$UriManual"    
-    "Type" = "$Type"
-    "Path" = "$Path"
-    "Port" = 23456
-    #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-    "IgnoreHWModel" = @()
-    #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-    "IgnoreDeviceID" = @()
-    "Commands" = [PSCustomObject]@{
-        "blake2s:1"         = @() #Blake2s 
-        "cryptonight:1"     = @() #Cryptonight
-        "decred:1"          = @() #Decred
-        "daggerhashimoto:1" = @() #Ethash
-        "equihash:1"        = @() #Equihash
-        "neoscrypt:1"       = @() #NeoScrypt
-        "nist5:1"           = @() #Nist5
-        "keccak:1"          = @() #Keccak
-        "lbry:1"            = @() #Lbry
-        "lyra2rev2:1"       = @() #Lyra2RE2
-        "pascal:1"          = @() #Pascal
-        "blake2s:2"         = @() #Blake2s 
-        "cryptonight:2"     = @() #Cryptonight
-        "decred:2"          = @() #Decred
-        "daggerhashimoto:2" = @() #Ethash
-        "equihash:2"        = @() #Equihash
-        #"neoscrypt:2"       = @() #NeoScrypt; out of memory
-        "nist5:2"           = @() #Nist5
-        "keccak:2"          = @() #Keccak
-        "lbry:2"            = @() #Lbry
-        "lyra2rev2:2"       = @() #Lyra2RE2
-        "pascal:2"          = @() #Pascal
+if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    # Create default miner config, required for setup
+    $DefaultMinerConfig = [PSCustomObject]@{
+        "MinerFileVersion" = $MinerFileVersion
+        "MinerBinaryInfo" = $MinerBinaryInfo
+        "Uri" = "https://github.com/nicehash/excavator/releases/download/v1.4.4a/excavator_v1.4.4a_NVIDIA_Win64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "UriManual" = "" # Link for manual miner download
+        "WebLink" = "https://github.com/nicehash/excavator" # See here for more information about the miner
+        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+        "IgnoreHWModel" = @()
+        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
+        "IgnoreDeviceID" = @()
+        "Commands" = [PSCustomObject]@{
+            "blake2s:1"         = @() #Blake2s 
+            "cryptonight:1"     = @() #Cryptonight
+            "decred:1"          = @() #Decred
+            "daggerhashimoto:1" = @() #Ethash
+            "equihash:1"        = @() #Equihash
+            "neoscrypt:1"       = @() #NeoScrypt
+            "nist5:1"           = @() #Nist5
+            "keccak:1"          = @() #Keccak
+            "lbry:1"            = @() #Lbry
+            "lyra2rev2:1"       = @() #Lyra2RE2
+            "pascal:1"          = @() #Pascal
+            "blake2s:2"         = @() #Blake2s 
+            "cryptonight:2"     = @() #Cryptonight
+            "decred:2"          = @() #Decred
+            "daggerhashimoto:2" = @() #Ethash
+            "equihash:2"        = @() #Equihash
+            #"neoscrypt:2"       = @() #NeoScrypt; out of memory
+            "nist5:2"           = @() #Nist5
+            "keccak:2"          = @() #Keccak
+            "lbry:2"            = @() #Lbry
+            "lyra2rev2:2"       = @() #Lyra2RE2
+            "pascal:2"          = @() #Pascal
+        }
+        "CommonCommands" = ""
+        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        }
     }
-    "CommonCommands" = ""
-    "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
+        # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
+        $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        # Apply default
+        $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
+        # Save config to file
+        $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
+        # Update log
+        Write-Log -Level Info "Added miner config ($Name [$MinerFileVersion]) to Config.txt. "
+        # Apply config, must re-read from file to expand variables
+        $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
     }
-}
-
-if (-not $Config.Miners.$Name.MinerFileVersion) {
-    # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-    $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-    # Apply default
-    $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
-    # Save config to file
-    $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
-    # Update log
-    Write-Log -Level Info "Added miner config ($Name [$MinerFileVersion]) to Config.txt. "
-    # Apply config, must re-read from file to expand variables
-    $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
-}
-else {
-    if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    else { # Update existing miner config
         try {
             # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
             $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
             
             # Execute action, e.g force re-download of binary
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($Uri -and $Uri -ne $Config.Miners.$Name.Uri) {
+            if ($DefaultMinerConfig.Uri -and $DefaultMinerConfig.Uri -ne $Config.Miners.$Name.Uri) {
                 if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
                 # Update log
                 Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
@@ -95,9 +90,9 @@ else {
             }
 
             # Always update MinerFileVersion, MinerBinaryInfo and download link, -Force to enforce setting
-            $NewConfig.Miners.$Name | Add-member MinerFileVersion "$MinerFileVersion" -Force
-            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo "$MinerBinaryInfo" -Force
-            $NewConfig.Miners.$Name | Add-member Uri "$Uri" -Force
+            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo $MinerBinaryInfo -Force
+            $NewConfig.Miners.$Name | Add-member Uri $DefaultMinerConfig.Uri -Force
 
             # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
             $NewConfig.Miners.$Name | Foreach-Object {
@@ -122,15 +117,15 @@ if ($Info) {
     # Just return info about the miner for use in setup
     # attributes without a curresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
     return [PSCustomObject]@{
-        MinerFileVersion = $MinerFileVersion
-        MinerBinaryInfo  = $MinerBinaryInfo
-        Uri              = $Uri
-        UriDescription   = $UriManual
-        Type             = $Type
-        Path             = $Path
-        Port             = $Port
-        WebLink          = $WebLink
-        Settings         = @(
+        MinerFileVersion  = $MinerFileVersion
+        MinerBinaryInfo   = $MinerBinaryInfo
+        Uri               = $Uri
+        UriManual         = $UriManual
+        Type              = $Type
+        Path              = $Path
+        Port              = $Port
+        WebLink           = $WebLink
+        Settings          = @(
             [PSCustomObject]@{
                 Name        = "Uri"
                 Required    = $false
@@ -146,6 +141,13 @@ if ($Info) {
                 Default     = $DefaultMinerConfig.UriManual
                 Description = "Due to the NiceHash special EULA excavator must be downloaded and extracted manually.`nUnpack downloaded files to '$Path'."
                 Tooltip     = "See README for manual download and unpack instructions."
+            },
+            [PSCustomObject]@{
+                Name        = "WebLink"
+                Required    = $false
+                ControlType = "string"
+                Default     = $DefaultMinerConfig.WebLink
+                Description = "See here for more information about the miner"
             },
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"

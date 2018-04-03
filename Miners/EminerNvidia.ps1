@@ -1,4 +1,4 @@
-﻿using module ..\Include.psm1
+using module ..\Include.psm1
 
 param(
     [PSCustomObject]$Pools,
@@ -8,33 +8,33 @@ param(
 )
 
 # Compatibility check with old MPM builds
-if (-not $Config.Miners) {return}
+#if (-not $Config.Miners) {return}
 
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
-$Path = ".\Bin\NVIDIA-KlausT\ccminer.exe"
+$Path = ".\Bin\Ethash-Eminer\eminer.exe"
 $Type = "NVIDIA"
-$API  = "Ccminer"
-$Port = 4068
+$API  = "Eminer"
+$Port = 8550
 
-$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Ccminer (x64) 8.21 by KlausT"
+$MinerFileVersion = "2018040400" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "Eminer v0.6.1-rc2 (x64)"
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config, required for setup
     $DefaultMinerConfig = [PSCustomObject]@{
         "MinerFileVersion" = $MinerFileVersion
         "MinerBinaryInfo" = $MinerBinaryInfo
-        "Uri" = "https://github.com/KlausT/ccminer/releases/download/8.21/ccminer-821-cuda91-x64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-        "UriManual" = ""    
-        "WebLink" = "https://github.com/KlausT/ccminer" # See here for more information about the miner
+        "Uri" = "https://github.com/ethash/eminer-release/releases/download/v0.6.1-rc2/eminer.v0.6.1-rc2.win64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "UriManual" = ""
+        "WebLink" = "https://github.com/ethash/eminer-release" # See here for more information about the miner
         #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
         "IgnoreHWModel" = @()
         #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
         "IgnoreDeviceID" = @()
         "Commands" = [PSCustomObject]@{
-            "groestl" = "" #Groestl
-            "myr-gr" = "" #MyriadGroestl
-            "neoscrypt" = "" #NeoScrypt
+            "Ethash"    = "" #Ethash
+            "Ethash2gb" = "" #Ethash2gb
+            "Ethash3gb" = "" #Ethash3gb
         }
         "CommonCommands" = ""
         "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
@@ -96,6 +96,7 @@ if ($Info) {
         Path              = $Path
         Port              = $Port
         WebLink           = $WebLink
+        MinerFeeInPercent = $MinerFeeInPercent
         Settings          = @(
             [PSCustomObject]@{
                 Name        = "Uri"
@@ -103,7 +104,7 @@ if ($Info) {
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.Uri
                 Description = "MPM automatically downloads the miner binaries from this link and unpacks them. Files stored on Google Drive or Mega links cannot be downloaded automatically. "
-                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README)"
+                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README). "
             },
             [PSCustomObject]@{
                 Name        = "UriManual"
@@ -121,9 +122,25 @@ if ($Info) {
                 Description = "See here for more information about the miner. "
             },
             [PSCustomObject]@{
+                Name        = "DisableMinerFee"
+                ControlType = "switch"
+                Default     = $false
+                Description = "Miner contains dev fee $($MinerFeeInPercent)%. Tick to disable dev fee mining. "
+                Tooltip     = "Disabling dev fee can have an impact on miner performance"
+            },
+            [PSCustomObject]@{
+                Name        = "IgnoreMinerFee"
+                ControlType = "switch"
+                Default     = $false
+                Description = "Miner contains dev fee $($MinerFeeInPercent)%. Tick to ignore miner fees in internal calculations. "
+                Tooltip     = "Miner does not allow to disable miner dev fee"
+            },
+            [PSCustomObject]@{
                 Name        = "IgnoreHWModel"
                 Required    = $false
-                ControlType = "string[0,$($Devices.$Type.count)]"
+                ControlType = "int[0,$($Devices.$Type.DeviceIDs)]"
+                Min         = 0
+                Max         = $Devices.$Type.DeviceIDs
                 Default     = $DefaultMinerConfig.IgnoreHWModel
                 Description = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'. Leave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
@@ -131,9 +148,7 @@ if ($Info) {
             [PSCustomObject]@{
                 Name        = "IgnoreDeviceID"
                 Required    = $false
-                ControlType = "int[0,$($Devices.$Type.DeviceIDs)]"
-                Min         = 0
-                Max         = $Devices.$Type.DeviceIDs
+                ControlType = "int[0,$($Devices.$Type.DeviceIDs)];0;$($Devices.$Type.DeviceIDs)"
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
                 Description = "List of device IDs you do not want to mine with this miner, e.g. '0'. Leave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
@@ -148,6 +163,7 @@ if ($Info) {
             },
             [PSCustomObject]@{
                 Name        = "CommonCommands"
+                Required    = $false
                 ControlType = "string"
                 Default     = $DefaultMinerConfig.CommonCommands
                 Description = "Optional miner parameter that gets appended to the resulting miner command line (for all algorithms). "
@@ -199,17 +215,30 @@ $Devices.$Type | ForEach-Object {
             $Miner_Name = $Name
             $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select -Index 0 # additional command line options for algorithm
         }
+        
+        if ($Config.Miners.$Name.DisableMinerFee) {
+            $Fees = @($null)
+        }
 
+        $HashRate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
+        if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
+            $DisableMinerFee = " --no-devfee"
+        }
+        else {
+            $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
+            $Fees = @($MinerFeeInPercent)
+        }
+        
         [PSCustomObject]@{
             Name             = $Miner_Name
             Type             = $Type
             Path             = $Path
-            Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
-            HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
+            Arguments        = ("-S $($Pools.Ethash.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -U $($Pools.$Algorithm_Norm.User) -P $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -intensity 64 -http :$Port -M $($DeviceIDs -join ',')$($DisableMinerFee)" -replace "\s+", " ").trim()
+            HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
             API              = $Api
             Port             = $Port
             URI              = $Uri
-            Fees             = @($null)
+            Fees             = $Fees
             Index            = $DeviceIDs -join ';'
             ShowMinerWindow  = $Config.ShowMinerWindow
         }

@@ -11,29 +11,30 @@ param(
 if (-not $Config.Miners) {return}
 
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
-$Path = ".\Bin\NVIDIA-KlausT\ccminer.exe"
+$Path = ".\Bin\NVIDIA-Nanashi\ccminer.exe"
 $Type = "NVIDIA"
 $API  = "Ccminer"
 $Port = 4068
 
 $MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Ccminer (x64) 8.21 by KlausT"
+$MinerBinaryInfo = "Ccminer Nanashi-Meiyo-Meijin v2.2-mod-r2"
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config, required for setup
     $DefaultMinerConfig = [PSCustomObject]@{
         "MinerFileVersion" = $MinerFileVersion
         "MinerBinaryInfo" = $MinerBinaryInfo
-        "Uri" = "https://github.com/KlausT/ccminer/releases/download/8.21/ccminer-821-cuda91-x64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "Uri" = "https://github.com/Nanashi-Meiyo-Meijin/ccminer/releases/download/v2.2-mod-r2/2.2-mod-r2-CUDA9.binary.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
         "UriManual" = ""    
-        "WebLink" = "https://github.com/KlausT/ccminer" # See here for more information about the miner
+        "WebLink" = "https://bitcointalk.org/?topic=770064" # See here for more information about the miner
         #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
         "IgnoreHWModel" = @()
         #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
         "IgnoreDeviceID" = @()
         "Commands" = [PSCustomObject]@{
-            "groestl" = "" #Groestl
-            "myr-gr" = "" #MyriadGroestl
+            "jha" = "" #JHA
+            "lyra2v2" = "" #Lyra2RE2
+            "lyra2z" = "" #Lyra2z
             "neoscrypt" = "" #NeoScrypt
         }
         "CommonCommands" = ""
