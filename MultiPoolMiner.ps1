@@ -93,7 +93,6 @@ $Rates = [PSCustomObject]@{BTC = [Double]1}
 
 # Make sure necessary directories exist
 if (-not (Test-Path "Cache")) {New-Item "Cache" -ItemType "directory" | Out-Null}
-if (-not (Test-Path "Data")) {New-Item "Data" -ItemType "directory" | Out-Null}
 
 #Start the log
 Start-Transcript ".\Logs\MultiPoolMiner_$(Get-Date -Format "yyyy-MM-dd_HH-mm-ss").txt"
@@ -726,33 +725,6 @@ while ($true) {
     }
 
     write-log -level warn "Main script ZA memory usage: $((Get-Process -ID $PID | Select-Object -ExpandProperty WorkingSet)/1MB) MB"
-    # Export data to files - this can be used by an external process to get status information
-    $ActiveMiners | Where-Object {$_.GetActivateCount() -GT 0 -and $_.GetStatus() -eq "Running"} | Foreach-Object {
-        $ActiveMiner = $_
-        $MatchingMiner = $Miners | Where-Object {$_.Name -eq $ActiveMiner.Name -and $_.Path -eq $ActiveMiner.Path -and $_.Arguments -eq $ActiveMiner.Arguments -and $_.API -eq $ActiveMiner.API -and $_.Port -eq $ActiveMiner.Port}
-        
-        [pscustomobject]@{
-            Name = $ActiveMiner.Name
-            Active = "{0:dd} Days {0:hh} Hours {0:mm} Minutes" -f ((Get-Date) - $ActiveMiner.GetActiveTime())
-            Type = @($ActiveMiner.Type)
-            Pool = @($MatchingMiner.Pools.PsObject.Properties.Value.Name)
-            Algorithm = @($ActiveMiner.Algorithm)
-            CurrentSpeed = @($ActiveMiner.Speed_Live | Foreach-Object {"$($ActiveMiner.Speed_Live | ConvertTo-Hash)/s"})
-            BenchmarkedSpeed = @($ActiveMiner.Speed | Foreach-Object {"$($ActiveMiner.Speed | ConvertTo-Hash)/s"})
-            Profit = "{0:N8}" -f $ActiveMiner.Profit
-            Path = Resolve-Path -Relative $ActiveMiner.Path
-            LogFile = Resolve-Path -Relative $ActiveMiner.LogFile
-        }
-    } | ConvertTo-Json | Out-File 'Data\ActiveMiners.json'
-    write-log -level warn "Main script ZB memory usage: $((Get-Process -ID $PID | Select-Object -ExpandProperty WorkingSet)/1MB) MB"
-    # These are mostly for debugging
-	$ActiveMiners | Export-Clixml -Path 'Data\ActiveMiners.xml'
-	$Miners | Export-Clixml -Path 'Data\Miners.xml'
-	$Pools | Export-Clixml -Path 'Data\Pools.xml'
-	$AllPools | Export-Clixml -Path 'Data\AllPools.xml'
-
-    write-log -level warn "Main script ZC memory usage: $((Get-Process -ID $PID | Select-Object -ExpandProperty WorkingSet)/1MB) MB"
-
     #Give API access to WatchdogTimers information
     $API.WatchdogTimers = $WatchdogTimers
 
