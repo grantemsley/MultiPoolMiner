@@ -206,12 +206,12 @@ $Devices.$Type | ForEach-Object {
             $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select -Index 0 # additional command line options for algorithm
         }
 
-        if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.$MinerFeeInPercent -eq 0) {
-            $Fees = @($null)
+        if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
+            $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
+            $Fees = @($MinerFeeInPercent)
         }
         else {
-            $HashRate = $HashRate * (1 - $Config.Miners.$Name.MinerFeeInPercent / 100)
-            $Fees = @($Config.Miners.$Name.MinerFeeInPercent)
+            $Fees = @($null)
         }
 
         [PSCustomObject]@{
