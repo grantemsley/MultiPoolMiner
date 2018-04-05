@@ -8,16 +8,19 @@ param(
 )
 
 # Compatibility check with old MPM builds
-#if (-not $Config.Miners) {return}
+if (-not $Config.Miners) {return}
 
+# Hardcoded per miner version, do not allow user to change in config
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
-$Path = ".\Bin\Ethash-Eminer\eminer.exe"
+$Path = ".\Bin\Equihash-EWBF\miner.exe"
 $Type = "NVIDIA"
-$API  = "Eminer"
-$Port = 8550
+$API  = "DSTM"
+$Port = 42000
 
-$MinerFileVersion = "2018040400" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Eminer v0.6.1-rc2 (x64)"
+$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "EWBF's CUDA Zcash miner Version 0.3.4b (x64)"
+$PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
+$PrerequisiteURI  = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"                
 $MinerFeeInPercent = 2.0
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
@@ -25,19 +28,17 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     $DefaultMinerConfig = [PSCustomObject]@{
         "MinerFileVersion" = $MinerFileVersion
         "MinerBinaryInfo" = $MinerBinaryInfo
-        "Uri" = "https://github.com/ethash/eminer-release/releases/download/v0.6.1-rc2/eminer.v0.6.1-rc2.win64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-        "UriManual" = ""
-        "WebLink" = "https://github.com/ethash/eminer-release" # See here for more information about the miner
+        "Uri" = "" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "UriManual" = "https://mega.nz/#F!usQh2bTa!3qp_PaiO-dw3F0mpvLXynA"
+        "WebLink" = "https://bitcointalk.org/index.php?topic=1707546.0" # See here for more information about the miner
         #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
         "IgnoreHWModel" = @()
         #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
         "IgnoreDeviceID" = @()
         "Commands" = [PSCustomObject]@{
-            "Ethash"    = "" #Ethash
-            "Ethash2gb" = "" #Ethash2gb
-            "Ethash3gb" = "" #Ethash3gb
+            "equihash" = @() #Equihash
         }
-        "CommonCommands" = ""
+        "CommonCommands" = " --eexit --intensity 64"
         "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
         }
     }
@@ -123,14 +124,8 @@ if ($Info) {
                 Description = "See here for more information about the miner. "
             },
             [PSCustomObject]@{
-                Name        = "DisableMinerFee"
-                ControlType = "switch"
-                Default     = $false
-                Description = "Miner contains dev fee $($MinerFeeInPercent)%. Tick to disable dev fee mining. "
-                Tooltip     = "Disabling dev fee can have an impact on miner performance"
-            },
-            [PSCustomObject]@{
                 Name        = "IgnoreMinerFee"
+                Required    = $false
                 ControlType = "switch"
                 Default     = $false
                 Description = "Miner contains dev fee $($MinerFeeInPercent)%. Tick to ignore miner fees in internal calculations. "
@@ -139,9 +134,7 @@ if ($Info) {
             [PSCustomObject]@{
                 Name        = "IgnoreHWModel"
                 Required    = $false
-                ControlType = "int[0,$($Devices.$Type.DeviceIDs)]"
-                Min         = 0
-                Max         = $Devices.$Type.DeviceIDs
+                ControlType = "string[0,$($Devices.$Type.count)]"
                 Default     = $DefaultMinerConfig.IgnoreHWModel
                 Description = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'. Leave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
@@ -149,14 +142,16 @@ if ($Info) {
             [PSCustomObject]@{
                 Name        = "IgnoreDeviceID"
                 Required    = $false
-                ControlType = "int[0,$($Devices.$Type.DeviceIDs)];0;$($Devices.$Type.DeviceIDs)"
+                ControlType = "int[0,$($Devices.$Type.DeviceIDs)]"
+                Min         = 0
+                Max         = $Devices.$Type.DeviceIDs
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
                 Description = "List of device IDs you do not want to mine with this miner, e.g. '0'. Leave empty to mine with all available hardware. "
                 Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
             },
             [PSCustomObject]@{
                 Name        = "Commands"
-                Required    = $false
+                Required    = $true
                 ControlType = "PSCustomObject[1,]"
                 Default     = $DefaultMinerConfig.Commands
                 Description = "Each line defines an algorithm that can be mined with this miner. Optional miner parameters can be added after the '=' sign. "
@@ -187,58 +182,49 @@ $Devices.$Type | ForEach-Object {
 
     if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
-    $DeviceIDs = @() # array of all devices, ids will be in hex format
 
-    # Get DeviceIDs, filter out all disabled hw models and IDs
-    if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) { # separate miner instance per hardware model
-        if ($Config.Devices.$Type.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm) {
-            $DeviceTypeModel.DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
-                $DeviceIDs += [Convert]::ToString($_, 16) # convert id to hex
+    # Get list of active devices, returned deviceIDs are in hex format starting from 0
+    $DeviceIDs = (Get-DeviceSet -Config $Config -Devices $Devices -NumberingFormat 16 -StartNumberingFrom 0)."All"
+
+    if ($DeviceIDs.Count -gt 0) {
+
+        $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_) -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name} | ForEach-Object {
+
+            $Algorithm_Norm = Get-Algorithm $_
+
+            if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
+                $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
+                $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for algorithm
             }
-        }
-    }
-    else { # one miner instance per hw type
-        $DeviceIDs = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {[Convert]::ToString($_, 16)} # convert id to hex
-    }
+            else {
+                $Miner_Name = $Name
+                $Commands = $Config.Miners.$Name.Commands.$_ # additional command line options for algorithm
+            }    
 
-    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_).Protocol -eq "stratum+tcp"  -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name -and $DeviceIDs} | ForEach-Object {
+            $HashRate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
+            if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
+                $Fees = @($null)
+            }
+            else {
+                $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
+                $Fees = @($MinerFeeInPercent)
+            }
 
-        $Algorithm_Norm = Get-Algorithm $_
-
-        if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
-            $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
-            $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for algorithm
-        }
-        else {
-            $Miner_Name = $Name
-            $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select -Index 0 # additional command line options for algorithm
-        }
-        
-        if ($Config.Miners.$Name.DisableMinerFee) {
-            $Fees = @($null)
-        }
-
-        $HashRate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
-        if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
-            $DisableMinerFee = " --no-devfee"
-        }
-        else {
-            $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
-            $Fees = @($MinerFeeInPercent)
-        }
-        
-        [PSCustomObject]@{
-            Name             = $Miner_Name
-            Type             = $Type
-            Path             = $Path
-            Arguments        = ("-S $($Pools.Ethash.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -U $($Pools.$Algorithm_Norm.User) -P $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -intensity 64 -http :$Port -M $($DeviceIDs -join ',')$($DisableMinerFee)" -replace "\s+", " ").trim()
-            HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
-            API              = $Api
-            Port             = $Port
-            URI              = $Uri
-            Fees             = $Fees
-            Index            = $DeviceIDs -join ';'
-            ShowMinerWindow  = $Config.ShowMinerWindow
+            [PSCustomObject]@{
+                Name             = $Miner_Name
+                Type             = $Type
+                Path             = $Path
+                Arguments        = ("--server $($Pools.$Algorithm_Norm.Host) --port $($Pools.$Algorithm_Norm.Port) --user $($Pools.$Algorithm_Norm.User) --pass $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) --api 0.0.0.0:$($Port) --cuda_devices $($DeviceIDs -join ' ')$($DisableMinerFee)" -replace "\s+", " ").trim()
+                HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
+                API              = $Api
+                Port             = $Port
+                URI              = $Uri
+                Fees             = $Fees
+                Index            = $DeviceIDs -join ';'
+                PrerequisitePath = $PrerequisitePath
+                PrerequisiteURI  = $PrerequisiteURI               
+                ShowMinerWindow  = $Config.ShowMinerWindow
+            }
         }
     }
     $Port++ # next higher port for next device

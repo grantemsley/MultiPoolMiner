@@ -200,76 +200,46 @@ if (-not (Test-Path (Split-Path $Path))) {New-Item (Split-Path $Path) -ItemType 
 
 # Get device list
 $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -or $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | ForEach-Object {
-    
+
     if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
-    $DeviceIDsAll = @() # array of all devices, ids will be in hex format
-    $DeviceIDs3gb = @() # array of all devices with more than 3MiB VRAM, ids will be in hex format
-    $DeviceIDs4gb = @() # array of all devices with more than 4MiB VRAM, ids will be in hex format
 
-    # Get DeviceIDs, filter out all disabled hw models and IDs
-    if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) { # separate miner instance per hardware model
-        if ($Config.Devices.$Type.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm) {
-            $DeviceTypeModel.DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
-                $DeviceIDsAll += [Convert]::ToString($_, 16) # convert id to hex
-                if ($DeviceTypeModel.GlobalMemsize -ge 3000000000) {$DeviceIDs3gb += [Convert]::ToString($_, 16)} # convert id to hex
-                if ($DeviceTypeModel.GlobalMemsize -ge 4000000000) {$DeviceIDs4gb += [Convert]::ToString($_, 16)} # convert id to hex
-            }
-        }
-    }
-    else { # one miner instance per hw type
-        $DeviceIDsAll = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {[Convert]::ToString($_, 16)} # convert id to hex
-        $DeviceIDs3gb = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 3000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | Foreach-Object {[Convert]::ToString($_, 16)} # convert id to hex
-        $DeviceIDs4gb = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 4000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | Foreach-Object {[Convert]::ToString($_, 16)} # convert id to hex
-    }
+    # Get list of active devices, returned deviceIDs are in hex format starting from 0
+    $DeviceSet = Get-DeviceSet -Config $Config -Devices $Devices -NumberingFormat 16 -StartNumberingFrom 0    
 
-    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$_ -match ".+:[1-9]" -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm ($_.Split(":") | Select -Index 0)).Name} | ForEach-Object {
+    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$_ -match ".+:[1-9]" -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm ($_.Split(":") | Select-Object -Index 0)).Name} | ForEach-Object {
 
-        $Algorithm = $_.Split(":") | Select -Index 0
+        $Algorithm = $_.Split(":") | Select-Object -Index 0
         $Algorithm_Norm = Get-Algorithm $Algorithm
         
-        $Threads = $_.Split(":") | Select -Index 1
+        $Threads = $_.Split(":") | Select-Object -Index 1
 
         [Array]$Commands = $Config.Miners.$Name.Commands.$_ # additional command line options for algorithm
 
         Switch ($Algorithm_Norm) { # default is all devices, ethash has a 4GB minimum memory limit
-            "Ethash"    {$DeviceIDs = $DeviceIDs4gb}
-            "Ethash3gb" {$DeviceIDs = $DeviceIDs3gb}
-            default     {$DeviceIDs = $DeviceIDsAll}
+            "Ethash"    {$DeviceIDs = $DeviceSet."4gb"}
+            "Ethash3gb" {$DeviceIDs = $DeviceSet."3gb"}
+            default     {$DeviceIDs = $DeviceSet."All"}
         }
-        if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
-            $Miner_Name = "$Name$($Threads)-$($DeviceTypeModel.Name_Norm)"
-        }
-        else {
-            $Miner_Name = "$($Name)$($Threads)"
-        }    
 
-        try {
-            if ($Algorithm_Norm -ne "Decred" -and $Algorithm_Norm -ne "Sia") {
-                [PSCustomObject]@{
-                    Name             = $Miner_Name
-                    Type             = $Type
-                    Path             = $Path
-                    Arguments        = @([PSCustomObject]@{id = 1; method = "algorithm.add"; params = @("$Algorithm", "$([Net.DNS]::Resolve($Pools.$Algorithm_Norm.Host).AddressList.IPAddressToString | Select-Object -First 1):$($Pools.$Algorithm_Norm.Port)", "$($Pools.$Algorithm_Norm.User):$($Pools.$Algorithm_Norm.Pass)")}) + @([PSCustomObject]@{id = 1; method = "workers.add"; params = @(@($DeviceIDs | ForEach-Object {@("alg-0", "$_",$(($Commands | Select -Index $_) -Join ", "))} | Select-Object) * $Threads)})
-                    HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
-                    API              = $Api
-                    Port             = $Port
-                    URI              = $Uri
-                    PrerequisitePath = $PrerequisitePath
-                    PrerequisiteURI  = $PrerequisiteURI
-                    Fees             = @($null)
-                    Index            = $DeviceIDs -join ';'
-                    ShowMinerWindow  = $Config.ShowMinerWindow 
-                }
+        if ($DeviceIDs.Count -gt 0) {
+
+            if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
+                $Miner_Name = "$Name$($Threads)-$($DeviceTypeModel.Name_Norm)"
             }
             else {
-                if ($Pools."$($Algorithm_Norm)NiceHash".Host) {
+                $Miner_Name = "$($Name)$($Threads)"
+            }    
+
+            try {
+                if ($Algorithm_Norm -ne "Decred" -and $Algorithm_Norm -ne "Sia") {
                     [PSCustomObject]@{
                         Name             = $Miner_Name
                         Type             = $Type
                         Path             = $Path
-                        Arguments        = @([PSCustomObject]@{id = 1; method = "algorithm.add"; params = @("$Algorithm", "$([Net.DNS]::Resolve($Pools."$($Algorithm_Norm)NiceHash".Host).AddressList.IPAddressToString | Select-Object -First 1):$($Pools."$($Algorithm_Norm)NiceHash".Port)", "$($Pools."$($Algorithm_Norm)NiceHash".User):$($Pools."$($Algorithm_Norm)NiceHash".Pass)")}) + @([PSCustomObject]@{id = 1; method = "workers.add"; params = @(@($DeviceIDs | ForEach-Object {@("alg-0", "$_",$(($Commands | Select -Index $_) -Join ", "))} | Select-Object) * $Threads)})
-                        HashRates        = [PSCustomObject]@{"$($Algorithm_Norm)Nicehash" = $Stats."$($Miner_Name)_$($Algorithm_Norm)NiceHash_HashRate".Week}
+                        Arguments        = @([PSCustomObject]@{id = 1; method = "algorithm.add"; params = @("$Algorithm", "$([Net.DNS]::Resolve($Pools.$Algorithm_Norm.Host).AddressList.IPAddressToString | Select-Object -First 1):$($Pools.$Algorithm_Norm.Port)", "$($Pools.$Algorithm_Norm.User):$($Pools.$Algorithm_Norm.Pass)")}) + @([PSCustomObject]@{id = 1; method = "workers.add"; params = @(@($DeviceIDs | ForEach-Object {@("alg-0", "$_", $(if ($Commands) {($Commands | Select-Object -Index $_) -Join ", "}))} | Select-Object) * $Threads)})
+    #                    Arguments        = @([PSCustomObject]@{id = 1; method = "algorithm.add"; params = @("$Algorithm", "$([Net.DNS]::Resolve($Pools.$Algorithm_Norm.Host).AddressList.IPAddressToString | Select-Object -First 1):$($Pools.$Algorithm_Norm.Port)", "$($Pools.$Algorithm_Norm.User):$($Pools.$Algorithm_Norm.Pass)")}) + @([PSCustomObject]@{id = 1; method = "worker.free"; params = @(@($DeviceIDs | ForEach-Object {@("$_")} | Select-Object) * $Threads)}) + @([PSCustomObject]@{id = 1; method = "workers.add"; params = @(@($DeviceIDs | ForEach-Object {@("alg-0", "$_", $(if ($Commands) {($Commands | Select-Object -Index $_) -Join ", "}))} | Select-Object) * $Threads)})
+                        HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
                         API              = $Api
                         Port             = $Port
                         URI              = $Uri
@@ -280,9 +250,29 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
                         ShowMinerWindow  = $Config.ShowMinerWindow 
                     }
                 }
+                else {
+                    if ($Pools."$($Algorithm_Norm)NiceHash".Host) {
+                        [PSCustomObject]@{
+                            Name             = $Miner_Name
+                            Type             = $Type
+                            Path             = $Path
+                            Arguments        = @([PSCustomObject]@{id = 1; method = "algorithm.add"; params = @("$Algorithm", "$([Net.DNS]::Resolve($Pools."$($Algorithm_Norm)NiceHash".Host).AddressList.IPAddressToString | Select-Object -First 1):$($Pools."$($Algorithm_Norm)NiceHash".Port)", "$($Pools."$($Algorithm_Norm)NiceHash".User):$($Pools."$($Algorithm_Norm)NiceHash".Pass)")}) + @([PSCustomObject]@{id = 1; method = "workers.add"; params = @(@($DeviceIDs | ForEach-Object {@("alg-0", "$_", $(if ($Commands) {($Commands | Select-Object -Index $_) -Join ", "}))} | Select-Object) * $Threads)})
+    #                        Arguments        = @([PSCustomObject]@{id = 1; method = "algorithm.add"; params = @("$Algorithm", "$([Net.DNS]::Resolve($Pools."$($Algorithm_Norm)NiceHash".Host).AddressList.IPAddressToString | Select-Object -First 1):$($Pools."$($Algorithm_Norm)NiceHash".Port)", "$($Pools."$($Algorithm_Norm)NiceHash".User):$($Pools."$($Algorithm_Norm)NiceHash".Pass)")}) + @([PSCustomObject]@{id = 1; method = "worker.free"; params = @(@($DeviceIDs | ForEach-Object {@("$_")} | Select-Object) * $Threads)}) + @([PSCustomObject]@{id = 1; method = "workers.add"; params = @(@($DeviceIDs | ForEach-Object {@("alg-0", "$_", $(if ($Commands) {($Commands | Select-Object -Index $_) -Join ", "}))} | Select-Object) * $Threads)})
+                            HashRates        = [PSCustomObject]@{"$($Algorithm_Norm)Nicehash" = $Stats."$($Miner_Name)_$($Algorithm_Norm)NiceHash_HashRate".Week}
+                            API              = $Api
+                            Port             = $Port
+                            URI              = $Uri
+                            PrerequisitePath = $PrerequisitePath
+                            PrerequisiteURI  = $PrerequisiteURI
+                            Fees             = @($null)
+                            Index            = $DeviceIDs -join ';'
+                            ShowMinerWindow  = $Config.ShowMinerWindow 
+                        }
+                    }
+                }
             }
-        }
-        catch {
+            catch {
+            }
         }
     }
     $Port++ # next higher port for next device

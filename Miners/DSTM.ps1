@@ -18,7 +18,7 @@ $API  = "DSTM"
 $Port = 42000
 
 $MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "dstm's ZCash Cuda miner 0.6"
+$MinerBinaryInfo = "dstm's ZCash Cuda miner 0.6 (x64)"
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
 $PrerequisiteURI  = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"                
 $MinerFeeInPercent = 2.0
@@ -177,65 +177,54 @@ if ($Info) {
     }
 }
 
-# Starting port for first miner
-$Port = $Config.Miners.$Name.Port
-
 # Get device list
 $Devices.$Type | ForEach-Object {
 
     if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
-    $DeviceIDs = @() # array of all devices, ids will be in hex format
-    $DeviceIDs2gb = @() # array of all devices with less than 3MiB VRAM, ids will be in hex format
 
-    # Get DeviceIDs, filter out all disabled hw models and IDs
-    if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) { # separate miner instance per hardware model
-        if ($Config.Devices.$Type.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm) {
-            $DeviceTypeModel.DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
-                $DeviceIDs += [Convert]::ToString($_, 16) # convert id to hex
+    # Get list of active devices, returned deviceIDs are in hex format starting from 0
+    $DeviceIDs = (Get-DeviceSet -Config $Config -Devices $Devices -NumberingFormat 16 -StartNumberingFrom 0)."All"
+
+    if ($DeviceIDs.Count -gt 0) {
+
+        $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_) -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name} | ForEach-Object {
+
+            $Algorithm_Norm = Get-Algorithm $_
+
+            if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
+                $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
+                $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for algorithm
             }
-        }
-    }
-    else { # one miner instance per hw type
-        $DeviceIDs = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {[Convert]::ToString($_, 16)} # convert id to hex
-    }
+            else {
+                $Miner_Name = $Name
+                $Commands = $Config.Miners.$Name.Commands.$_ # additional command line options for algorithm
+            }    
 
-    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_) -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name -and $DeviceIDs} | ForEach-Object {
-
-        $Algorithm_Norm = Get-Algorithm $_
-
-        if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
-            $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
-            $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for algorithm
-        }
-        else {
-            $Miner_Name = $Name
-            $Commands = $Config.Miners.$Name.Commands.$_ # additional command line options for algorithm
-        }    
-
-        $HashRate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
-        if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
-            $Fees = @($null)
-        }
-        else {
-            $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
-            $Fees = @($MinerFeeInPercent)
-        }
-        
-        [PSCustomObject]@{
-            Name             = $Miner_Name
-            Type             = $Type
-            Path             = $Path
-            Arguments        = ("--server $(if ($Pools.$Algorithm_Norm.SSL) {'ssl://'})$($Pools.Equihash.Host) --port $($Pools.$Algorithm_Norm.Port) --user $($Pools.$Algorithm_Norm.User) --pass $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) --telemetry=0.0.0.0:$($Port) --dev $($DeviceIDs -join ' ')" -replace "\s+", " ").trim()
-            HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
-            API              = $Api
-            Port             = $Port
-            URI              = $Uri
-            Fees             = $Fees
-            Index            = $DeviceIDs -join ';'
-            PrerequisitePath = $PrerequisitePath
-            PrerequisiteURI  = $PrerequisiteURI               
-            ShowMinerWindow  = $Config.ShowMinerWindow
+            $HashRate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
+            if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
+                $Fees = @($null)
+            }
+            else {
+                $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
+                $Fees = @($MinerFeeInPercent)
+            }
+            
+            [PSCustomObject]@{
+                Name             = $Miner_Name
+                Type             = $Type
+                Path             = $Path
+                Arguments        = ("--server $(if ($Pools.$Algorithm_Norm.SSL) {'ssl://'})$($Pools.$Algorithm_Norm.Host) --port $($Pools.$Algorithm_Norm.Port) --user $($Pools.$Algorithm_Norm.User) --pass $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) --telemetry=0.0.0.0:$($Port) --dev $($DeviceIDs -join ' ')" -replace "\s+", " ").trim()
+                HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
+                API              = $Api
+                Port             = $Port
+                URI              = $Uri
+                Fees             = $Fees
+                Index            = $DeviceIDs -join ';'
+                PrerequisitePath = $PrerequisitePath
+                PrerequisiteURI  = $PrerequisiteURI               
+                ShowMinerWindow  = $Config.ShowMinerWindow
+            }
         }
     }
     $Port++ # next higher port for next device

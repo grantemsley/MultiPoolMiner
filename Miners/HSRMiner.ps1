@@ -18,7 +18,7 @@ $Port = 4068
 
 $MinerFileVersion = "2018040200" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "HSRMINER Neoscrypt Fork by Justaminer 12.03.2018"
-$MinerFeeInPercent = 100/60 # 1 minute per hour
+$MinerFeeInPercent = 1/60/100 # 1 minute per hour
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config, required for setup
@@ -179,54 +179,47 @@ $Devices.$Type | ForEach-Object {
 
     if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
-    $DeviceIDs = @() # array of all devices, ids will be in hex format
 
-    # Get DeviceIDs, filter out all disabled hw models and IDs
-    if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) { # separate miner instance per hardware model
-        if ($Config.Devices.$Type.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm) {
-            $DeviceTypeModel.DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
-                $DeviceIDs += [Convert]::ToString($_, 16) # convert id to hex
+    # Get list of active devices, returned deviceIDs are in hex format starting from 0
+    $DeviceIDs = (Get-DeviceSet -Config $Config -Devices $Devices -NumberingFormat 16 -StartNumberingFrom 0)."All"
+
+    if ($DeviceIDs.Count -gt 0) {
+
+        $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_).Protocol -eq "stratum+tcp" -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name} | ForEach-Object {
+
+            $Algorithm_Norm = Get-Algorithm $_
+
+            if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
+                $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
+                $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for algorithm
+            }
+            else {
+                $Miner_Name = $Name
+                $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select-Object -Index 0 # additional command line options for algorithm
+            }
+
+            if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
+                $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
+                $Fees = @($MinerFeeInPercent)
+            }
+            else {
+                $Fees = @($null)
+            }
+
+            [PSCustomObject]@{
+                Name             = $Miner_Name
+                Type             = $Type
+                Path             = $Path
+                Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
+                HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
+                API              = $Api
+                Port             = $Port
+                URI              = $Uri
+                Fees             = $Fees
+                Index            = $DeviceIDs -join ';'
+                ShowMinerWindow  = $Config.ShowMinerWindow
             }
         }
     }
-    else { # one miner instance per hw type
-        $DeviceIDs = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {[Convert]::ToString($_, 16)} # convert id to hex
-    }
-
-    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_).Protocol -eq "stratum+tcp" -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name -and $DeviceIDs} | ForEach-Object {
-
-        $Algorithm_Norm = Get-Algorithm $_
-
-        if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
-            $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
-            $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for algorithm
-        }
-        else {
-            $Miner_Name = $Name
-            $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select -Index 0 # additional command line options for algorithm
-        }
-
-        if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
-            $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
-            $Fees = @($MinerFeeInPercent)
-        }
-        else {
-            $Fees = @($null)
-        }
-
-        [PSCustomObject]@{
-            Name             = $Miner_Name
-            Type             = $Type
-            Path             = $Path
-            Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
-            HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
-            API              = $Api
-            Port             = $Port
-            URI              = $Uri
-            Fees             = $Fees
-            Index            = $DeviceIDs -join ';'
-            ShowMinerWindow  = $Config.ShowMinerWindow
-        }
-    }
     $Port++ # next higher port for next device
-}
+ }
