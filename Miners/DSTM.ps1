@@ -220,7 +220,7 @@ $Devices.$Type | ForEach-Object {
                 Port             = $Port
                 URI              = $Uri
                 Fees             = $Fees
-                Index            = $DeviceIDs -join ';'
+                Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                 PrerequisitePath = $PrerequisitePath
                 PrerequisiteURI  = $PrerequisiteURI               
                 ShowMinerWindow  = $Config.ShowMinerWindow

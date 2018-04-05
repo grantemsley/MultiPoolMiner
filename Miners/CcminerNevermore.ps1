@@ -198,7 +198,7 @@ $Devices.$Type | ForEach-Object {
                 Port             = $Port
                 URI              = $Uri
                 Fees             = @($null)
-                Index            = $DeviceIDs -join ';'
+                Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                 ShowMinerWindow  = $Config.ShowMinerWindow
             }
         }

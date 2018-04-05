@@ -246,7 +246,7 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
                         PrerequisitePath = $PrerequisitePath
                         PrerequisiteURI  = $PrerequisiteURI
                         Fees             = @($null)
-                        Index            = $DeviceIDs -join ';'
+                        Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                         ShowMinerWindow  = $Config.ShowMinerWindow 
                     }
                 }
@@ -265,7 +265,7 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
                             PrerequisitePath = $PrerequisitePath
                             PrerequisiteURI  = $PrerequisiteURI
                             Fees             = @($null)
-                            Index            = $DeviceIDs -join ';'
+                            Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                             ShowMinerWindow  = $Config.ShowMinerWindow 
                         }
                     }
