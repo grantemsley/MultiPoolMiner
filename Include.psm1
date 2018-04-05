@@ -2,6 +2,112 @@
 
 Add-Type -Path .\OpenCL\*.cs
 
+function Get-BittrexMarkets {
+    # Get a list of markets. This list includes both the long and short names of each currency.
+    $filename = 'Cache\BittrexMarkets.json'
+
+    # Use cached data if it's less than 1 day old
+    if(Test-Path $filename) {
+        $lastupdated = (Get-Item $filename).LastWriteTime
+        $timespan = New-TimeSpan -Days 1
+
+        if(((Get-Date) - $lastupdated) -lt $timespan) {
+            Write-Log 'Using cached market list...'
+            $markets = Get-Content $filename | ConvertFrom-Json
+            return $markets
+        }
+    } 
+
+    Write-Log 'Updating markets from API...'
+    try {
+        $Request = Invoke-RestMethod "https://bittrex.com/api/v1.1/public/getmarkets" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    } catch {
+        Write-Log -Level Warn "Bittrex exchange API has failed. "
+        Return 0
+    }
+    
+    $markets = $Request.result | Where-Object {$_.BaseCurrency -eq 'BTC'}
+    Write-Log "$($markets.count) markets loaded"
+    $markets | ConvertTo-Json | Set-Content $filename
+
+    return $markets
+}
+
+function Get-BTCValue {
+    param (
+        [Parameter(Mandatory=$true)][string]$altcoin,
+        [Parameter(Mandatory=$true)][double]$amount
+
+    )
+    # This gets the exchange rate from bittrex.com for various altcoins, and returns an equivelent BTC value
+    # Exchange rates are cached to avoid abusing their API.  If the cached rates are more than 1 hour old, they will be refreshed.
+    $VerbosePreference = 'continue'
+    $filename = 'Cache\ExchangeRates.json'
+    
+    # Cache for up to 2 hours
+    $timespan = New-TimeSpan -Hour 2 
+    
+    $ExchangeRates = @{}
+    if(Test-Path $filename) {
+        $ExchangeRateData = Get-Content $filename | ConvertFrom-Json
+        # ConvertFrom-Json gives a PSObject, this turns it back into a hashtable. https://stackoverflow.com/questions/3740128/pscustomobject-to-hashtable
+        $ExchangeRateData.psobject.properties | Foreach {$ExchangeRates[$_.Name] = $_.Value}
+    }
+
+    # Try to return a cached exchange rate
+    if($ExchangeRates[$altcoin].LastUpdated -and ((Get-Date) - $ExchangeRates[$altcoin].LastUpdated) -lt $timespan) {
+        Return $amount * $ExchangeRates[$altcoin].rate
+    }
+
+    # Find the market for the coin
+    $markets = Get-BittrexMarkets | Where-Object {$_.MarketCurrencyLong -eq $altcoin}
+    if($markets.count -eq 0) {
+        Write-Log -Level Info "No market found for $altcoin, unable to get exchange rate"
+        Return 0
+    }
+
+    # Get the exchange rate
+    Write-Log "Updating exchange rate for $altcoin"
+    try {
+        $Request = Invoke-RestMethod "https://bittrex.com/api/v1.1/public/getticker?market=$($markets[0].MarketName)" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    } catch {
+        Write-Log -Level Warn "Bittrex exchange API has failed."
+        Return 0
+    }
+    
+    # Write the exchange rate to the cache
+    $ExchangeRates[$altcoin] = @{'rate' = $Request.result.Last; 'lastupdated' = (Get-Date).ToUniversalTime()}
+    $ExchangeRates | ConvertTo-Json | Set-Content $filename
+
+    Return $ExchangeRates[$altcoin].rate * $amount
+}
+
+function Get-Balances {
+    param($Config, $Rates)
+
+    Write-Log 'Getting balances...'
+    $balances = Get-ChildItemContent Balances -Parameters @{Config = $Config}
+    
+    # Add the local currency rates if available
+    if($Rates) {
+        $balances | Where-Object {
+            if($_.Content.currency -eq 'BTC') {
+                ForEach($Rate in ($Rates.PSObject.Properties)) {
+                    $_.Content | Add-Member "Total_$($Rate.Name)" ([Double]$Rate.Value * $_.Content.total)
+                }
+            } else {
+                # Try to get exchange rate to BTC
+                $btcvalue = Get-BTCValue -altcoin $_.Content.currency -amount $_.Content.total
+                ForEach($Rate in ($Rates.PSObject.Properties)) {
+                    $_.Content | Add-Member "Total_$($Rate.Name)" ([Double]$Rate.Value * $btcvalue)
+                }
+            }
+        }
+    }
+
+    $balances
+}
+
 function Get-Devices {
     [CmdletBinding()]
 	
@@ -44,7 +150,92 @@ function Get-Devices {
         }
         $DeviceID++
     }
+################################# Begin fake hardware ########################################
+#
+#    $OpenGlDevices = @([OpenCl.Platform]::GetPlatformIDs() | ForEach-Object {[OpenCl.Device]::GetDeviceIDs($_, [OpenCl.DeviceType]::All)})
+#    $OpenGlDevices += $OpenGlDevices
+#    $OpenGlDevices | ForEach-Object {
+#
+#        $Device = @([PSCustomObject]$_)
+#
+#        $Name_Norm = "$((Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]")_1"
+#
+#        if ($_.Type -eq "Cpu") {
+#            $Type = "CPU"
+#        }
+#        else {
+#            Switch ($_.Vendor) {
+#                "Advanced Micro Devices, Inc." {$Type = "AMD"}
+#                "Intel(R) Corporation"         {$Type = "INTEL"}
+#                "NVIDIA Corporation"           {$Type = "NVIDIA"}
+#            }
+#        }        
+#
+#        if (-not $Devices.$Type) { # New hardware platform, start counting deviceIDs from 0
+#            $DeviceID = 0
+#            $Device | Add-Member Name_Norm $Name_Norm
+#            $Device | Add-Member DeviceIDs @($DeviceID)
+#            $Devices | Add-Member $Type $Device
+#        }
+#        else {
+#            if ($Devices.$Type.Name_Norm -inotcontains $Name_Norm) { # New card model
+#                $Device | Add-Member Name_Norm $Name_Norm
+#                $Device | Add-Member DeviceIDs @($DeviceID)
+#                $Devices.$Type += $Device
+#            }
+#            else { # Existing card model
+#                $Devices.$Type | Where-Object {$_.Name_Norm -eq $Name_Norm} | ForEach-Object {$_.DeviceIDs += $DeviceID}
+#            }
+#        }
+#        $DeviceID++
+#    }        
+################################# End fake hardware #############################################
+    
     $Devices
+}
+
+function Get-DeviceSet {
+    # Filters the deviceIDs and returns only deviceIDs for active miners
+    # $NumberingFormat: converts the device ID number to the base of $NumberingFormat, e.g. HEX (16)
+    # $StartNumberingFrom: change default numbering start from 0 -> $Offset
+
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [PSCustomObject]$Config,
+        [Parameter(Mandatory = $true)]
+        [PSCustomObject]$Devices,
+        [Parameter(Mandatory = $true)]        
+        [Int]$NumberingFormat,
+        [Parameter(Mandatory = $false)]        
+        [Int]$StartNumberingFrom
+    )
+	
+    if (-not $NumberingFormat) {$NumberingFormat = 10} # By default use decimal numbers
+
+    $DeviceSet  = [PSCustomObject]@{}
+    
+    $DeviceSet | Add-Member "All" @() # array of all devices, ids will be in hex format
+    $DeviceSet | Add-Member "3gb" @() # array of all devices with more than 3MiB VRAM, ids will be in hex format
+    $DeviceSet | Add-Member "4gb" @() # array of all devices with more than 4MiB VRAM, ids will be in hex format
+
+    # Get DeviceIDs, filter out all disabled hw models and IDs
+    if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) { # separate miner instance per hardware model
+        if ($Config.Devices.$Type.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm) {
+            $DeviceTypeModel.DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
+                $DeviceSet."All" += [Convert]::ToString(($_ + $StartNumberingFrom), $NumberingFormat)
+                if ($DeviceTypeModel.GlobalMemsize -ge 3000000000) {$DeviceSet."3gb" += [Convert]::ToString(($_ + $StartNumberingFrom), $NumberingFormat)}
+                if ($DeviceTypeModel.GlobalMemsize -ge 4000000000) {$DeviceSet."4gb" += [Convert]::ToString(($_ + $StartNumberingFrom), $NumberingFormat)}
+            }
+        }
+    }
+    else { # one miner instance per hw type
+        $DeviceSet."All" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {[Convert]::ToString(($_ + $StartNumberingFrom), $NumberingFormat)}
+        $DeviceSet."3gb" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 3000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | Foreach-Object {[Convert]::ToString(($_ + $StartNumberingFrom), $NumberingFormat)}
+        $DeviceSet."4gb" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 4000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | Foreach-Object {[Convert]::ToString(($_ + $StartNumberingFrom), $NumberingFormat)}
+    }
+    
+    $DeviceSet
 }
 
 function Get-CommandPerDevice {
@@ -614,7 +805,6 @@ class Miner {
 
     hidden StartMining() {
         $this.Status = [MinerStatus]::Failed
-
         $this.New = $true
         $this.Activated++
 
