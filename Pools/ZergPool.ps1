@@ -93,11 +93,11 @@ if ($Info) {
             Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
         },
         [PSCustomObject]@{
-            Name        = "DisabledAlgorithm"
+            Name        = "ExcludeAlgorithm"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled algorithms for this miner. "
+            Description = "List of excluded algorithms for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         }
     )
@@ -139,8 +139,8 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
     # a minimum of $MinWorkers is required. Low worker numbers will cause long delays until payout
     Where-Object {$APIRequest.$_.workers -gt $Config.Pools.$Name.MinWorker} |
 
-    # filter disabled algorithms (pool and global  definition)
-    Where-Object {$Config.Pools.$Name.DisabledAlgorithm -inotcontains (Get-Algorithm $_)} |
+    # filter excluded algorithms (pool and global  definition)
+    Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $_)} |
 
     ForEach-Object {
     

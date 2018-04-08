@@ -1,4 +1,4 @@
-# MultiPoolMiner
+﻿# MultiPoolMiner
 ###### created by aaronsace 
 ###### **WEBSITE: [MultiPoolMiner.io](https://multipoolminer.io)**
 ###### **GITHUB: [https://github.com/MultiPoolMiner/](https://github.com/MultiPoolMiner/MultiPoolMiner/releases)**
@@ -7,7 +7,7 @@
 
 ###### Licensed under the GNU General Public License v3.0 - Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/LICENSE
 
-README.md is based on README.txt - updated on 26/03/2018 - v1.24.01 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
+README.md is based on README.txt - updated on 07/04/2018 - v1.24.02 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
 
 
 
@@ -311,17 +311,17 @@ The default pool config might look like this:
         "BTC": "$Wallet"
     }
 
-To prevent the pool from using an algorithm / a set of algorithms add a line like "DisabledAlgorithms": ["disabled_algo", "another_disabled_algo"]
+To prevent the pool from using an algorithm / a set of algorithms add a line like "ExcludeAlgorithm": ["Excluded_Algo", "Another_Excluded_Algo"]
 
 E.g. if you do not want to use Keccac and Equihash on NiceHash change the pool config to:
 
     "NiceHash": {
         "Worker": "$WorkerName",
         "BTC": "$Wallet",
-        "DisabledAlgorithms": ["Keccak", "Equihash"]
+        "ExcludeAlgorithm": ["Keccak", "Equihash"]
     }
 
-To allow mining all algorithms remove the line "DisabledAlgorithms": [...]
+To allow mining all algorithms remove the line "ExcludeAlgorithm": [...]
 
 #### To disable mining some coins on a pool
 
@@ -334,17 +334,17 @@ The default pool config might look like this:
         "BTC": "$Wallet"
     }
 
-To limit mining to well defined coins add a line like "DisabledCoins": ["DisabledCoinName", "AnotherDisabledCoinName", "YetAnotherDisabledCoinName", "..."]
+To limit mining to well defined coins add a line like "ExcludeCoin": ["Excluded_CoinName", "Another_Excluded_CoinName", "Yet_Another_Excluded_CoinName", "..."]
 
 E.g. if you do not want to mine the coins 'Pizza' and 'Vivo' on Zpool change the pool config to:
 
     "ZpoolCoins": {
         "Worker": "$WorkerName",
         "BTC": "$Wallet",
-        "DisabledCoins": ["Pizza", "Vivo"]
+        "ExcludeCoin": ["Pizza", "Vivo"]
     }
 
-To allow mining all coins remove the line "DisabledCoins": [...]
+To allow mining all coins remove the line "ExcludeCoin": [...]
 
 #### To mine only selected coins on a pool
 
@@ -357,17 +357,17 @@ The default pool config might look like this:
         "BTC": "$Wallet"
     }
 
-To limit mining to well defined coins add a line like "Coins": ["CoinName", "AnotherCoinName", "YetAnotherCoinName","..."]
+To limit mining to well defined coins add a line like "Coin": ["CoinName", "Another_CoinName", "Yet_Another_CoinName","..."]
 
 E.g. to mine only the coins 'Pizza' and 'Vivo' on Zpool change the pool config to:
 
     "ZpoolCoins": {
         "Worker": "$WorkerName",
         "BTC": "$Wallet",
-        "Coins": ["Pizza", "Vivo"]
+        "Coin": ["Pizza", "Vivo"]
     }
 
-To allow mining all coins remove the line "Coins": [...]
+To allow mining all coins remove the line "Coin": [...]
 
 ### Advanced config for Miners
 

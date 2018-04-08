@@ -92,19 +92,19 @@ if ($Info) {
             Tooltip     = "$($Name) applies different pool fees for internal and external wallets"
         },
         [PSCustomObject]@{
-            Name        = "DisabledCurrency"
+            Name        = "ExcludeCurrency"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled currencies for this miner. "
+            Description = "List of excluded currencies for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all currencies"    
         },
         [PSCustomObject]@{
-            Name        = "DisabledAlgorithm"
+            Name        = "ExcludeAlgorithm"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled algorithms for this miner. "
+            Description = "List of excluded algorithms for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         }
     )
@@ -135,7 +135,7 @@ $Payout_Currencies | Foreach-Object {
 
     $Regions = "eu", "usa", "hk", "jp", "in", "br"
 
-    $APIRequest.result.simplemultialgo | Where-Object {$DisabledAlgorithms -inotcontains (Get-Algorithm $_.name)} | ForEach-Object {
+    $APIRequest.result.simplemultialgo | Where-Object {$ExcludeAlgorithm -inotcontains (Get-Algorithm $_.name)} | ForEach-Object {
         $Pool_Host      = "nicehash.com"
         $Port           = $_.port
         $Algorithm      = $_.name

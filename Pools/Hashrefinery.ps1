@@ -68,19 +68,19 @@ if ($Info) {
             Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
         }
         [PSCustomObject]@{
-            Name        = "DisabledCurrency"
+            Name        = "ExcludeCurrency"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled currencies for this miner. "
+            Description = "List of excluded currencies for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all currencies"    
         },
         [PSCustomObject]@{
-            Name        = "DisabledAlgorithm"
+            Name        = "ExcludeAlgorithm"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled algorithms for this miner. "
+            Description = "List of excluded algorithms for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         }
     )
@@ -121,8 +121,8 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
     # a minimum of $MinWorkers is required. Low worker numbers will cause long delays until payout
     Where-Object {$APIRequest.$_.workers -gt $Config.Pools.$Name.MinWorker} |
 
-    # filter disabled algorithms (pool and global  definition)
-    Where-Object {$Config.Pools.$Name.DisabledAlgorithm -inotcontains (Get-Algorithm $_)} |
+    # filter excluded algorithms (pool and global  definition)
+    Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $_)} |
 
     ForEach-Object {
 
@@ -130,7 +130,7 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
     $Port           = $APIRequest.$_.port
     $Algorithm      = $APIRequest.$_.name
     $Algorithm_Norm = Get-Algorithm $Algorithm
-    $Coin           = ""
+    $CoinName       = ""
     $Workers        = $APIRequest.$_.workers
 
     # leave fee empty if IgnorePoolFee
@@ -166,7 +166,7 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
         $Payout_Currencies | ForEach-Object {
             [PSCustomObject]@{
                 Algorithm     = $Algorithm_Norm
-                Info          = $Coin
+                Info          = $CoinName
                 Price         = $Stat.Live * $FeeFactor
                 StablePrice   = $Stat.Week * $FeeFactor
                 MarginOfError = $Stat.Week_Fluctuation

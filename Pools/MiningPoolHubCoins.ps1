@@ -64,19 +64,19 @@ if ($Info) {
             Tooltip     = "API key can be found on the web page"    
         },
         [PSCustomObject]@{
-            Name        = "DisabledAlgorithm"
+            Name        = "ExcludeAlgorithm"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled algorithms for this miner. "
+            Description = "List of excluded algorithms for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         },
         [PSCustomObject]@{
-            Name        = "DisabledCoin"
+            Name        = "ExcludeCoin"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled coins for this miner. "
+            Description = "List of excluded coins for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all coins"
         },
         [PSCustomObject]@{
@@ -104,7 +104,7 @@ if ($Info) {
 
 if ($User) {
     try {
-        $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop # required for fees
+        $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
     }
     catch {
         Write-Log -Level Warn "Pool API ($Name) has failed. "
@@ -118,19 +118,27 @@ if ($User) {
 
     $Regions = "europe", "us", "asia"
 
-    $APIRequest.return | 
-        # filter disabled algorithms
-        Where-Object {$Config.Pools.$Name.DisabledAlgorithm -inotcontains (Get-Algorithm $_)} |
+    $APIrequest.return | ForEach-Object { # Add well formatted coin name, remove algorithm part
+        $_ | Add-Member Name (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin  -split '-|_| ' | Select-Object -Index 0))
+#        $_ | Add-Member Name ((Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " ")
+    }
 
-        # filter disabled coins
-        Where-Object {$Config.Pools.$Name.DisabledCoin -inotcontains (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " "} |
+    $APIRequest.return | 
+        # filter excluded algorithms
+        Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $_)} |
+
+        # allow well defined coins only
+        Where-Object {$Config.Pools.$Name.Coin.Count -eq 0 -or ($Config.Pools.$Name.Coin -icontains $APICurrenciesRequest.$_.name)} |
+
+        # filter excluded coins
+        Where-Object {$Config.Pools.$Name.ExcludeCoin -inotcontains $APICurrenciesRequest.$_.name} |
         
         ForEach-Object {
         $Hosts          = $_.all_host_list.split(";")
         $Port           = $_.algo_switch_port
         $Algorithm      = $_.algo
         $Algorithm_Norm = Get-Algorithm $Algorithm
-        $Coin           = (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " "
+        $CoinName       = $_.name
 
         # leave fee empty if IgnorePoolFee
         if (-not $Config.IgnorePoolFee -and $Config.Pools.$Name.PoolFee -gt 0) {
@@ -156,7 +164,7 @@ if ($User) {
 
             [PSCustomObject]@{
                 Algorithm     = $Algorithm_Norm
-                Info          = $Coin
+                Info          = $CoinName
                 Price         = $Stat.Live * $FeeFactor
                 StablePrice   = $Stat.Week * $FeeFactor
                 MarginOfError = $Stat.Week_Fluctuation
@@ -174,7 +182,7 @@ if ($User) {
             if ($Algorithm_Norm -eq "Cryptonight" -or $Algorithm_Norm -eq "Equihash") {
                 [PSCustomObject]@{
                     Algorithm     = $Algorithm_Norm
-                    Info          = $Coin
+                    Info          = $CoinName
                     Price         = $Stat.Live * $FeeFactor
                     StablePrice   = $Stat.Week * $FeeFactor
                     MarginOfError = $Stat.Week_Fluctuation
@@ -190,10 +198,10 @@ if ($User) {
                 }
             }
 
-            if ($Algorithm_Norm -eq "Ethash" -and $Coin -NotLike "*ethereum*") {
+            if ($Algorithm_Norm -eq "Ethash" -and $CoinName -NotLike "*ethereum*") {
                 [PSCustomObject]@{
                     Algorithm     = "$($Algorithm_Norm)2gb"
-                    Info          = $Coin
+                    Info          = $CoinName
                     Price         = $Stat.Live * $FeeFactor
                     StablePrice   = $Stat.Week * $FeeFactor
                     MarginOfError = $Stat.Week_Fluctuation
@@ -212,7 +220,7 @@ if ($User) {
             if ($Algorithm_Norm -eq "Cryptonight" -or $Algorithm_Norm -eq "Equihash") {
                 [PSCustomObject]@{
                     Algorithm     = "$($Algorithm_Norm)2gb"
-                    Info          = $Coin
+                    Info          = $CoinName
                     Price         = $Stat.Live * $FeeFactor
                     StablePrice   = $Stat.Week * $FeeFactor
                     MarginOfError = $Stat.Week_Fluctuation

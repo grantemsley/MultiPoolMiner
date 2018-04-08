@@ -63,19 +63,19 @@ if ($Info) {
             Tooltip     = "API key can be found on the web page"    
         },
         [PSCustomObject]@{
-            Name        = "DisabledAlgorithm"
+            Name        = "ExcludeAlgorithm"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled algorithms for this miner. "
+            Description = "List of excluded algorithms for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         },
         [PSCustomObject]@{
-            Name        = "DisabledCoin"
+            Name        = "ExcludeCoin"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled coins for this miner. "
+            Description = "List of excluded coins for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all coins"
         },
         [PSCustomObject]@{
@@ -118,18 +118,18 @@ if ($User) {
     $Regions = "europe", "us", "asia"
 
     $APIRequest.return | 
-        # filter disabled algorithms
-        Where-Object {$Config.Pools.$Name.DisabledAlgorithm -inotcontains (Get-Algorithm $_)} |
+        # filter excluded algorithms
+        Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $_)} |
 
-        # filter disabled coins
-        Where-Object {$Config.Pools.$Name.DisabledCoin -inotcontains (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " "} |
+        # filter excluded coins
+        Where-Object {$Config.Pools.$Name.ExcludeCoin -inotcontains (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " "} |
         
         ForEach-Object {
         $Hosts          = $_.all_host_list.split(";")
         $Port           = $_.algo_switch_port
         $Algorithm      = $_.algo
         $Algorithm_Norm = Get-Algorithm $Algorithm
-        $Coin           = (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " "
+        $CoinName       = (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " "
         
         # leave fee empty if IgnorePoolFee
         if (-not $Config.IgnorePoolFee -and $Config.Pools.$Name.PoolFee -gt 0) {
@@ -155,7 +155,7 @@ if ($User) {
 
             [PSCustomObject]@{
                 Algorithm     = $Algorithm_Norm
-                Info          = $Coin
+                Info          = $CoinName
                 Price         = $Stat.Live * $FeeFactor
                 StablePrice   = $Stat.Week * $FeeFactor
                 MarginOfError = $Stat.Week_Fluctuation
@@ -173,7 +173,7 @@ if ($User) {
             if ($Algorithm_Norm -eq "Cryptonight" -or $Algorithm_Norm -eq "Equihash") {
                 [PSCustomObject]@{
                     Algorithm     = "$($Algorithm_Norm)2gb"
-                    Info          = $Coin
+                    Info          = $CoinName
                     Price         = $Stat.Live * $FeeFactor
                     StablePrice   = $Stat.Week * $FeeFactor
                     MarginOfError = $Stat.Week_Fluctuation

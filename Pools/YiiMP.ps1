@@ -77,19 +77,19 @@ if ($Info) {
             Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
         }
         [PSCustomObject]@{
-            Name        = "DisabledCurrency"
+            Name        = "ExcludeCurrency"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled currencies for this miner. "
+            Description = "List of excluded currencies for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all currencies"    
         },
         [PSCustomObject]@{
-            Name        = "DisabledAlgorithm"
+            Name        = "ExcludeAlgorithm"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of disabled algorithms for this miner. "
+            Description = "List of excluded algorithms for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         }
     )
@@ -138,20 +138,20 @@ $Payout_Currencies |
     # allow well defined currencies only
     Where-Object {$Config.Pools.$Name.Currency.Count -eq 0 -or ($Config.Pools.$Name.Currency -icontains $APICurrenciesRequest.$_.symbol)} | 
 
-    # filter disabled currencies
-    Where-Object {$Config.Pools.$Name.DisabledCurrency -inotcontains $APICurrenciesRequest.$_.symbol} |
+    # filter excluded currencies
+    Where-Object {$Config.Pools.$Name.ExcludeCurrency -inotcontains $APICurrenciesRequest.$_.symbol} |
 
-    # filter disabled coins
-    Where-Object {$Config.Pools.$Name.DisabledCoin -inotcontains $APICurrenciesRequest.$_.name} |
+    # filter excluded coins
+    Where-Object {$Config.Pools.$Name.ExcludeCoin -inotcontains $APICurrenciesRequest.$_.name} |
 
-    # filter disabled algorithms (pool and global definition)
-    Where-Object {$Config.Pools.$Name.DisabledAlgorithm -inotcontains (Get-Algorithm $APICurrenciesRequest.$_.algo)} | Foreach-Object {
+    # filter excluded algorithms (pool and global definition)
+    Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $APICurrenciesRequest.$_.algo)} | Foreach-Object {
 
     $Pool_Host      = "yiimp.eu"
     $Port           = $APICurrenciesRequest.$_.port
     $Algorithm      = $APICurrenciesRequest.$_.algo
     $Algorithm_Norm = Get-Algorithm $Algorithm
-    $Coin           = $APICurrenciesRequest.$_.name
+    $CoinName       = $APICurrenciesRequest.$_.name
     $Currency       = $APICurrenciesRequest.$_.symbol
     $Workers        = $APICurrenciesRequest.$_.workers
 
@@ -185,7 +185,7 @@ $Payout_Currencies |
 
         [PSCustomObject]@{
             Algorithm     = $Algorithm_Norm
-            Info          = $Coin
+            Info          = $CoinName
             Price         = $Stat.Live * $FeeFactor
             StablePrice   = $Stat.Week * $FeeFactor
             MarginOfError = $Stat.Week_Fluctuation

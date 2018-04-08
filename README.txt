@@ -1,4 +1,4 @@
-====================================================================
+﻿====================================================================
   __  __       _ _   _ _____            _ __  __ _                 
  |  \/  |     | | | (_)  __ \          | |  \/  (_)                
  | \  / |_   _| | |_ _| |__) |__   ___ | | \  / |_ _ __   ___ _ __ 
@@ -17,7 +17,7 @@ TWITTER: @multipoolminer
 Licensed under the GNU General Public License v3.0
 Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/LICENSE
 
-README.txt - updated on 26/03/2018 (dd/mm/yyyy) - v1.24.01 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
+README.txt - updated on 07/04/2018 (dd/mm/yyyy) - v1.24.02 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
 
 ====================================================================
 
@@ -318,17 +318,17 @@ The default pool config might look like this:
         "BTC": "$Wallet"
     }
 
-To prevent the pool from using an algorithm / a set of algorithms add a line like "DisabledAlgorithms": ["disabled_algo", "another_disabled_algo"]
+To prevent the pool from using an algorithm / a set of algorithms add a line like "ExcludeAlgorithm": ["Excluded_Algo", "Another_Excluded_Algo"]
 
 E.g. if you do not want to use Keccac and Equihash on NiceHash change the pool config to:
 
     "NiceHash": {
         "Worker": "$WorkerName",
         "BTC": "$Wallet",
-        "DisabledAlgorithms": ["Keccak", "Equihash"]
+        "ExcludeAlgorithm": ["Keccak", "Equihash"]
     }
 
-To allow mining all algorithms remove the line "DisabledAlgorithms": [...]
+To allow mining all algorithms remove the line "ExcludeAlgorithM": [...]
 
 To disable mining some coins coins on a pool
 
@@ -342,17 +342,17 @@ The default pool config might look like this:
         "BTC": "$Wallet"
     }
 
-To limit mining to well defined coins add a line like "DisabledCoins": ["DisabledCoinName", "AnotherDisabledCoinName", "YetAnotherDisabledCoinName", "..."]
+To limit mining to well defined coins add a line like "ExcludeCoin": ["Excluded_CoinName", "Another_Excluded_CoinName", "Yet_Another_Excluded_CoinName", "..."]
 
 E.g. if you do not want to mine the coins 'Pizza' and 'Vivo' on Zpool change the pool config to:
 
     "ZpoolCoins": {
         "Worker": "$WorkerName",
         "BTC": "$Wallet",
-        "DisabledCoins": ["Pizza", "Vivo"]
+        "ExcludeCoin": ["Pizza", "Vivo"]
     }
 
-To allow mining all coins remove the line "DisabledCoins": [...]
+To allow mining all coins remove the line "ExcludeCoin": [...]
 
 To mine only selected coins on a pool
 
@@ -365,17 +365,17 @@ The default pool config might look like this:
         "BTC": "$Wallet"
     }
 
-To limit mining to well defined coins add a line like "Coins": ["CoinName", "AnotherCoinName", "YetAnotherCoinName", "..."]
+To limit mining to well defined coins add a line like "Coin": ["CoinName", "Another_CoinName", "Yet_Another_CoinName", "..."]
 
 E.g. to mine only the coins 'Pizza' and 'Vivo' on Zpool change the pool config to:
 
     "ZpoolCoins": {
         "Worker": "$WorkerName",
         "BTC": "$Wallet",
-        "Coins": ["Pizza", "Vivo"]
+        "Coin": ["Pizza", "Vivo"]
     }
                                    
-To allow mining all coins remove the line "Coins": [...]
+To allow mining all coins remove the line "Coin": [...]
 
 Advanced config for Miners
 
@@ -470,10 +470,10 @@ Q2. A miner crashes my computer or does not work correctly. I want to exclude it
 A2. Use the -excludeminername command to exclude certain miners you don't want to use. A full list of available miners and parameters used can be found here: https://multipoolminer.io/miners
 
 Q3. Miner says CL device is missing (or not found). How do I resolve this issue?
-A3. You most likely have NVIDIA cards in your rig. Open the start.bat in a text editor and look for ‘-type amd,nvidia,cpu’ and change it to ‘-type nvidia,cpu’. This will disable the AMD exclusive miners and save you plenty of time when benchmarking. You can also exclude the cpu option if you don’t want to mine with your processor.
+A3. You most likely have NVIDIA cards in your rig. Open the start.bat in a text editor and look for 'type amd,nvidia,cpu' and change it to 'type nvidia,cpu'. This will disable the AMD exclusive miners and save you plenty of time when benchmarking. You can also exclude the cpu option if you don't want to mine with your processor.
 
 Q4. I only want to mine certain algorithms even if they are not the most profitable. I want to exclude algorithms. How do I do that?
-A4. Open the start.bat in a text editor and look for ‘-algorithm cryptonight,ethash,equihash,groestl,lyra2z,neoscrypt,pascal’. Delete the algorithms you don't want to mine. This can save you some time when benchmarking. You can include any of these or even all of them if you please but bear in mind this can result your earnings to be spread across many pools! 
+A4. Open the start.bat in a text editor and look for 'algorithm cryptonight,ethash,equihash,groestl,lyra2z,neoscrypt,pascal'. Delete the algorithms you don't want to mine. This can save you some time when benchmarking. You can include any of these or even all of them if you please but bear in mind this can result your earnings to be spread across many pools! 
 
 Q5. MultiPoolMiner is XX% more profitable. What does this mean?
 A5. It is showing you the stat for MultiPoolMiner vs the one miner. It means that the calculated earnings of MultiPoolMiner switching to different algorithms would be that much more profitable than if it had just mined that one particular algorithm the whole time. The number is still only an estimate of your earnings on the pool and may not directly reflect what you actually get paid. On MiningPoolHub and other multiple algorithm pools, coins have fluctuating values and MultiPoolMiner switches to the one that is the most profitable at that time. Because each pool has different delays in exchange and payout, the amount you actually earn my be very different. If there is a significant difference in percentage, you might want to reset the profitability stats by running the ResetProfit.bat file. Your actual (but still estimated) earning is shown in the second row.
