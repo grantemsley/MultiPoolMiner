@@ -16,15 +16,16 @@ $Type = "NVIDIA"
 $API  = "Ccminer"
 $Port = 4068
 
-$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "An optimized fork of ccminer developed specially for x16r; compiled by nemosminer, 0% devfee"
+$MinerFileVersion = "2018041000" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "Nevermore v0.2.2, 1% devfee"
+$MinerFeeInPercent = 1 # Miner default is 5 minute per 100 minutes, can be reduced to 1% via command line option --donate-level
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {    
     # Create default miner config, required for setup
     $DefaultMinerConfig = [PSCustomObject]@{
         "MinerFileVersion" = $MinerFileVersion
         "MinerBinaryInfo" = $MinerBinaryInfo
-        "Uri" = "https://github.com/nemosminer/ccminernevermore/releases/download/0.2-nevermore/ccminernevermore0.2x64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "Uri" = "https://github.com/brian112358/nevermore-miner/releases/download/v0.2.2/nevermore-v0.2.2-win64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
         "UriManual" = ""    
         "WebLink" = "https://github.com/nemosminer/ccminernevermore/releases" # See here for more information about the miner
         #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
@@ -33,6 +34,7 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
         "IgnoreDeviceID" = @()
         "Commands" = [PSCustomObject]@{
             "x16r"  = "" #X16R RavenCoin
+            "x16s"  = "" #X16s PigeonCoin
         }
         "CommonCommands" = ""
         "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
@@ -119,6 +121,23 @@ if ($Info) {
                 Description = "See here for more information about the miner. "
             },
             [PSCustomObject]@{
+                Name        = "MinerFeeInPercent"
+                ControlType = "int"
+                Min         = 1
+                Max         = 100
+                Fractions   = 0
+                Default     = $DefaultMinerConfig.MinerFeeInPercent
+                Description = "1 minute per 100 minutes, can be incread with the '--donate nn' parameter. "
+                Tooltip     = "Minimum fee is 1%"
+            },
+            [PSCustomObject]@{
+                Name        = "IgnoreMinerFee"
+                ControlType = "switch"
+                Default     = $false
+                Description = "Miner contains dev fee $($MinerFeeInPercent)%. Tick to ignore miner fees in internal calculations. "
+                Tooltip     = "Miner does not allow to disable miner dev fee"
+            },
+			[PSCustomObject]@{
                 Name        = "IgnoreHWModel"
                 Required    = $false
                 ControlType = "string[0,$($Devices.$Type.count)]"
@@ -188,12 +207,21 @@ $Devices.$Type | ForEach-Object {
                 $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select-Object -Index 0 # additional command line options for algorithm
             }
      
+            $Hashrate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
+            if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
+                $Hashrate = $HashRate * (1 - [PSCustomObject]@{$Algorithm_Norm = $Hashrate} / 100)
+                $Fees = @($Config.Miners.$Name.MinerFeeInPercent)
+            }
+            else {
+                $Fees = @($null)
+            }            
+
             [PSCustomObject]@{
                 Name             = $Miner_Name
                 Type             = $Type
                 Path             = $Path
-                Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
-                HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
+                Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port) --donate  $($Config.Miners.$Name.MinerFeeInPercent) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
+                HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Hashrate}
                 API              = $Api
                 Port             = $Port
                 URI              = $Uri
