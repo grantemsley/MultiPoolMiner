@@ -125,7 +125,7 @@ if ($Info) {
                 Max         = 100
                 Fractions   = 0
                 Default     = $DefaultMinerConfig.MinerFeeInPercent
-                Description = "5 minute per 100 minutes, can be reduced to 1%. Fees will not be deducted if `$Miners.IgnoreMinerFees is set to 'true'. "
+                Description = "5 minute per 100 minutes, can be reduced to 1%. "
                 Tooltip     = "Minimum fee is 1%"
             },
             [PSCustomObject]@{
@@ -205,7 +205,7 @@ $Devices.$Type | ForEach-Object {
                 $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select-Object -Index 0 # additional command line options for algorithm
             }
 
-            $Hashtrate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
+            $Hashrate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
             if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
                 $HashRate = $HashRate * (1 - $Config.Miners.$Name.MinerFeeInPercent / 100)
                 $Fees = @($Config.Miners.$Name.MinerFeeInPercent)
