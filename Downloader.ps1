@@ -14,6 +14,7 @@ $DownloadList | ForEach-Object {
     $Progress += 100 / $DownloadList.Count
 
     if (-not (Test-Path $Path)) {
+        Write-Host -ForegroundColor Red "$Path is missing"
         $ProgressPreferenceBackup = $ProgressPreference
         try {
             $ProgressPreference = $ProgressPreferenceBackup
