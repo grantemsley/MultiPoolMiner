@@ -116,11 +116,10 @@ if ($User) {
         return
     }
 
-    $Regions = "europe", "us", "asia"
+    $Regions = "europe", "us-east", "asia"
 
-    $APIrequest.return | ForEach-Object { # Add well formatted coin name, remove algorithm part
+    $APIRequest.return | ForEach-Object { # Add well formatted coin name, remove algorithm part
         $_ | Add-Member Name (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin  -split '-|_| ' | Select-Object -Index 0))
-#        $_ | Add-Member Name ((Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin -replace "-", " " -replace "_", " ")) -replace " ")
     }
 
     $APIRequest.return | 
@@ -128,12 +127,13 @@ if ($User) {
         Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $_)} |
 
         # allow well defined coins only
-        Where-Object {$Config.Pools.$Name.Coin.Count -eq 0 -or ($Config.Pools.$Name.Coin -icontains $APICurrenciesRequest.$_.name)} |
+        Where-Object {$Config.Pools.$Name.Coin.Count -eq 0 -or ($Config.Pools.$Name.Coin -icontains $_.current_mining_coin)} |
 
         # filter excluded coins
-        Where-Object {$Config.Pools.$Name.ExcludeCoin -inotcontains $APICurrenciesRequest.$_.name} |
+        Where-Object {$Config.Pools.$Name.ExcludeCoin -inotcontains $_.current_mining_coin} |
         
         ForEach-Object {
+        $PoolHost       = $_.host
         $Hosts          = $_.all_host_list.split(";")
         $Port           = $_.algo_switch_port
         $Algorithm      = $_.algo
@@ -160,26 +160,25 @@ if ($User) {
 
         $Regions | ForEach-Object {
             $Region = $_
-            $Region_Norm = Get-Region $Region
+            $Region_Norm = Get-Region ($Region -replace "^us-east$", "us")
 
-            [PSCustomObject]@{
-                Algorithm     = $Algorithm_Norm
-                Info          = $CoinName
-                Price         = $Stat.Live * $FeeFactor
-                StablePrice   = $Stat.Week * $FeeFactor
-                MarginOfError = $Stat.Week_Fluctuation
-                Protocol      = "stratum+tcp"
-                Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
-                Port          = $Port
-                User          = "$User.$Worker"
-                Pass          = "x"
-                Region        = $Region_Norm
-                SSL           = $false
-                Updated       = $Stat.Updated
-                Fee           = $FeeInPercent
-            }
-
-            if ($Algorithm_Norm -eq "Cryptonight" -or $Algorithm_Norm -eq "Equihash") {
+            if ($Algorithm_Norm -eq "CryptonightV7") {
+                [PSCustomObject]@{
+                    Algorithm     = $Algorithm_Norm
+                    Info          = $CoinName
+                    Price         = $Stat.Live * $FeeFactor
+                    StablePrice   = $Stat.Week * $FeeFactor
+                    MarginOfError = $Stat.Week_Fluctuation
+                    Protocol      = "stratum+tcp"
+                    Host          = "$($Region).cryptonight-$($Poolhost)"
+                    Port          = $Port
+                    User          = "$User.$Worker"
+                    Pass          = "x"
+                    Region        = $Region_Norm
+                    SSL           = $false
+                    Updated       = $Stat.Updated
+                    Fee           = $FeeInPercent
+                }
                 [PSCustomObject]@{
                     Algorithm     = $Algorithm_Norm
                     Info          = $CoinName
@@ -187,7 +186,7 @@ if ($User) {
                     StablePrice   = $Stat.Week * $FeeFactor
                     MarginOfError = $Stat.Week_Fluctuation
                     Protocol      = "stratum+ssl"
-                    Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
+                    Host          = "$($Region).cryptonight-$($Poolhost)"
                     Port          = $Port
                     User          = "$User.$Worker"
                     Pass          = "x"
@@ -197,10 +196,9 @@ if ($User) {
                     Fee           = $FeeInPercent
                 }
             }
-
-            if ($Algorithm_Norm -eq "Ethash" -and $CoinName -NotLike "*ethereum*") {
+            else {
                 [PSCustomObject]@{
-                    Algorithm     = "$($Algorithm_Norm)2gb"
+                    Algorithm     = $Algorithm_Norm
                     Info          = $CoinName
                     Price         = $Stat.Live * $FeeFactor
                     StablePrice   = $Stat.Week * $FeeFactor
@@ -215,26 +213,46 @@ if ($User) {
                     Updated       = $Stat.Updated
                     Fee           = $FeeInPercent
                 }
-            }
 
-            if ($Algorithm_Norm -eq "Cryptonight" -or $Algorithm_Norm -eq "Equihash") {
-                [PSCustomObject]@{
-                    Algorithm     = "$($Algorithm_Norm)2gb"
-                    Info          = $CoinName
-                    Price         = $Stat.Live * $FeeFactor
-                    StablePrice   = $Stat.Week * $FeeFactor
-                    MarginOfError = $Stat.Week_Fluctuation
-                    Protocol      = "stratum+ssl"
-                    Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
-                    Port          = $Port
-                    User          = "$User.$Worker"
-                    Pass          = "x"
-                    Region        = $Region_Norm
-                    SSL           = $true
-                    Updated       = $Stat.Updated
-                    Fee           = $FeeInPercent
+                if ($Algorithm_Norm -eq "Equihash") {
+                    [PSCustomObject]@{
+                        Algorithm     = $Algorithm_Norm
+                        Info          = $CoinName
+                        Price         = $Stat.Live * $FeeFactor
+                        StablePrice   = $Stat.Week * $FeeFactor
+                        MarginOfError = $Stat.Week_Fluctuation
+                        Protocol      = "stratum+ssl"
+                        Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
+                        Port          = $Port
+                        User          = "$User.$Worker"
+                        Pass          = "x"
+                        Region        = $Region_Norm
+                        SSL           = $true
+                        Updated       = $Stat.Updated
+                        Fee           = $FeeInPercent
+                    }
+                }
+
+                if ($Algorithm_Norm -eq "Ethash" -and $CoinName -NotLike "*ethereum*") {
+                    [PSCustomObject]@{
+                        Algorithm     = "$($Algorithm_Norm)2gb"
+                        Info          = $CoinName
+                        Price         = $Stat.Live * $FeeFactor
+                        StablePrice   = $Stat.Week * $FeeFactor
+                        MarginOfError = $Stat.Week_Fluctuation
+                        Protocol      = "stratum+tcp"
+                        Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
+                        Port          = $Port
+                        User          = "$User.$Worker"
+                        Pass          = "x"
+                        Region        = $Region_Norm
+                        SSL           = $false
+                        Updated       = $Stat.Updated
+                        Fee           = $FeeInPercent
+                    }
                 }
             }
         }
     }
 }
+Sleep 0

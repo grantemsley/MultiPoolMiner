@@ -115,7 +115,7 @@ if ($User) {
         return
     }
 
-    $Regions = "europe", "us", "asia"
+    $Regions = "europe", "us-east", "asia"
 
     $APIRequest.return | 
         # filter excluded algorithms
@@ -153,32 +153,31 @@ if ($User) {
             $Region = $_
             $Region_Norm = Get-Region $Region
 
-            [PSCustomObject]@{
-                Algorithm     = $Algorithm_Norm
-                Info          = $CoinName
-                Price         = $Stat.Live * $FeeFactor
-                StablePrice   = $Stat.Week * $FeeFactor
-                MarginOfError = $Stat.Week_Fluctuation
-                Protocol      = "stratum+tcp"
-                Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
-                Port          = $Port
-                User          = "$User.$Worker"
-                Pass          = "x"
-                Region        = $Region_Norm
-                SSL           = $false
-                Updated       = $Stat.Updated
-                Fee           = $FeeInPercent
-            }
-
-            if ($Algorithm_Norm -eq "Cryptonight" -or $Algorithm_Norm -eq "Equihash") {
+            if ($Algorithm_Norm -eq "CryptonightV7") {
                 [PSCustomObject]@{
-                    Algorithm     = "$($Algorithm_Norm)2gb"
+                    Algorithm     = $Algorithm_Norm
+                    Info          = $CoinName
+                    Price         = $Stat.Live * $FeeFactor
+                    StablePrice   = $Stat.Week * $FeeFactor
+                    MarginOfError = $Stat.Week_Fluctuation
+                    Protocol      = "stratum+tcp"
+                    Host          = "$($Region).cryptonight-$($Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1)"
+                    Port          = $Port
+                    User          = "$User.$Worker"
+                    Pass          = "x"
+                    Region        = $Region_Norm
+                    SSL           = $false
+                    Updated       = $Stat.Updated
+                    Fee           = $FeeInPercent
+                }
+                [PSCustomObject]@{
+                    Algorithm     = $Algorithm_Norm
                     Info          = $CoinName
                     Price         = $Stat.Live * $FeeFactor
                     StablePrice   = $Stat.Week * $FeeFactor
                     MarginOfError = $Stat.Week_Fluctuation
                     Protocol      = "stratum+ssl"
-                    Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
+                    Host          = "$($Region).cryptonight-$($Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1)"
                     Port          = $Port
                     User          = "$User.$Worker"
                     Pass          = "x"
@@ -186,7 +185,44 @@ if ($User) {
                     SSL           = $true
                     Updated       = $Stat.Updated
                     Fee           = $FeeInPercent
-               }
+                }
+            }
+            else {
+                [PSCustomObject]@{
+                    Algorithm     = $Algorithm_Norm
+                    Info          = $CoinName
+                    Price         = $Stat.Live * $FeeFactor
+                    StablePrice   = $Stat.Week * $FeeFactor
+                    MarginOfError = $Stat.Week_Fluctuation
+                    Protocol      = "stratum+tcp"
+                    Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
+                    Port          = $Port
+                    User          = "$User.$Worker"
+                    Pass          = "x"
+                    Region        = $Region_Norm
+                    SSL           = $false
+                    Updated       = $Stat.Updated
+                    Fee           = $FeeInPercent
+                }
+            
+                if ($Algorithm_Norm -eq "Equihash") {
+                    [PSCustomObject]@{
+                        Algorithm     = $Algorithm_Norm
+                        Info          = $CoinName
+                        Price         = $Stat.Live * $FeeFactor
+                        StablePrice   = $Stat.Week * $FeeFactor
+                        MarginOfError = $Stat.Week_Fluctuation
+                        Protocol      = "stratum+ssl"
+                        Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
+                        Port          = $Port
+                        User          = "$User.$Worker"
+                        Pass          = "x"
+                        Region        = $Region_Norm
+                        SSL           = $true
+                        Updated       = $Stat.Updated
+                        Fee           = $FeeInPercent
+                    }
+                }
             }
         }
     }
