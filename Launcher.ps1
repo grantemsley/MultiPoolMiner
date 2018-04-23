@@ -250,7 +250,7 @@ $guiCmd = [PowerShell]::Create().AddScript{
                     $State.MultiPoolMinerProcess.CloseMainWindow()
                     Start-Sleep -Seconds 5
                     # Kill any miners that are didn't exit properly
-                    Get-Process | Where-Object {$_.Path -like "$($PWD)Bin\*"} | Stop-Process
+                    Get-Process | Where-Object {$_.Path -like "$($PWD)\Bin\*"} | Stop-Process
                 }
             }
 
