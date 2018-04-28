@@ -181,7 +181,7 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
     $Algorithm      = $APICurrenciesRequest.$_.algo
     $Algorithm_Norm = Get-Algorithm $Algorithm
     $CoinName       = $APICurrenciesRequest.$_.name
-    $Currency       = $APICurrenciesRequest.$_.symbol
+    $Currency       = $_
     $Workers        = $APICurrenciesRequest.$_.workers
     
     # leave fee empty if IgnorePoolFee
