@@ -12,8 +12,8 @@ param(
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
-$Pool_APIUrl           = "http://www.blockmasters.co/api/status"
-$Pool_CurrenciesAPIUrl = "http://www.blockmasters.co/api/currencies"
+$Pool_APIUrl           = "http://blockmasters.co/api/status"
+$Pool_CurrenciesAPIUrl = "http://blockmasters.co/api/currencies"
 
 if ($Info) {
     # Just return info about the pool for use in setup
