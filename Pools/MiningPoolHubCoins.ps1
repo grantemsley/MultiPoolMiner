@@ -16,7 +16,7 @@ $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty Ba
 $Default_PoolFee = 0.9
 $Config.Pools.$Name | Add-Member PoolFee $Default_PoolFee -ErrorAction SilentlyContinue # ignore error if value exists
 
-$Pool_APIUrl = "http://miningpoolhub.com/index.php?page=api&action=getautoswitchingandprofitsstatistics&$(Get-Date -Format "yyyy-MM-dd_HH-mm")"
+$Pool_APIUrl = "http://miningpoolhub.com/index.php?page=api&action=getminingandprofitsstatistics&$(Get-Date -Format "yyyy-MM-dd_HH-mm")"
 
 if ($Info) {
     # Just return info about the pool for use in setup
@@ -119,7 +119,7 @@ if ($User) {
     $Regions = "europe", "us-east", "asia"
 
     $APIRequest.return | ForEach-Object { # Add well formatted coin name, remove algorithm part
-        $_ | Add-Member Name (Get-Culture).TextInfo.ToTitleCase(($_.current_mining_coin  -split '-|_| ' | Select-Object -Index 0))
+        $_ | Add-Member name ((Get-Culture).TextInfo.ToTitleCase(($_.coin_name -replace "-", " " -replace "_", " ")) -replace " ")
     }
 
     $APIRequest.return | 
