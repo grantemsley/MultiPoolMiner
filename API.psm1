@@ -1,7 +1,7 @@
 ﻿Function Start-APIServer {
     # Create a global synchronized hashtable that all threads can access to pass data between the main script and API
     $Global:API = [hashtable]::Synchronized(@{})
-  
+
     # Setup flags for controlling script execution
     $API.Stop = $false
     $API.Pause = $false
@@ -105,10 +105,10 @@
                 }
             }
 
-            # If $Data is null, the API will just return whatever data was in the previous request.  Instead, show an error
+            # If $Data is null, the API will just return whatever data was in the previous request. Instead, show an error
             # This happens if the script just started and hasn't filled all the properties in yet.
             If($Data -eq $Null) { 
-                $Data = @{'Error' = "API data not available"} | ConvertTo-Json
+                $Data = @{'Error' = "API data not available ('$Data')"} | ConvertTo-Json
             }
 
             # Send the response

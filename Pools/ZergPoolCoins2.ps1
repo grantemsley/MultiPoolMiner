@@ -12,13 +12,13 @@ param(
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
-$Pool_APIUrl           = "http://api.yiimp.eu/api/status"
-$Pool_CurrenciesAPIUrl = "http://api.yiimp.eu/api/currencies"
+$Pool_APIUrl           = "http://api.zergpool.com:8080/api/status"
+$Pool_CurrenciesAPIUrl = "http://api.zergpool.com:8080/api/currencies"
 
 if ($Info) {
     # Just return info about the pool for use in setup
-    $Description  = "Pool allows payout in any currency available in API"
-    $WebSite      = "http://yiimp.eu"
+    $Description  = "Pool allows payout in BTC, LTC & any currency available in API"
+    $WebSite      = "http://zergpool.com"
     $Note         = "To receive payouts specify at least one valid wallet" # Note is shown beside each pool in setup
 
     try {
@@ -31,7 +31,7 @@ if ($Info) {
     if (($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
         Write-Warning  "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
     }
-
+    
     # Define the settings this pool uses.
     $SupportedAlgorithms = @($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {Get-Algorithm $APICurrenciesRequest.$_.algo} | Select-Object -Unique | Sort-Object)
     $Payout_Currencies = @($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {
@@ -45,6 +45,22 @@ if ($Info) {
             ControlType = "string"
             Description = "Worker name to report to pool "
             Tooltip     = ""    
+        },
+        [PSCustomObject]@{
+            Name        = "BTC"
+            Required    = $false
+            Default     = $Config.Wallet
+            ControlType = "string"
+            Description = "Bitcoin payout address "
+            Tooltip     = "Enter Bitcoin wallet address to receive payouts in BTC"    
+        },
+        [PSCustomObject]@{
+            Name        = "LTC"
+            Required    = $false
+            Default     = $Config.LTC
+            ControlType = "string"
+            Description = "LiteCoin payout address "
+            Tooltip     = "Enter LiteCoin wallet address to receive payouts in LTC"
         }
     )
     #add all possible payout currencies
@@ -55,10 +71,10 @@ if ($Info) {
             Default     = "$($Config.Pools.$Name.$_)"
             ControlType = "string"
             Description = "$($APICurrenciesRequest.$_.Name) payout address "
-            Tooltip     = "Only enter $($APICurrenciesRequest.$_.Name) wallet address to receive payouts in $($_)"    
+            Tooltip     = "Enter $($APICurrenciesRequest.$_.Name) wallet address to receive payouts in $($_)"    
         }
     }
-    $Settings += @(    
+    $Settings += @(
         [PSCustomObject]@{
             Name        = "IgnorePoolFee"
             Required    = $false
@@ -75,7 +91,7 @@ if ($Info) {
             Default     = $Config.MinWorker
             Description = "Minimum number of workers that must be mining an alogrithm.`nLow worker numbers will cause long delays until payout. "
             Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
-        }
+        },
         [PSCustomObject]@{
             Name        = "ExcludeCurrency"
             Required    = $false
@@ -104,34 +120,33 @@ if ($Info) {
     }
 }
 
-try {
-    $APIRequest           = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop # required for fees
-    $APICurrenciesRequest = Invoke-RestMethod $Pool_CurrenciesAPIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-}
-catch {
-    Write-Log -Level Warn "Pool API ($Name) has failed. "
-    return
-}
+#try {
+#    $APIRequest           = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop # required for fees
+#    $APICurrenciesRequest = Invoke-RestMethod $Pool_CurrenciesAPIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+#}
+#catch {
+#    Write-Log -Level Warn "Pool API ($Name) has failed. "
+#    return
+#}
+$APIRequest = Import-Clixml .\APIRequest.xml
+$APICurrenciesRequest = Import-Clixml .\APICurrenciesRequest.xml
 
 if (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1 -or ($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
     Write-Log -Level Warn "Pool API ($Name) returned nothing. "
     return
 }
 
-$Regions = "us"
-#
-##Pool allows payout in BTC & any currency available in API
-#$Payout_Currencies = @($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name) | Select-Object -Unique | Where-Object {$Config.Pools.$Name.$_}
+$Regions = "us", "europe"
 
 # Some currencies are suffixed with algo name (e.g. AUR-myr-gr), these have the currency in property symbol. Need to add symbol to all the others
 $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {
     if (-not $APICurrenciesRequest.$_.symbol) {$APICurrenciesRequest.$_ | Add-Member symbol $_}
 }
 
-#Pool allows payout in BTC & any currency available in API
-$Payout_Currencies = @("BTC") + ($APICurrenciesRequest | ForEach-Object {$_.symbol} | Select-Object -Unique) | Where-Object {$Config.Pools.$Name.$_}
+#Pool allows payout in BTC, LTC & any currency available in API
+$Payout_Currencies = @("BTC", "LTC") + ($APICurrenciesRequest  | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {$APICurrenciesRequest.$_.symbol} | Select-Object -Unique) | Where-Object {$Config.Pools.$Name.$_}
 
-$Payout_Currencies |   
+$APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name |  
     # do not mine if there is no one else is mining (undesired quasi-solo-mining)
     Where-Object {$APICurrenciesRequest.$_.hashrate -gt 0} |
 
@@ -144,20 +159,24 @@ $Payout_Currencies |
     # filter excluded currencies
     Where-Object {$Config.Pools.$Name.ExcludeCurrency -inotcontains $APICurrenciesRequest.$_.symbol} |
 
+    # allow well defined coins only
+    Where-Object {$Config.Pools.$Name.Coin.Count -eq 0 -or ($Config.Pools.$Name.Coin -icontains $APICurrenciesRequest.$_.name)} |
+
     # filter excluded coins
     Where-Object {$Config.Pools.$Name.ExcludeCoin -inotcontains $APICurrenciesRequest.$_.name} |
 
     # filter excluded algorithms (pool and global definition)
     Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $APICurrenciesRequest.$_.algo)} | Foreach-Object {
 
-    $Pool_Host      = "yiimp.eu"
+    $Pool_Host      = "mine.zergpool.com"
     $Port           = $APICurrenciesRequest.$_.port
     $Algorithm      = $APICurrenciesRequest.$_.algo
     $Algorithm_Norm = Get-Algorithm $Algorithm
     $CoinName       = $APICurrenciesRequest.$_.name
-    $Currency       = $APICurrenciesRequest.$_.symbol
+    $Currency       = $_
+    $Symbol         = $APICurrenciesRequest.$_.symbol
     $Workers        = $APICurrenciesRequest.$_.workers
-
+    
     # leave fee empty if IgnorePoolFee
     if (-not $Config.IgnorePoolFee -and -not $Config.Pools.$Name.IgnorePoolFee) {$FeeInPercent = $APIRequest.$Algorithm.Fees}
     
@@ -175,34 +194,63 @@ $Payout_Currencies |
         "blakecoin" {$Divisor *= 1000}
         "decred"    {$Divisor *= 1000}
         "equihash"  {$Divisor /= 1000}
+        "keccak"    {$Divisor *= 1000}
+        "keccakc"   {$Divisor *= 1000}
         "quark"     {$Divisor *= 1000}
         "qubit"     {$Divisor *= 1000}
         "scrypt"    {$Divisor *= 1000}
         "x11"       {$Divisor *= 1000}
     }
-    $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APICurrenciesRequest.$_.estimate / $Divisor) -Duration $StatSpan -ChangeDetection $true
+
+    $Stat = Set-Stat -Name "$($Name)_$($Currency)_Profit" -Value ([Double]$APICurrenciesRequest.$Currency.estimate / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
     $Regions | ForEach-Object {
         $Region = $_
         $Region_Norm = Get-Region $Region
 
-        [PSCustomObject]@{
-            Algorithm     = $Algorithm_Norm
-            Info          = $CoinName
-            Price         = $Stat.Live * $FeeFactor
-            StablePrice   = $Stat.Week * $FeeFactor
-            MarginOfError = $Stat.Week_Fluctuation
-            Protocol      = "stratum+tcp"
-            Host          = $Pool_Host
-            Port          = $Port
-            User          = $Config.Pools.$Name.$Curreny
-            Pass          = "$Worker,c=$_"
-            Region        = $Region_Norm
-            SSL           = $false
-            Updated       = $Stat.Updated
-            Fee           = $FeeInPercent
-            Workers       = $Workers
-            Currency      = $Currency
+        if ($Config.Pools.$Name.$Currency) {
+            #Option 3
+            [PSCustomObject]@{
+                Algorithm     = $Algorithm_Norm
+                Info          = $CoinName
+                Price         = $Stat.Live * $FeeFactor
+                StablePrice   = $Stat.Week * $FeeFactor
+                MarginOfError = $Stat.Week_Fluctuation
+                Protocol      = "stratum+tcp"
+                Host          = "$Algorithm.$Pool_Host"
+                Port          = $Port
+                User          = $Config.Pools.$Name.$Currency
+                Pass          = "$Worker,c=$Currency,mc=$Currency"
+                Region        = $Region_Norm
+                SSL           = $false
+                Updated       = $Stat.Updated
+                Fee           = $FeeInPercent
+                Workers       = $Workers
+                Currency      = $Currency
+            }
+        }
+        elseif ($APICurrenciesRequest.$Currency.noautotrade -eq 0) {
+            $Payout_Currencies | ForEach-Object {
+                #Option 2
+                [PSCustomObject]@{
+                    Algorithm     = $Algorithm_Norm
+                    Info          = $CoinName
+                    Price         = $Stat.Live * $FeeFactor
+                    StablePrice   = $Stat.Week * $FeeFactor
+                    MarginOfError = $Stat.Week_Fluctuation
+                    Protocol      = "stratum+tcp"
+                    Host          = "$Algorithm.$Pool_Host"
+                    Port          = $Port
+                    User          = $Config.Pools.$Name.$_
+                    Pass          = "$Worker,c=$_,mc=$Currency"
+                    Region        = $Region_Norm
+                    SSL           = $false
+                    Updated       = $Stat.Updated
+                    Fee           = $FeeInPercent
+                    Workers       = $Workers
+                    Currency      = $Currency
+                }
+            }
         }
     }
 }

@@ -127,14 +127,17 @@ if (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Mea
 }
 
 $Regions = "us"
-
-#Pool allows payout in BTC & any currency available in API
-$Payout_Currencies = @("BTC") + ($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name) | Select-Object -Unique | Where-Object {$Config.Pools.$Name.$_}
+#
+##Pool allows payout in BTC & any currency available in API
+#$Payout_Currencies = @("BTC") + ($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name) | Select-Object -Unique | Where-Object {$Config.Pools.$Name.$_}
 
 # Some currencies are suffixed with algo name (e.g. AUR-myr-gr), these have the currency in property symbol. Need to add symbol to all the others
 $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {
     if (-not $APICurrenciesRequest.$_.symbol) {$APICurrenciesRequest.$_ | Add-Member symbol $_}
 }
+
+#Pool allows payout in BTC & any currency available in API
+$Payout_Currencies = @("BTC") + ($APICurrenciesRequest  | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {$APICurrenciesRequest.$_.symbol} | Select-Object -Unique) | Where-Object {$Config.Pools.$Name.$_}
 
 $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name |  
     # do not mine if there is no one else is mining (undesired quasi-solo-mining)
@@ -163,7 +166,8 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
     $Algorithm      = $APICurrenciesRequest.$_.algo
     $Algorithm_Norm = Get-Algorithm $Algorithm
     $CoinName       = $APICurrenciesRequest.$_.name
-    $Currency       = $APICurrenciesRequest.$_.symbol
+    $Currency       = $_
+    $Symbol         = $APICurrenciesRequest.$_.symbol
     $Workers        = $APICurrenciesRequest.$_.workers
 
     # leave fee empty if IgnorePoolFee
@@ -190,7 +194,7 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
         "scrypt"    {$Divisor *= 1000}
         "x11"       {$Divisor *= 1000}
     }
-    $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APICurrenciesRequest.$_.estimate / $Divisor) -Duration $StatSpan -ChangeDetection $true
+    $Stat = Set-Stat -Name "$($Name)_$($Currency)_Profit" -Value ([Double]$APICurrenciesRequest.$Currency.estimate / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
     $Regions | ForEach-Object {
         $Region = $_

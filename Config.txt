@@ -1,44 +1,670 @@
 {
-  "Pools": {
-    "MiningPoolHub": {
-      "User": "$UserName",
-      "Worker": "$WorkerName",
-      "API_ID": "$API_ID",
-      "API_Key": "$API_Key"
-    },
-    "MiningPoolHubCoins": {
-      "User": "$UserName",
-      "Worker": "$WorkerName",
-      "API_ID": "$API_ID",
-      "API_Key": "$API_Key"
-    },
-    "NiceHash": {
-      "BTC": "$Wallet",
-      "Worker": "$WorkerName"
-    },
-    "Zpool": {
-      "BTC": "$Wallet",
-      "Worker": "$WorkerName"
-    }
-  },
-  "Miners": {
-  },
-  "Interval": "$Interval",
-  "Region": "$Region",
-  "SSL": "$SSL",
-  "Type": "$Type",
-  "Algorithm": "$Algorithm",
-  "MinerName": "$MinerName",
-  "PoolName": "$PoolName",
-  "ExcludeAlgorithm": "$ExcludeAlgorithm",
-  "ExcludeMinerName": "$ExcludeMinerName",
-  "ExcludePoolName": "$ExcludePoolName",
-  "Currency": "$Currency",
-  "Donate": "$Donate",
-  "Proxy": "$Proxy",
-  "Delay": "$Delay",
-  "Watchdog": "$Watchdog",
-  "MinerStatusURL": "$MinerStatusURL",
-  "MinerStatusKey": "$MinerStatusKey",
-  "SwitchingPrevention": "$SwitchingPrevention"
+    "Pools":  {
+                  "MiningPoolHub":  {
+                                        "User":  "$UserName",
+                                        "Worker":  "$WorkerName",
+                                        "API_ID":  "$API_ID",
+                                        "API_Key":  "$API_Key"
+                                    },
+                  "MiningPoolHubCoins":  {
+                                             "User":  "$UserName",
+                                             "Worker":  "$WorkerName",
+                                             "API_ID":  "$API_ID",
+                                             "API_Key":  "$API_Key"
+                                         },
+                  "ZergPoolCoins2":  {
+                                   "MAX":  "<MAX_WALLET>",
+                                   "Worker":  "$WorkerName"
+                               },
+                  "NiceHash":  {
+                                   "BTC":  "$Wallet",
+                                   "Worker":  "$WorkerName"
+                               },                  "Zpool":  {
+                                "BTC":  "$Wallet",
+                                "Worker":  "$WorkerName"
+                            }
+              },
+    "Miners":  {
+                   "CcminerHsr":  {
+                                      "MinerFileVersion":  "2018040300",
+                                      "MinerBinaryInfo":  "CcminerHSR compiled by Nemosminer",
+                                      "Uri":  "https://github.com/nemosminer/ccminer-hcash/releases/download/alexishsr/ccminer-hsr-alexis-x86-cuda8.7z",
+                                      "UriManual":  "",
+                                      "WebLink":  "https://github.com/nemosminer/ccminer-hcash",
+                                      "IgnoreHWModel":  [
+
+                                                        ],
+                                      "IgnoreDeviceID":  [
+
+                                                         ],
+                                      "Commands":  {
+                                                       "hsr":  ""
+                                                   },
+                                      "CommonCommands":  "",
+                                      "DoNotMine":  {
+
+                                                    }
+                                  },
+                   "CcminerKlausT":  {
+                                         "MinerFileVersion":  "2018040200",
+                                         "MinerBinaryInfo":  "Ccminer (x64) 8.21 by KlausT",
+                                         "Uri":  "https://github.com/KlausT/ccminer/releases/download/8.21/ccminer-821-cuda91-x64.zip",
+                                         "UriManual":  "",
+                                         "WebLink":  "https://github.com/KlausT/ccminer",
+                                         "IgnoreHWModel":  [
+
+                                                           ],
+                                         "IgnoreDeviceID":  [
+
+                                                            ],
+                                         "Commands":  {
+                                                          "groestl":  "",
+                                                          "myr-gr":  "",
+                                                          "neoscrypt":  ""
+                                                      },
+                                         "CommonCommands":  "",
+                                         "DoNotMine":  {
+
+                                                       }
+                                     },
+                   "CcminerLyra2RE2":  {
+                                           "MinerFileVersion":  "2018040300",
+                                           "MinerBinaryInfo":  "Ccminer Nanashi v1.7.6 r6 by Nicehash",
+                                           "Uri":  "https://github.com/nicehash/ccminer-nanashi/releases/download/1.7.6-r6/ccminer.zip",
+                                           "UriManual":  "",
+                                           "WebLink":  "https://github.com/nicehash/ccminer-nanashi",
+                                           "IgnoreHWModel":  [
+
+                                                             ],
+                                           "IgnoreDeviceID":  [
+
+                                                              ],
+                                           "Commands":  {
+                                                            "lyra2v2":  ""
+                                                        },
+                                           "CommonCommands":  "",
+                                           "DoNotMine":  {
+
+                                                         }
+                                       },
+                   "CcminerLyra2z":  {
+                                         "MinerFileVersion":  "2018040300",
+                                         "MinerBinaryInfo":  "Ccminer for Lyra2h \u0026 Lyra2z by djm34 v 0.3.0",
+                                         "Uri":  "https://github.com/djm34/ccminer-msvc2015/releases/download/v0.3.0/ccminer.rar",
+                                         "UriManual":  "",
+                                         "WebLink":  "https://github.com/djm34/ccminer-msvc2015",
+                                         "IgnoreHWModel":  [
+
+                                                           ],
+                                         "IgnoreDeviceID":  [
+
+                                                            ],
+                                         "Commands":  {
+                                                          "lyra2h":  "",
+                                                          "lyra2z":  ""
+                                                      },
+                                         "CommonCommands":  "",
+                                         "DoNotMine":  {
+
+                                                       }
+                                     },
+                   "CcminerNanashi":  {
+                                          "MinerFileVersion":  "2018040200",
+                                          "MinerBinaryInfo":  "Ccminer Nanashi-Meiyo-Meijin v2.2-mod-r2",
+                                          "Uri":  "https://github.com/Nanashi-Meiyo-Meijin/ccminer/releases/download/v2.2-mod-r2/2.2-mod-r2-CUDA9.binary.zip",
+                                          "UriManual":  "",
+                                          "WebLink":  "https://bitcointalk.org/?topic=770064",
+                                          "IgnoreHWModel":  [
+
+                                                            ],
+                                          "IgnoreDeviceID":  [
+
+                                                             ],
+                                          "Commands":  {
+                                                           "jha":  "",
+                                                           "lyra2v2":  "",
+                                                           "lyra2z":  "",
+                                                           "neoscrypt":  ""
+                                                       },
+                                          "CommonCommands":  "",
+                                          "DoNotMine":  {
+
+                                                        }
+                                      },
+                   "CcminerNevermore":  {
+                                            "MinerFileVersion":  "2018041000",
+                                            "MinerBinaryInfo":  "Nevermore v0.2.2, 1% devfee",
+                                            "Uri":  "https://github.com/brian112358/nevermore-miner/releases/download/v0.2.2/nevermore-v0.2.2-win64.zip",
+                                            "UriManual":  "",
+                                            "WebLink":  "https://github.com/nemosminer/ccminernevermore/releases",
+                                            "IgnoreHWModel":  [
+
+                                                              ],
+                                            "IgnoreDeviceID":  [
+
+                                                               ],
+                                            "Commands":  {
+                                                             "x16r":  "",
+                                                             "x16s":  ""
+                                                         },
+                                            "CommonCommands":  "",
+                                            "DoNotMine":  {
+
+                                                          }
+                                        },
+                   "CcminerPolytimos":  {
+                                            "MinerFileVersion":  "2018040300",
+                                            "MinerBinaryInfo":  "Ccminer Polytimos by punxsutawneyphil",
+                                            "Uri":  "https://github.com/punxsutawneyphil/ccminer/releases/download/polytimosv2/ccminer-polytimos_v2.zip",
+                                            "UriManual":  "",
+                                            "WebLink":  "https://bitcointalk.org/?topic=770064",
+                                            "IgnoreHWModel":  [
+
+                                                              ],
+                                            "IgnoreDeviceID":  [
+
+                                                               ],
+                                            "Commands":  {
+                                                             "poly":  ""
+                                                         },
+                                            "CommonCommands":  "",
+                                            "DoNotMine":  {
+
+                                                          }
+                                        },
+                   "CcminerSib":  {
+                                      "MinerFileVersion":  "2018040300",
+                                      "MinerBinaryInfo":  null,
+                                      "Uri":  "https://github.com/nicehash/ccminer-x11gost/releases/download/ccminer-x11gost_windows/ccminer_x11gost.7z",
+                                      "UriManual":  "",
+                                      "WebLink":  "https://github.com/nicehash/ccminer-x11gost",
+                                      "IgnoreHWModel":  [
+
+                                                        ],
+                                      "IgnoreDeviceID":  [
+
+                                                         ],
+                                      "Commands":  {
+                                                       "sib":  ""
+                                                   },
+                                      "CommonCommands":  "",
+                                      "DoNotMine":  {
+
+                                                    }
+                                  },
+                   "CcminerSkunk":  {
+                                        "MinerFileVersion":  "2018040300",
+                                        "MinerBinaryInfo":  "Ccminer 2.2-mod-r1 for Skunk by scaras ",
+                                        "Uri":  "https://github.com/scaras/ccminer-2.2-mod-r1/releases/download/2.2-r1/2.2-mod-r1.zip",
+                                        "UriManual":  "",
+                                        "WebLink":  "https://github.com/scaras/ccminer-2.2-mod-r1",
+                                        "IgnoreHWModel":  [
+
+                                                          ],
+                                        "IgnoreDeviceID":  [
+
+                                                           ],
+                                        "Commands":  {
+                                                         "skunk":  ""
+                                                     },
+                                        "CommonCommands":  "",
+                                        "DoNotMine":  {
+
+                                                      }
+                                    },
+                   "CcminerSp":  {
+                                     "MinerFileVersion":  "2018040200",
+                                     "MinerBinaryInfo":  "Ccminer 1.5.81(sp-MOD) by _SP (x86)",
+                                     "Uri":  "https://github.com/sp-hash/ccminer/releases/download/1.5.81/release81.7z",
+                                     "UriManual":  "",
+                                     "WebLink":  "https://github.com/sp-hash/ccminer",
+                                     "IgnoreHWModel":  [
+
+                                                       ],
+                                     "IgnoreDeviceID":  [
+
+                                                        ],
+                                     "Commands":  {
+                                                      "c11":  "",
+                                                      "skein":  "",
+                                                      "x17":  ""
+                                                  },
+                                     "CommonCommands":  "",
+                                     "DoNotMine":  {
+
+                                                   }
+                                 },
+                   "CcminerSuprMiner":  {
+                                            "MinerFileVersion":  "2018040200",
+                                            "MinerBinaryInfo":  "suprminer 1.5.7 (April 2018) optimized x16r algo without any dev fee",
+                                            "Uri":  "https://github.com/ocminer/suprminer/releases/download/1.5/suprminer-1.5.7z",
+                                            "UriManual":  "",
+                                            "WebLink":  "https://github.com/ocminer/suprminer",
+                                            "IgnoreHWModel":  [
+
+                                                              ],
+                                            "IgnoreDeviceID":  [
+
+                                                               ],
+                                            "Commands":  {
+                                                             "x16r":  "",
+                                                             "x16s":  ""
+                                                         },
+                                            "CommonCommands":  "",
+                                            "DoNotMine":  {
+
+                                                          }
+                                        },
+                   "CcminerTpruvot":  {
+                                          "MinerFileVersion":  "2018040200",
+                                          "MinerBinaryInfo":  "Ccminer (x64) 2.2.5 by Tpruvot",
+                                          "Uri":  "https://github.com/MSFTserver/ccminer/releases/download/2.2.5-rvn/ccminer-x64-2.2.5-rvn-cuda9.7z",
+                                          "UriManual":  "",
+                                          "WebLink":  "https://bitcointalk.org/?topic=770064",
+                                          "IgnoreHWModel":  [
+
+                                                            ],
+                                          "IgnoreDeviceID":  [
+
+                                                             ],
+                                          "Commands":  {
+                                                           "bitcore":  "",
+                                                           "blake2s":  "",
+                                                           "blakecoin":  "",
+                                                           "vanilla":  "",
+                                                           "c11":  "",
+                                                           "cryptonight":  "",
+                                                           "decred":  "",
+                                                           "equihash":  "",
+                                                           "groestl":  "",
+                                                           "hmq1725":  "",
+                                                           "jha":  "",
+                                                           "keccak":  "",
+                                                           "lbry":  "",
+                                                           "lyra2v2":  "",
+                                                           "lyra2z":  "",
+                                                           "myr-gr":  "",
+                                                           "neoscrypt":  "",
+                                                           "nist5":  "",
+                                                           "phi":  "",
+                                                           "sib":  "",
+                                                           "skein":  "",
+                                                           "skunk":  "",
+                                                           "timetravel":  "",
+                                                           "tribus":  "",
+                                                           "veltor":  "",
+                                                           "x11evo":  "",
+                                                           "x16r":  "",
+                                                           "x17":  ""
+                                                       },
+                                          "CommonCommands":  " --submit-stale",
+                                          "DoNotMine":  {
+
+                                                        }
+                                      },
+                   "CcminerXevan":  {
+                                        "MinerFileVersion":  "2018040300",
+                                        "MinerBinaryInfo":  "Ccminer forked from krnlx/ccminer-xevan, compiled by Nemosminer (x86)",
+                                        "Uri":  "https://github.com/nemosminer/ccminer-xevan/releases/download/ccminer-xevan/ccminer_x86.7z",
+                                        "UriManual":  "",
+                                        "WebLink":  "https://github.com/nemosminer/ccminer-xevan",
+                                        "IgnoreHWModel":  [
+
+                                                          ],
+                                        "IgnoreDeviceID":  [
+
+                                                           ],
+                                        "Commands":  {
+                                                         "xevan":  ""
+                                                     },
+                                        "CommonCommands":  "",
+                                        "DoNotMine":  {
+
+                                                      }
+                                    },
+                   "ClaymoreAmd":  {
+                                       "MinerFileVersion":  "2018040200",
+                                       "MinerBinaryInfo":  "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.6",
+                                       "Uri":  "",
+                                       "UriManual":  "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w",
+                                       "WebLink":  "https://bitcointalk.org/index.php?topic=1433925.0",
+                                       "MinerFeeInPercentSingleMode":  1,
+                                       "MinerFeeInPercentDualMode":  1.5,
+                                       "IgnoreHWModel":  [
+
+                                                         ],
+                                       "IgnoreDeviceID":  [
+
+                                                          ],
+                                       "Commands":  {
+                                                        "ethash":  "",
+                                                        "ethash2gb":  "",
+                                                        "ethash;blake2s:40":  "",
+                                                        "ethash;blake2s:60":  "",
+                                                        "ethash;blake2s:80":  "",
+                                                        "ethash;decred:":  "",
+                                                        "ethash;decred:130":  "",
+                                                        "ethash;decred:160":  "",
+                                                        "ethash;keccak:70":  "",
+                                                        "ethash;keccak:90":  "",
+                                                        "ethash;keccak:110":  "",
+                                                        "ethash;lbry:60":  "",
+                                                        "ethash;lbry:75":  "",
+                                                        "ethash;lbry:90":  "",
+                                                        "ethash;pascal:40":  "",
+                                                        "ethash;pascal:60":  "",
+                                                        "ethash;pascal:80":  "",
+                                                        "ethash;pascal:100":  "",
+                                                        "ethash2gb;blake2s:75":  "",
+                                                        "ethash2gb;blake2s:100":  "",
+                                                        "ethash2gb;blake2s:125":  "",
+                                                        "ethash2gb;decred:100":  "",
+                                                        "ethash2gb;decred:130":  "",
+                                                        "ethash2gb;decred:160":  "",
+                                                        "ethash2gb;keccak:70":  "",
+                                                        "ethash2gb;keccak:90":  "",
+                                                        "ethash2gb;keccak:110":  "",
+                                                        "ethash2gb;lbry:60":  "",
+                                                        "ethash2gb;lbry:75":  "",
+                                                        "ethash2gb;lbry:90":  "",
+                                                        "ethash2gb;pascal:40":  "",
+                                                        "ethash2gb;pascal:60":  "",
+                                                        "ethash2gb;pascal:80":  ""
+                                                    },
+                                       "CommonCommands":  [
+                                                              " -eres 0 -logsmaxsize 1",
+                                                              ""
+                                                          ],
+                                       "DoNotMine":  {
+
+                                                     }
+                                   },
+                   "ClaymoreNvidia":  {
+                                          "MinerFileVersion":  "2018040200",
+                                          "MinerBinaryInfo":  "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.6",
+                                          "Uri":  "",
+                                          "UriManual":  "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w",
+                                          "WebLink":  "https://bitcointalk.org/index.php?topic=1433925.0",
+                                          "IgnoreHWModel":  [
+
+                                                            ],
+                                          "IgnoreDeviceID":  [
+
+                                                             ],
+                                          "Commands":  {
+                                                           "ethash":  "",
+                                                           "ethash2gb":  "",
+                                                           "ethash;blake2s:40":  "",
+                                                           "ethash;blake2s:60":  "",
+                                                           "ethash;blake2s:80":  "",
+                                                           "ethash;decred:":  "",
+                                                           "ethash;decred:130":  "",
+                                                           "ethash;decred:160":  "",
+                                                           "ethash;keccak:70":  "",
+                                                           "ethash;keccak:90":  "",
+                                                           "ethash;keccak:110":  "",
+                                                           "ethash;lbry:60":  "",
+                                                           "ethash;lbry:75":  "",
+                                                           "ethash;lbry:90":  "",
+                                                           "ethash;pascal:40":  "",
+                                                           "ethash;pascal:60":  "",
+                                                           "ethash;pascal:80":  "",
+                                                           "ethash;pascal:100":  "",
+                                                           "ethash2gb;blake2s:75":  "",
+                                                           "ethash2gb;blake2s:100":  "",
+                                                           "ethash2gb;blake2s:125":  "",
+                                                           "ethash2gb;decred:100":  "",
+                                                           "ethash2gb;decred:130":  "",
+                                                           "ethash2gb;decred:160":  "",
+                                                           "ethash2gb;keccak:70":  "",
+                                                           "ethash2gb;keccak:90":  "",
+                                                           "ethash2gb;keccak:110":  "",
+                                                           "ethash2gb;lbry:60":  "",
+                                                           "ethash2gb;lbry:75":  "",
+                                                           "ethash2gb;lbry:90":  "",
+                                                           "ethash2gb;pascal:40":  "",
+                                                           "ethash2gb;pascal:60":  "",
+                                                           "ethash2gb;pascal:80":  ""
+                                                       },
+                                          "CommonCommands":  [
+                                                                 " -eres 0 -logsmaxsize 1",
+                                                                 ""
+                                                             ],
+                                          "DoNotMine":  {
+
+                                                        }
+                                      },
+                   "DSTM":  {
+                                "MinerFileVersion":  "2018040200",
+                                "MinerBinaryInfo":  "dstm\u0027s ZCash Cuda miner 0.6 (x64)",
+                                "Uri":  "",
+                                "UriManual":  "https://mega.nz/#!1kRxQRSD!I3ryiEI5eT7datW842QNESyBQpZY6PILYS4HNIEHpYY",
+                                "WebLink":  "https://bitcointalk.org/index.php?topic=2021765.0",
+                                "IgnoreHWModel":  [
+
+                                                  ],
+                                "IgnoreDeviceID":  [
+
+                                                   ],
+                                "Commands":  {
+                                                 "equihash":  [
+
+                                                              ]
+                                             },
+                                "CommonCommands":  " --color",
+                                "DoNotMine":  {
+
+                                              }
+                            },
+                   "EminerNvidia":  {
+                                        "MinerFileVersion":  "2018040400",
+                                        "MinerBinaryInfo":  "Eminer v0.6.1-rc2 (x64)",
+                                        "Uri":  "https://github.com/ethash/eminer-release/releases/download/v0.6.1-rc2/eminer.v0.6.1-rc2.win64.zip",
+                                        "UriManual":  "",
+                                        "WebLink":  "https://github.com/ethash/eminer-release",
+                                        "IgnoreHWModel":  [
+
+                                                          ],
+                                        "IgnoreDeviceID":  [
+
+                                                           ],
+                                        "Commands":  {
+                                                         "Ethash":  "",
+                                                         "Ethash2gb":  "",
+                                                         "Ethash3gb":  ""
+                                                     },
+                                        "CommonCommands":  "",
+                                        "DoNotMine":  {
+
+                                                      }
+                                    },
+                   "Ewbf":  {
+                                "MinerFileVersion":  "2018040200",
+                                "MinerBinaryInfo":  "EWBF\u0027s CUDA Zcash miner Version 0.3.4b (x64)",
+                                "Uri":  "",
+                                "UriManual":  "https://mega.nz/#F!usQh2bTa!3qp_PaiO-dw3F0mpvLXynA",
+                                "WebLink":  "https://bitcointalk.org/index.php?topic=1707546.0",
+                                "IgnoreHWModel":  [
+
+                                                  ],
+                                "IgnoreDeviceID":  [
+
+                                                   ],
+                                "Commands":  {
+                                                 "equihash":  [
+
+                                                              ]
+                                             },
+                                "CommonCommands":  " --eexit --intensity 64",
+                                "DoNotMine":  {
+
+                                              }
+                            },
+                   "ExcavatorNvidia":  {
+                                           "MinerFileVersion":  "2018040200",
+                                           "MinerBinaryInfo":  "NiceHash Excavator 1.4.4 alpha (x64)",
+                                           "Uri":  "https://github.com/nicehash/excavator/releases/download/v1.4.4a/excavator_v1.4.4a_NVIDIA_Win64.zip",
+                                           "UriManual":  "",
+                                           "WebLink":  "https://github.com/nicehash/excavator",
+                                           "IgnoreHWModel":  [
+
+                                                             ],
+                                           "IgnoreDeviceID":  [
+
+                                                              ],
+                                           "Commands":  {
+                                                            "blake2s:1":  [
+
+                                                                          ],
+                                                            "cryptonight:1":  [
+
+                                                                              ],
+                                                            "decred:1":  [
+
+                                                                         ],
+                                                            "daggerhashimoto:1":  [
+
+                                                                                  ],
+                                                            "equihash:1":  [
+
+                                                                           ],
+                                                            "neoscrypt:1":  [
+
+                                                                            ],
+                                                            "nist5:1":  [
+
+                                                                        ],
+                                                            "keccak:1":  [
+
+                                                                         ],
+                                                            "lbry:1":  [
+
+                                                                       ],
+                                                            "lyra2rev2:1":  [
+
+                                                                            ],
+                                                            "pascal:1":  [
+
+                                                                         ],
+                                                            "blake2s:2":  [
+
+                                                                          ],
+                                                            "cryptonight:2":  [
+
+                                                                              ],
+                                                            "decred:2":  [
+
+                                                                         ],
+                                                            "daggerhashimoto:2":  [
+
+                                                                                  ],
+                                                            "equihash:2":  [
+
+                                                                           ],
+                                                            "nist5:2":  [
+
+                                                                        ],
+                                                            "keccak:2":  [
+
+                                                                         ],
+                                                            "lbry:2":  [
+
+                                                                       ],
+                                                            "lyra2rev2:2":  [
+
+                                                                            ],
+                                                            "pascal:2":  [
+
+                                                                         ]
+                                                        },
+                                           "CommonCommands":  "",
+                                           "DoNotMine":  {
+
+                                                         }
+                                       },
+                   "HSRMiner":  {
+                                    "MinerFileVersion":  "2018040200",
+                                    "MinerBinaryInfo":  "HSRMINER Neoscrypt Fork by Justaminer 12.03.2018",
+                                    "Uri":  "https://github.com/justaminer/hsrm-fork/raw/master/hsrminer_neoscrypt_fork_hp.zip",
+                                    "UriManual":  "",
+                                    "WebLink":  "https://bitcointalk.org/index.php?topic=2765610.0",
+                                    "Type":  "NVIDIA",
+                                    "Path":  ".\\Bin\\NVIDIA-Hsrminer\\hsrminer_neoscrypt_fork_hp.exe",
+                                    "Port":  4068,
+                                    "IgnoreHWModel":  [
+
+                                                      ],
+                                    "IgnoreDeviceID":  [
+
+                                                       ],
+                                    "Commands":  {
+                                                     "neoscrypt":  ""
+                                                 },
+                                    "CommonCommands":  "",
+                                    "DoNotMine":  {
+
+                                                  }
+                                },
+                   "PhoenixMinerNvidia":  {
+                                              "MinerFileVersion":  "2018040200",
+                                              "MinerBinaryInfo":  "PhoenixMiner 2.8c: fastest Ethereum/Ethash miner with lowest devfee",
+                                              "Uri":  "z",
+                                              "UriManual":  "https://mega.nz/#F!2VskDJrI!lsQsz1CdDe8x5cH3L8QaBw",
+                                              "WebLink":  "https://bitcointalk.org/index.php?topic=2647654.0",
+                                              "IgnoreHWModel":  [
+
+                                                                ],
+                                              "IgnoreDeviceID":  [
+
+                                                                 ],
+                                              "Commands":  {
+                                                               "Ethash":  "",
+                                                               "Ethash2gb":  "",
+                                                               "Ethash3gb":  ""
+                                                           },
+                                              "CommonCommands":  "",
+                                              "DoNotMine":  {
+
+                                                            }
+                                          },
+                   "XmrigNvidia":  {
+                                       "MinerFileVersion":  "2018040600",
+                                       "MinerBinaryInfo":  "Monero (XMR) NVIDIA miner v2.5.2 (x64)",
+                                       "Uri":  "https://github.com/xmrig/xmrig-nvidia/releases/download/v2.5.2/xmrig-nvidia-2.5.2-cuda9-win64.zip",
+                                       "UriManual":  "",
+                                       "WebLink":  "https://github.com/xmrig/xmrig-nvidia",
+                                       "IgnoreHWModel":  [
+
+                                                         ],
+                                       "IgnoreDeviceID":  [
+
+                                                          ],
+                                       "MinerFeeInPercent":  1,
+                                       "Commands":  {
+                                                        "cryptonight":  ""
+                                                    },
+                                       "CommonCommands":  " --keepalive --nicehash",
+                                       "DoNotMine":  {
+
+                                                     }
+                                   }
+               },
+    "Interval":  "$Interval",
+    "Region":  "$Region",
+    "SSL":  "$SSL",
+    "Type":  "$Type",
+    "Algorithm":  "$Algorithm",
+    "MinerName":  "$MinerName",
+    "PoolName":  "$PoolName",
+    "ExcludeAlgorithm":  "$ExcludeAlgorithm",
+    "ExcludeMinerName":  "$ExcludeMinerName",
+    "ExcludePoolName":  "$ExcludePoolName",
+    "Currency":  "$Currency",
+    "Donate":  "$Donate",
+    "Proxy":  "$Proxy",
+    "Delay":  "$Delay",
+    "Watchdog":  "$Watchdog",
+    "MinerStatusURL":  "$MinerStatusURL",
+    "MinerStatusKey":  "$MinerStatusKey",
+    "SwitchingPrevention":  "$SwitchingPrevention"
 }
