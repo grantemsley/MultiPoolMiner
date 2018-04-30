@@ -1,7 +1,7 @@
 ﻿using module ..\Include.psm1
 
 $Path = ".\Bin\CPU-TPruvot\cpuminer-gw64-corei7.exe"
-$Uri = "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.1-multi/cpuminer-multi-rel1.3.1-x64.zip"
+$Uri = "https://github.com/JayDDee/cpuminer-opt/files/1939225/cpuminer-opt-3.8.8-windows.zip"
 
 $Commands = [PSCustomObject]@{
     #"bitcore" = "" #Bitcore
@@ -10,6 +10,8 @@ $Commands = [PSCustomObject]@{
     "vanilla" = "" #BlakeVanilla
     "c11" = "" #C11
     "cryptonight" = "" #CryptoNight
+	"cryptolight" = "" #CryptoNightLite
+	"cryptonightv7" = "" #CryptoNightV7	
     "decred" = "" #Decred
     #"equihash" = "" #Equihash
     #"ethash" = "" #Ethash
