@@ -16,8 +16,8 @@ $Type = "AMD"
 $API  = "Claymore"
 $Port = 13333
 
-$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.6"
+$MinerFileVersion = "2018042900" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.7"
 $MinerFeeInPercentSingleMode = 1.0
 $MinerFeeInPercentDualMode = 1.5
 
