@@ -67,6 +67,7 @@ if(Test-Path "binaryhashes.txt" -PathType Leaf) {
     $hashes = Get-Content "binaryhashes.txt" | ConvertFrom-Json
 } else {
     Write-Warning "binaryhashes.txt does not exist. Will not be able to verify the correct miner versions are installed."
+    $hashes = $null
 }
 
 $Miners | Foreach-Object {
@@ -94,11 +95,9 @@ $Miners | Foreach-Object {
             try {
                 if ( (Split-Path $Miner.URI -Leaf) -eq (Split-Path $Miner.Path -Leaf)) {
                     # Miner isn't a zip file, download the exe directly
-                    Write-Warning "Test A"
                     New-Item (Split-Path $Miner.Path) -ItemType "Directory" | Out-Null
                     Invoke-WebRequest $Miner.URI -OutFile $Miner.Path -UseBasicParsing -Erroraction Stop
                 } else {
-                    Write-Warning "Test B $($Miner.URI)"
                     Expand-WebRequest $Miner.URI (Split-Path $Miner.Path) -ErrorAction Stop
                 }
             } catch {
