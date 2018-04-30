@@ -56,7 +56,7 @@
     },
     {
         "Type":  "AMD",
-	"ManualURI": "https://bitcointalk.org/index.php?topic=3012600.0",
+        "ManualURI": "https://bitcointalk.org/index.php?topic=3012600.0",
         "Path":  ".\\Bin\\NeoScrypt-Claymore\\NeoScryptMiner.exe",
         "Arguments":  "\"-r -1 -mport 13333 -pool $($Pools.NeoScrypt.Host):$($Pools.NeoScrypt.Port) -wal $($Pools.NeoScrypt.User) -psw $($Pools.NeoScrypt.Pass)\"",
         "HashRates":  {
