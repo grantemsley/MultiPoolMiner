@@ -29,7 +29,7 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
         "MinerFileVersion" = $MinerFileVersion
         "MinerBinaryInfo" = $MinerBinaryInfo
         "Uri" = "" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-        "UriManual" = "https://mega.nz/#!1kRxQRSD!I3ryiEI5eT7datW842QNESyBQpZY6PILYS4HNIEHpYY"
+        "ManualUri" = "https://mega.nz/#!1kRxQRSD!I3ryiEI5eT7datW842QNESyBQpZY6PILYS4HNIEHpYY"
         "WebLink" = "https://bitcointalk.org/index.php?topic=2021765.0" # See here for more information about the miner
         #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
         "IgnoreHWModel" = @()
@@ -93,7 +93,7 @@ if ($Info) {
         MinerFileVersion  = $MinerFileVersion
         MinerBinaryInfo   = $MinerBinaryInfo
         Uri               = $Uri
-        UriManual         = $UriManual
+        ManualUri         = $ManualUri
         Type              = $Type
         Path              = $Path
         Port              = $Port
@@ -109,10 +109,10 @@ if ($Info) {
                 Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README). "
             },
             [PSCustomObject]@{
-                Name        = "UriManual"
+                Name        = "ManualUri"
                 Required    = $false
                 ControlType = "string"
-                Default     = $DefaultMinerConfig.UriManual
+                Default     = $DefaultMinerConfig.ManualUri
                 Description = "Download link for manual miner binaries download. Unpack downloaded files to '$Path'. "
                 Tooltip     = "See README for manual download and unpack instruction"
             },

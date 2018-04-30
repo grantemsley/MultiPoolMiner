@@ -25,7 +25,7 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
         "MinerFileVersion" = $MinerFileVersion
         "MinerBinaryInfo" = $MinerBinaryInfo
         "Uri" = "https://github.com/MSFTserver/ccminer/releases/download/2.2.5-rvn/ccminer-x64-2.2.5-rvn-cuda9.7z" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-        "UriManual" = ""
+        "ManualUri" = ""
         "WebLink" = "https://bitcointalk.org/?topic=770064" # See here for more information about the miner
         #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
         "IgnoreHWModel" = @()
@@ -116,7 +116,7 @@ if ($Info) {
         MinerFileVersion  = $MinerFileVersion
         MinerBinaryInfo   = $MinerBinaryInfo
         Uri               = $Uri
-        UriManual         = $UriManual
+        ManualUri         = $ManualUri
         Type              = $Type
         Path              = $Path
         Port              = $Port
@@ -131,10 +131,10 @@ if ($Info) {
                 Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README)"
             },
             [PSCustomObject]@{
-                Name        = "UriManual"
+                Name        = "ManualUri"
                 Required    = $false
                 ControlType = "string"
-                Default     = $DefaultMinerConfig.UriManual
+                Default     = $DefaultMinerConfig.ManualUri
                 Description = "Download link for manual miner binaries download. Unpack downloaded files to '$Path'. "
                 Tooltip     = "See README for manual download and unpack instruction"
             },

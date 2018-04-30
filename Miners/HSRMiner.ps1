@@ -26,7 +26,7 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
         "MinerFileVersion" = $MinerFileVersion
         "MinerBinaryInfo" = $MinerBinaryInfo
         "Uri" = "https://github.com/justaminer/hsrm-fork/raw/master/hsrminer_neoscrypt_fork_hp.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-        "UriManual" = ""    
+        "ManualUri" = ""    
         "WebLink" = "https://bitcointalk.org/index.php?topic=2765610.0" # See here for more information about the miner
         "Type" = "$Type"
         "Path" = "$Path"
@@ -87,7 +87,7 @@ if ($Info) {
         MinerFileVersion  = $MinerFileVersion
         MinerBinaryInfo   = $MinerBinaryInfo
         Uri               = $Uri
-        UriManual         = $UriManual
+        ManualUri         = $ManualUri
         Type              = $Type
         Path              = $Path
         Port              = $Port
@@ -103,10 +103,10 @@ if ($Info) {
                 Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README). "
             },
             [PSCustomObject]@{
-                Name        = "UriManual"
+                Name        = "ManualUri"
                 Required    = $false
                 ControlType = "string"
-                Default     = $DefaultMinerConfig.UriManual
+                Default     = $DefaultMinerConfig.ManualUri
                 Description = "Download link for manual miner binaries download. Unpack downloaded files to '$Path'. "
                 Tooltip     = "See README for manual download and unpack instruction"
             },
