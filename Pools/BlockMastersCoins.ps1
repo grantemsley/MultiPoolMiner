@@ -145,9 +145,6 @@ if (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Mea
 }
 
 $Regions = "us"
-#
-##Pool allows payout in BTC, DOGE and LTC any currency available in API
-#$Payout_Currencies = @("BTC", "DOGE", "LTC") + ($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name) | Select-Object -Unique | Where-Object {$Config.Pools.$Name.$_}
 
 # Some currencies are suffixed with algo name (e.g. AUR-myr-gr), these have the currency in property symbol. Need to add symbol to all the others
 $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {
