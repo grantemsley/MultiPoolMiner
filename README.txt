@@ -424,6 +424,21 @@ E.g. to mine only the coins 'Pizza' and 'Vivo' on ZpoolCoins change the pool con
 
 To allow mining all coins remove the line "Coin": [...]
 
+PricePenaltyFactor
+
+When using advanced per pool configuration, it is possible to add a penalty factor for a specific pool. This simply adds a multiplicator on estimations presented by the pool.
+
+E.g. You feel like a pool is exaggerating its estimations by 10% - Set PricePenaltyFactor to 0.9:
+
+    "ZpoolCoins": {
+        "Worker": "$WorkerName",
+        "BTC": "$Wallet",
+        "PricePenaltyFactor":  0.9
+    }
+    
+If PricePenaltyFactor it not set then the default of 1 (no penalty) is used.
+
+
 Advanced config for Miners
 
 This is currently not used. For now just leave it as it is.
