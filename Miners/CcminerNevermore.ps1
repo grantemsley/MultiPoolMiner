@@ -16,7 +16,7 @@ $Type = "NVIDIA"
 $API  = "Ccminer"
 $Port = 4068
 
-$MinerFileVersion = "2018041000" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018043000" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "Nevermore v0.2.2, 1% devfee"
 $MinerFeeInPercent = 1 # Miner default is 5 minute per 100 minutes, can be reduced to 1% via command line option --donate-level
 
@@ -96,6 +96,7 @@ if ($Info) {
         Path              = $Path
         Port              = $Port
         WebLink           = $WebLink
+        MinerFeeInPercent = $MinerFeeInPercent
         Settings          = @(
             [PSCustomObject]@{
                 Name        = "Uri"
@@ -206,15 +207,15 @@ $Devices.$Type | ForEach-Object {
                 $Miner_Name = $Name
                 $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select-Object -Index 0 # additional command line options for algorithm
             }
-     
-            $Hashrate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
+
+            $HashRate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
             if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
-                $Hashrate = $HashRate * (1 - [PSCustomObject]@{$Algorithm_Norm = $Hashrate} / 100)
-                $Fees = @($Config.Miners.$Name.MinerFeeInPercent)
+                $Fees = @($null)
             }
             else {
-                $Fees = @($null)
-            }            
+                $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
+                $Fees = @($MinerFeeInPercent)
+            }        
 
             [PSCustomObject]@{
                 Name             = $Miner_Name
@@ -225,7 +226,7 @@ $Devices.$Type | ForEach-Object {
                 API              = $Api
                 Port             = $Port
                 URI              = $Uri
-                Fees             = @($null)
+                Fees             = @($Fees)
                 Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                 ShowMinerWindow  = $Config.ShowMinerWindow
             }
