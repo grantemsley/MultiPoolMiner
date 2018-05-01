@@ -64,13 +64,22 @@ if ($Info) {
             Tooltip     = "API key can be found on the web page"    
         },
         [PSCustomObject]@{
-            Name        = "ExcludeAlgorithm"
+            Name        = "IgnorePoolFee"
             Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of excluded algorithms for this miner. "
-            Tooltip     = "Case insensitive, leave empty to mine all algorithms"
+            ControlType = "switch"
+            Default     = $false
+            Description = "Tick to disable pool fee calculation for this pool"
+            Tooltip     = "If ticked MPM will NOT take pool fees into account"
         },
+        [PSCustomObject]@{
+            Name        = "PricePenaltyFactor"
+            ControlType = "int"
+            Min         = 0
+            Max         = 99
+            Default     = $Config.PricePenaltyFactor
+            Description = "This adds a multiplicator on estimations presented by the pool. "
+            Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
+        },  
         [PSCustomObject]@{
             Name        = "ExcludeCoin"
             Required    = $false
@@ -80,15 +89,20 @@ if ($Info) {
             Tooltip     = "Case insensitive, leave empty to mine all coins"
         },
         [PSCustomObject]@{
-            Name        = "PoolFee"
+            Name        = "Coin"
             Required    = $false
-            ControlType = "double"
-            Min         = 0
-            Max         = 100
-            Fractions   = 2
-            Default     = $Default_PoolFee
-            Description = "Pool fee (in %)`nSet to 0 to ignore pool fees"
-            Tooltip     = "$($Name) applies same fee for all algorithms"
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of coins this miner will mine. All other coins will be ignored. "
+            Tooltip     = "Case insensitive, leave empty to mine all coins"    
+        },
+        [PSCustomObject]@{
+            Name        = "ExcludeAlgorithm"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of excluded algorithms for this miner. "
+            Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         }
     )
 
@@ -123,15 +137,15 @@ if ($User) {
     }
 
     $APIRequest.return | 
-        # filter excluded algorithms
-        Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $_)} |
-
         # allow well defined coins only
         Where-Object {$Config.Pools.$Name.Coin.Count -eq 0 -or ($Config.Pools.$Name.Coin -icontains $_.current_mining_coin)} |
 
         # filter excluded coins
         Where-Object {$Config.Pools.$Name.ExcludeCoin -inotcontains $_.current_mining_coin} |
         
+        # filter excluded algorithms
+        Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $_)} |
+
         ForEach-Object {
         $PoolHost       = $_.host
         $Hosts          = $_.all_host_list.split(";")
@@ -156,6 +170,10 @@ if ($User) {
 
         $Divisor = 1000000000
 
+        if ($PricePenaltyFactor -le 0) {
+            $PricePenaltyFactor = 1
+        }
+
         $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$_.profit / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
         $Regions | ForEach-Object {
@@ -166,8 +184,8 @@ if ($User) {
                 [PSCustomObject]@{
                     Algorithm     = $Algorithm_Norm
                     Info          = $CoinName
-                    Price         = $Stat.Live * $FeeFactor
-                    StablePrice   = $Stat.Week * $FeeFactor
+                    Price         = $Stat.Live * $FeeFactor * $PricePenaltyFactor
+                    StablePrice   = $Stat.Week * $FeeFactor * $PricePenaltyFactor
                     MarginOfError = $Stat.Week_Fluctuation
                     Protocol      = "stratum+tcp"
                     Host          = "$($Region).cryptonight-$($Poolhost)"
@@ -182,8 +200,8 @@ if ($User) {
                 [PSCustomObject]@{
                     Algorithm     = $Algorithm_Norm
                     Info          = $CoinName
-                    Price         = $Stat.Live * $FeeFactor
-                    StablePrice   = $Stat.Week * $FeeFactor
+                    Price         = $Stat.Live * $FeeFactor * $PricePenaltyFactor
+                    StablePrice   = $Stat.Week * $FeeFactor * $PricePenaltyFactor
                     MarginOfError = $Stat.Week_Fluctuation
                     Protocol      = "stratum+ssl"
                     Host          = "$($Region).cryptonight-$($Poolhost)"
@@ -200,8 +218,8 @@ if ($User) {
                 [PSCustomObject]@{
                     Algorithm     = $Algorithm_Norm
                     Info          = $CoinName
-                    Price         = $Stat.Live * $FeeFactor
-                    StablePrice   = $Stat.Week * $FeeFactor
+                    Price         = $Stat.Live * $FeeFactor * $PricePenaltyFactor
+                    StablePrice   = $Stat.Week * $FeeFactor * $PricePenaltyFactor
                     MarginOfError = $Stat.Week_Fluctuation
                     Protocol      = "stratum+tcp"
                     Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
@@ -218,8 +236,8 @@ if ($User) {
                     [PSCustomObject]@{
                         Algorithm     = $Algorithm_Norm
                         Info          = $CoinName
-                        Price         = $Stat.Live * $FeeFactor
-                        StablePrice   = $Stat.Week * $FeeFactor
+                        Price         = $Stat.Live * $FeeFactor * $PricePenaltyFactor
+                        StablePrice   = $Stat.Week * $FeeFactor * $PricePenaltyFactor
                         MarginOfError = $Stat.Week_Fluctuation
                         Protocol      = "stratum+ssl"
                         Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
@@ -237,8 +255,8 @@ if ($User) {
                     [PSCustomObject]@{
                         Algorithm     = "$($Algorithm_Norm)2gb"
                         Info          = $CoinName
-                        Price         = $Stat.Live * $FeeFactor
-                        StablePrice   = $Stat.Week * $FeeFactor
+                        Price         = $Stat.Live * $FeeFactor * $PricePenaltyFactor
+                        StablePrice   = $Stat.Week * $FeeFactor * $PricePenaltyFactor
                         MarginOfError = $Stat.Week_Fluctuation
                         Protocol      = "stratum+tcp"
                         Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1

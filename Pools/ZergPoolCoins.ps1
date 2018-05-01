@@ -84,6 +84,15 @@ if ($Info) {
             Tooltip     = "If ticked MPM will NOT take pool fees into account"
         },
         [PSCustomObject]@{
+            Name        = "PricePenaltyFactor"
+            ControlType = "int"
+            Min         = 0
+            Max         = 99
+            Default     = $Config.PricePenaltyFactor
+            Description = "This adds a multiplicator on estimations presented by the pool. "
+            Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
+        },  
+        [PSCustomObject]@{
             Name        = "MinWorker"
             ControlType = "int"
             Min         = 0
@@ -99,6 +108,30 @@ if ($Info) {
             ControlType = "string[,]"
             Description = "List of excluded currencies for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all currencies"    
+        },
+        [PSCustomObject]@{
+            Name        = "ExcludeCoin"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of excluded coins for this miner. "
+            Tooltip     = "Case insensitive, leave empty to mine all coins"    
+        },
+        [PSCustomObject]@{
+            Name        = "Currency"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of currencies this miner wil mine.  All other currencies will be ignored. "
+            Tooltip     = "Case insensitive, leave empty to mine all currencies"    
+        },
+        [PSCustomObject]@{
+            Name        = "Coin"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of coins this miner will mine. All other coins will be ignored. "
+            Tooltip     = "Case insensitive, leave empty to mine all coins"    
         },
         [PSCustomObject]@{
             Name        = "ExcludeAlgorithm"
@@ -200,6 +233,11 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
         "x11"       {$Divisor *= 1000}
     }
 
+
+    if ($PricePenaltyFactor -le 0) {
+        $PricePenaltyFactor = 1
+    }
+
     $Stat = Set-Stat -Name "$($Name)_$($Currency)_Profit" -Value ([Double]$APICurrenciesRequest.$Currency.estimate / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
     $Regions | ForEach-Object {
@@ -211,8 +249,8 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
             [PSCustomObject]@{
                 Algorithm     = $Algorithm_Norm
                 Info          = $CoinName
-                Price         = $Stat.Live * $FeeFactor
-                StablePrice   = $Stat.Week * $FeeFactor
+                Price         = $Stat.Live * $FeeFactor * $PricePenaltyFactor
+                StablePrice   = $Stat.Week * $FeeFactor * $PricePenaltyFactor
                 MarginOfError = $Stat.Week_Fluctuation
                 Protocol      = "stratum+tcp"
                 Host          = "$Algorithm.$Pool_Host"

@@ -84,6 +84,15 @@ if ($Info) {
             Tooltip     = "If ticked MPM will NOT take pool fees into account"
         },
         [PSCustomObject]@{
+            Name        = "PricePenaltyFactor"
+            ControlType = "int"
+            Min         = 0
+            Max         = 99
+            Default     = $Config.PricePenaltyFactor
+            Description = "This adds a multiplicator on estimations presented by the pool. "
+            Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
+        },  
+        [PSCustomObject]@{
             Name        = "MinWorker"
             ControlType = "int"
             Min         = 0
@@ -176,6 +185,11 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
         "x11"       {$Divisor *= 1000}
     }
 
+
+    if ($PricePenaltyFactor -le 0) {
+        $PricePenaltyFactor = 1
+    }
+
     if ((Get-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit") -eq $null) {$Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APIRequest.$_.estimate_last24h / $Divisor) -Duration (New-TimeSpan -Days 1)}
     else {$Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APIRequest.$_.estimate_current / $Divisor) -Duration $StatSpan -ChangeDetection $true}
 
@@ -188,8 +202,8 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
             [PSCustomObject]@{
                 Algorithm     = $Algorithm_Norm
                 Info          = $Currency
-                Price         = $Stat.Live * $FeeFactor
-                StablePrice   = $Stat.Week * $FeeFactor
+                Price         = $Stat.Live * $FeeFactor * $PricePenaltyFactor
+                StablePrice   = $Stat.Week * $FeeFactor * $PricePenaltyFactor
                 MarginOfError = $Stat.Week_Fluctuation
                 Protocol      = "stratum+tcp"
                 Host          = "$Algorithm.$Pool_Host"

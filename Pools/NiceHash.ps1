@@ -92,19 +92,44 @@ if ($Info) {
             Tooltip     = "$($Name) applies different pool fees for internal and external wallets"
         },
         [PSCustomObject]@{
-            Name        = "ExcludeCurrency"
+            Name        = "IgnorePoolFee"
+            Required    = $false
+            ControlType = "switch"
+            Default     = $false
+            Description = "Tick to disable pool fee calculation for this pool"
+            Tooltip     = "If ticked MPM will NOT take pool fees into account"
+        },
+        [PSCustomObject]@{
+            Name        = "PricePenaltyFactor"
+            ControlType = "int"
+            Min         = 0
+            Max         = 99
+            Default     = $Config.PricePenaltyFactor
+            Description = "This adds a multiplicator on estimations presented by the pool. "
+            Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
+        },
+        [PSCustomObject]@{
+            Name        = "DisabledCurrency"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of excluded currencies for this miner. "
+            Description = "List of disabled currencies for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all currencies"    
         },
         [PSCustomObject]@{
-            Name        = "ExcludeAlgorithm"
+            Name        = "Currency"
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of excluded algorithms for this miner. "
+            Description = "List of currencies this miner wil mine.  All other currencies will be ignored. "
+            Tooltip     = "Case insensitive, leave empty to mine all currencies"    
+        },
+        [PSCustomObject]@{
+            Name        = "DisabledAlgorithm"
+            Required    = $false
+            Default     = @()
+            ControlType = "string[,]"
+            Description = "List of disabled algorithms for this miner. "
             Tooltip     = "Case insensitive, leave empty to mine all algorithms"
         }
     )
@@ -135,7 +160,7 @@ $Payout_Currencies | Foreach-Object {
 
     $Regions = "eu", "usa", "hk", "jp", "in", "br"
 
-    $APIRequest.result.simplemultialgo | Where-Object {$ExcludeAlgorithm -inotcontains (Get-Algorithm $_.name)} | ForEach-Object {
+    $APIRequest.result.simplemultialgo | Where-Object {$DisabledAlgorithms -inotcontains (Get-Algorithm $_.name)} | ForEach-Object {
         $Pool_Host      = "nicehash.com"
         $Port           = $_.port
         $Algorithm      = $_.name
@@ -164,6 +189,10 @@ $Payout_Currencies | Foreach-Object {
 
         $Divisor = 1000000000
 
+        if ($PricePenaltyFactor -le 0) {
+            $PricePenaltyFactor = 1
+        }
+
         $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$_.paying / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
         $Regions | ForEach-Object {
@@ -173,8 +202,8 @@ $Payout_Currencies | Foreach-Object {
             [PSCustomObject]@{
                 Algorithm     = $Algorithm_Norm
                 Info          = $Currency
-                Price         = $Stat.Live * $FeeFactor
-                StablePrice   = $Stat.Week * $FeeFactor
+                Price         = $Stat.Live * $FeeFactor * $PricePenaltyFactor
+                StablePrice   = $Stat.Week * $FeeFactor * $PricePenaltyFactor
                 MarginOfError = $Stat.Week_Fluctuation
                 Protocol      = "stratum+tcp"
                 Host          = "$Algorithm.$Region.$Pool_Host"
@@ -191,8 +220,8 @@ $Payout_Currencies | Foreach-Object {
                 [PSCustomObject]@{
                     Algorithm     = $Algorithm_Norm
                     Info          = $Currency
-                    Price         = $Stat.Live * $FeeFactor
-                    StablePrice   = $Stat.Week * $FeeFactor
+                    Price         = $Stat.Live * $FeeFactor * $PricePenaltyFactor
+                    StablePrice   = $Stat.Week * $FeeFactor * $PricePenaltyFactor
                     MarginOfError = $Stat.Week_Fluctuation
                     Protocol      = "stratum+ssl"
                     Host          = "$Algorithm.$Region.$Pool_Host"
