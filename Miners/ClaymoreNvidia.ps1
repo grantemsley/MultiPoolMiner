@@ -16,19 +16,19 @@ $Type = "NVIDIA"
 $API  = "Claymore"
 $Port = 23333
 
-$MinerFileVersion = "2018042900" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050100" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.7"
-$MinerFeeInPercentSingleMode = 1.0
-$MinerFeeInPercentDualMode = 1.5
+$MinerBinaryHash = "11743a7b0f8627ceb088745f950557e303c7350f8e4241814c39904278204580" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$Uri = ""
+$ManualUri = "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w"
+$WebLink = "https://bitcointalk.org/index.php?topic=1433925.0" # See here for more information about the miner
+$MinerFeeInPercentSingleMode = 1.0 # Fixed
+$MinerFeeInPercentDualMode = 1.5 # Fixed
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config, required for setup
     $DefaultMinerConfig = [PSCustomObject]@{
         "MinerFileVersion" = $MinerFileVersion
-        "MinerBinaryInfo" = $MinerBinaryInfo
-        "Uri" = "" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-        "ManualUri" = "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w"
-        "WebLink" = "https://bitcointalk.org/index.php?topic=1433925.0" # See here for more information about the miner
         #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
         "IgnoreHWModel" = @()
         #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
@@ -69,20 +69,12 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             "ethash2gb;pascal:80" = ""
         }
         "CommonCommands" = @(" -eres 0 -logsmaxsize 1", "") # array, first value for main algo, sesond value for secondary algo
-        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
+            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
         }
     }
     if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
-        # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-        $NewConfig = Get-Content -Path 'Config.txt' -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-        # Apply default
-        $NewConfig.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
-        # Save config to file
-        $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
-        # Update log
-        Write-Log -Level Info "Added miner config ($Name [$MinerFileVersion]) to Config.txt. "
-        # Apply config, must re-read from file to expand variables
-        $Config = Get-ChildItemContent "Config.txt" -ErrorAction Stop | Select-Object -ExpandProperty Content
+        $Config = Add-MinerConfig $Name $DefaultMinerConfig
     }
     else { # Update existing miner config
         try {
@@ -91,19 +83,24 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             
             # Execute action, e.g force re-download of binary
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($DefaultMinerConfig.Uri -and $DefaultMinerConfig.Uri -ne $Config.Miners.$Name.Uri) {
-                if (Test-Path $Path) {Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop} # Remove miner binary to force re-download
-                # Update log
-                Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
-                # Remove benchmark files
-                # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
+                if ($Uri) {
+                    Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop # Remove miner binary to force re-download
+                    # Update log
+                    Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
+                    # Remove benchmark files
+                    # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+                    # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+                }
+                else {
+                    # Update log
+                    Write-Log -Level Info "New miner binary is available - manual download from '$ManualUri' and install to '$(Split-Path $Path)' is required ($Name [$MinerFileVersion]). "
+                    #Write-Log -Level Info "For best performance it is recommended to remove the stat files for this miner. "
+                }
             }
 
-            # Always update MinerFileVersion, MinerBinaryInfo and download link, -Force to enforce setting
+            # Always update MinerFileVersion -Force to enforce setting
             $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
-            $NewConfig.Miners.$Name | Add-member MinerBinaryInfo $MinerBinaryInfo -Force
-            $NewConfig.Miners.$Name | Add-member Uri $DefaultMinerConfig.Uri -Force
 
 #            # Remove obsolete benchmark files, -ErrorAction SilentlyContinue to ignore errors if item does not exist
 #            if ($NewConfig.Miners.$Name -contains "ethash;sia:*") {
@@ -125,9 +122,8 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             $NewConfig.Miners.$Name.Commands | Add-Member "ethash2gb;pascal:80" "" -ErrorAction SilentlyContinue
 
             # Save config to file
-            $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
-            # Update log
-            Write-Log -Level Info "Updated miner config ($Name [$MinerFileVersion]) in Config.txt. "
+            Write-Config $NewConfig $Name
+
             # Apply config, must re-read from file to expand variables
             $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
         }
@@ -150,29 +146,6 @@ if ($Info) {
         MinerFeeInPercentSingleMode = $MinerFeeInPercentSingleMode
         MinerFeeInPercentDualMode   = $MinerFeeInPercentDualMode
         Settings         = @(
-            [PSCustomObject]@{
-                Name        = "Uri"
-                Required    = $false
-                ControlType = "string"
-                Default     = $DefaultMinerConfig.Uri
-                Description = "MPM automatically downloads the miner binaries from this link and unpacks them. Files stored on Google Drive or Mega links cannot be downloaded automatically. "
-                Tooltip     = "If Uri is blank or is not a direct download link the miner binaries must be downloaded and unpacked manually (see README)"
-            },
-            [PSCustomObject]@{
-                Name        = "ManualUri"
-                Required    = $false
-                ControlType = "string"
-                Default     = $DefaultMinerConfig.ManualUri
-                Description = "Download link for manual miner binaries download. Unpack downloaded files to '$Path'. "
-                Tooltip     = "See README for manual download and unpack instruction"
-            },
-            [PSCustomObject]@{
-                Name        = "WebLink"
-                Required    = $false
-                ControlType = "string"
-                Default     = $DefaultMinerConfig.WebLink
-                Description = "See here for more information about the miner. "
-            },
             [PSCustomObject]@{
                 Name        = "IgnoreMinerFee"
                 ControlType = "switch"
