@@ -29,7 +29,7 @@
                                       "MinerFileVersion":  "2018040300",
                                       "MinerBinaryInfo":  "CcminerHSR compiled by Nemosminer",
                                       "Uri":  "https://github.com/nemosminer/ccminer-hcash/releases/download/alexishsr/ccminer-hsr-alexis-x86-cuda8.7z",
-                                      "UriManual":  "",
+                                      "ManualUri":  "",
                                       "WebLink":  "https://github.com/nemosminer/ccminer-hcash",
                                       "IgnoreHWModel":  [
 
@@ -49,7 +49,7 @@
                                          "MinerFileVersion":  "2018040200",
                                          "MinerBinaryInfo":  "Ccminer (x64) 8.21 by KlausT",
                                          "Uri":  "https://github.com/KlausT/ccminer/releases/download/8.21/ccminer-821-cuda91-x64.zip",
-                                         "UriManual":  "",
+                                         "ManualUri":  "",
                                          "WebLink":  "https://github.com/KlausT/ccminer",
                                          "IgnoreHWModel":  [
 
@@ -71,7 +71,7 @@
                                            "MinerFileVersion":  "2018040300",
                                            "MinerBinaryInfo":  "Ccminer Nanashi v1.7.6 r6 by Nicehash",
                                            "Uri":  "https://github.com/nicehash/ccminer-nanashi/releases/download/1.7.6-r6/ccminer.zip",
-                                           "UriManual":  "",
+                                           "ManualUri":  "",
                                            "WebLink":  "https://github.com/nicehash/ccminer-nanashi",
                                            "IgnoreHWModel":  [
 
@@ -91,7 +91,7 @@
                                          "MinerFileVersion":  "2018040300",
                                          "MinerBinaryInfo":  "Ccminer for Lyra2h \u0026 Lyra2z by djm34 v 0.3.0",
                                          "Uri":  "https://github.com/djm34/ccminer-msvc2015/releases/download/v0.3.0/ccminer.rar",
-                                         "UriManual":  "",
+                                         "ManualUri":  "",
                                          "WebLink":  "https://github.com/djm34/ccminer-msvc2015",
                                          "IgnoreHWModel":  [
 
@@ -112,7 +112,7 @@
                                           "MinerFileVersion":  "2018040200",
                                           "MinerBinaryInfo":  "Ccminer Nanashi-Meiyo-Meijin v2.2-mod-r2",
                                           "Uri":  "https://github.com/Nanashi-Meiyo-Meijin/ccminer/releases/download/v2.2-mod-r2/2.2-mod-r2-CUDA9.binary.zip",
-                                          "UriManual":  "",
+                                          "ManualUri":  "",
                                           "WebLink":  "https://bitcointalk.org/?topic=770064",
                                           "IgnoreHWModel":  [
 
@@ -135,7 +135,7 @@
                                             "MinerFileVersion":  "2018041000",
                                             "MinerBinaryInfo":  "Nevermore v0.2.2, 1% devfee",
                                             "Uri":  "https://github.com/brian112358/nevermore-miner/releases/download/v0.2.2/nevermore-v0.2.2-win64.zip",
-                                            "UriManual":  "",
+                                            "ManualUri":  "",
                                             "WebLink":  "https://github.com/nemosminer/ccminernevermore/releases",
                                             "IgnoreHWModel":  [
 
@@ -156,7 +156,7 @@
                                             "MinerFileVersion":  "2018040300",
                                             "MinerBinaryInfo":  "Ccminer Polytimos by punxsutawneyphil",
                                             "Uri":  "https://github.com/punxsutawneyphil/ccminer/releases/download/polytimosv2/ccminer-polytimos_v2.zip",
-                                            "UriManual":  "",
+                                            "ManualUri":  "",
                                             "WebLink":  "https://bitcointalk.org/?topic=770064",
                                             "IgnoreHWModel":  [
 
@@ -176,7 +176,7 @@
                                       "MinerFileVersion":  "2018040300",
                                       "MinerBinaryInfo":  null,
                                       "Uri":  "https://github.com/nicehash/ccminer-x11gost/releases/download/ccminer-x11gost_windows/ccminer_x11gost.7z",
-                                      "UriManual":  "",
+                                      "ManualUri":  "",
                                       "WebLink":  "https://github.com/nicehash/ccminer-x11gost",
                                       "IgnoreHWModel":  [
 
@@ -196,7 +196,7 @@
                                         "MinerFileVersion":  "2018040300",
                                         "MinerBinaryInfo":  "Ccminer 2.2-mod-r1 for Skunk by scaras ",
                                         "Uri":  "https://github.com/scaras/ccminer-2.2-mod-r1/releases/download/2.2-r1/2.2-mod-r1.zip",
-                                        "UriManual":  "",
+                                        "ManualUri":  "",
                                         "WebLink":  "https://github.com/scaras/ccminer-2.2-mod-r1",
                                         "IgnoreHWModel":  [
 
@@ -216,7 +216,7 @@
                                      "MinerFileVersion":  "2018040200",
                                      "MinerBinaryInfo":  "Ccminer 1.5.81(sp-MOD) by _SP (x86)",
                                      "Uri":  "https://github.com/sp-hash/ccminer/releases/download/1.5.81/release81.7z",
-                                     "UriManual":  "",
+                                     "ManualUri":  "",
                                      "WebLink":  "https://github.com/sp-hash/ccminer",
                                      "IgnoreHWModel":  [
 
@@ -238,7 +238,7 @@
                                             "MinerFileVersion":  "2018040200",
                                             "MinerBinaryInfo":  "suprminer 1.5.7 (April 2018) optimized x16r algo without any dev fee",
                                             "Uri":  "https://github.com/ocminer/suprminer/releases/download/1.5/suprminer-1.5.7z",
-                                            "UriManual":  "",
+                                            "ManualUri":  "",
                                             "WebLink":  "https://github.com/ocminer/suprminer",
                                             "IgnoreHWModel":  [
 
@@ -259,7 +259,7 @@
                                           "MinerFileVersion":  "2018040200",
                                           "MinerBinaryInfo":  "Ccminer (x64) 2.2.5 by Tpruvot",
                                           "Uri":  "https://github.com/MSFTserver/ccminer/releases/download/2.2.5-rvn/ccminer-x64-2.2.5-rvn-cuda9.7z",
-                                          "UriManual":  "",
+                                          "ManualUri":  "",
                                           "WebLink":  "https://bitcointalk.org/?topic=770064",
                                           "IgnoreHWModel":  [
 
@@ -306,7 +306,7 @@
                                         "MinerFileVersion":  "2018040300",
                                         "MinerBinaryInfo":  "Ccminer forked from krnlx/ccminer-xevan, compiled by Nemosminer (x86)",
                                         "Uri":  "https://github.com/nemosminer/ccminer-xevan/releases/download/ccminer-xevan/ccminer_x86.7z",
-                                        "UriManual":  "",
+                                        "ManualUri":  "",
                                         "WebLink":  "https://github.com/nemosminer/ccminer-xevan",
                                         "IgnoreHWModel":  [
 
@@ -326,7 +326,7 @@
                                        "MinerFileVersion":  "2018040200",
                                        "MinerBinaryInfo":  "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.6",
                                        "Uri":  "",
-                                       "UriManual":  "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w",
+                                       "ManualUri":  "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w",
                                        "WebLink":  "https://bitcointalk.org/index.php?topic=1433925.0",
                                        "MinerFeeInPercentSingleMode":  1,
                                        "MinerFeeInPercentDualMode":  1.5,
@@ -383,7 +383,7 @@
                                           "MinerFileVersion":  "2018040200",
                                           "MinerBinaryInfo":  "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.6",
                                           "Uri":  "",
-                                          "UriManual":  "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w",
+                                          "ManualUri":  "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w",
                                           "WebLink":  "https://bitcointalk.org/index.php?topic=1433925.0",
                                           "IgnoreHWModel":  [
 
@@ -438,7 +438,7 @@
                                 "MinerFileVersion":  "2018040200",
                                 "MinerBinaryInfo":  "dstm\u0027s ZCash Cuda miner 0.6 (x64)",
                                 "Uri":  "",
-                                "UriManual":  "https://mega.nz/#!1kRxQRSD!I3ryiEI5eT7datW842QNESyBQpZY6PILYS4HNIEHpYY",
+                                "ManualUri":  "https://mega.nz/#!1kRxQRSD!I3ryiEI5eT7datW842QNESyBQpZY6PILYS4HNIEHpYY",
                                 "WebLink":  "https://bitcointalk.org/index.php?topic=2021765.0",
                                 "IgnoreHWModel":  [
 
@@ -460,7 +460,7 @@
                                         "MinerFileVersion":  "2018040400",
                                         "MinerBinaryInfo":  "Eminer v0.6.1-rc2 (x64)",
                                         "Uri":  "https://github.com/ethash/eminer-release/releases/download/v0.6.1-rc2/eminer.v0.6.1-rc2.win64.zip",
-                                        "UriManual":  "",
+                                        "ManualUri":  "",
                                         "WebLink":  "https://github.com/ethash/eminer-release",
                                         "IgnoreHWModel":  [
 
@@ -482,7 +482,7 @@
                                 "MinerFileVersion":  "2018040200",
                                 "MinerBinaryInfo":  "EWBF\u0027s CUDA Zcash miner Version 0.3.4b (x64)",
                                 "Uri":  "",
-                                "UriManual":  "https://mega.nz/#F!usQh2bTa!3qp_PaiO-dw3F0mpvLXynA",
+                                "ManualUri":  "https://mega.nz/#F!usQh2bTa!3qp_PaiO-dw3F0mpvLXynA",
                                 "WebLink":  "https://bitcointalk.org/index.php?topic=1707546.0",
                                 "IgnoreHWModel":  [
 
@@ -504,7 +504,7 @@
                                            "MinerFileVersion":  "2018040200",
                                            "MinerBinaryInfo":  "NiceHash Excavator 1.4.4 alpha (x64)",
                                            "Uri":  "https://github.com/nicehash/excavator/releases/download/v1.4.4a/excavator_v1.4.4a_NVIDIA_Win64.zip",
-                                           "UriManual":  "",
+                                           "ManualUri":  "",
                                            "WebLink":  "https://github.com/nicehash/excavator",
                                            "IgnoreHWModel":  [
 
@@ -586,7 +586,7 @@
                                     "MinerFileVersion":  "2018040200",
                                     "MinerBinaryInfo":  "HSRMINER Neoscrypt Fork by Justaminer 12.03.2018",
                                     "Uri":  "https://github.com/justaminer/hsrm-fork/raw/master/hsrminer_neoscrypt_fork_hp.zip",
-                                    "UriManual":  "",
+                                    "ManualUri":  "",
                                     "WebLink":  "https://bitcointalk.org/index.php?topic=2765610.0",
                                     "Type":  "NVIDIA",
                                     "Path":  ".\\Bin\\NVIDIA-Hsrminer\\hsrminer_neoscrypt_fork_hp.exe",
@@ -609,7 +609,7 @@
                                               "MinerFileVersion":  "2018040200",
                                               "MinerBinaryInfo":  "PhoenixMiner 2.8c: fastest Ethereum/Ethash miner with lowest devfee",
                                               "Uri":  "z",
-                                              "UriManual":  "https://mega.nz/#F!2VskDJrI!lsQsz1CdDe8x5cH3L8QaBw",
+                                              "ManualUri":  "https://mega.nz/#F!2VskDJrI!lsQsz1CdDe8x5cH3L8QaBw",
                                               "WebLink":  "https://bitcointalk.org/index.php?topic=2647654.0",
                                               "IgnoreHWModel":  [
 
@@ -631,7 +631,7 @@
                                        "MinerFileVersion":  "2018040600",
                                        "MinerBinaryInfo":  "Monero (XMR) NVIDIA miner v2.5.2 (x64)",
                                        "Uri":  "https://github.com/xmrig/xmrig-nvidia/releases/download/v2.5.2/xmrig-nvidia-2.5.2-cuda9-win64.zip",
-                                       "UriManual":  "",
+                                       "ManualUri":  "",
                                        "WebLink":  "https://github.com/xmrig/xmrig-nvidia",
                                        "IgnoreHWModel":  [
 

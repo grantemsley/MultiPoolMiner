@@ -14,8 +14,8 @@ $Type = "NVIDIA"
 $API  = "XmRig"
 $Port = 3335
 
-$MinerFileVersion = "2018040600" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Monero (XMR) NVIDIA miner v2.5.2 (x64)"
+$MinerFileVersion = "2018050100" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerBinaryInfo = "Monero (XMR) NVIDIA miner v2.6.1 (x64)"
 $MinerFeeInPercent = 1 # Miner default is 5 minute per 100 minutes, can be reduced to 1% via command line option --donate-level
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
@@ -23,7 +23,7 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     $DefaultMinerConfig = [PSCustomObject]@{
         "MinerFileVersion" = $MinerFileVersion
         "MinerBinaryInfo" = $MinerBinaryInfo
-        "Uri" = "https://github.com/xmrig/xmrig-nvidia/releases/download/v2.5.2/xmrig-nvidia-2.5.2-cuda9-win64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
+        "Uri" = "https://github.com/xmrig/xmrig-nvidia/releases/download/v2.6.1/xmrig-nvidia-2.6.1-cuda9-win64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
         "ManualUri" = ""
         "WebLink" = "https://github.com/xmrig/xmrig-nvidia" # See here for more information about the miner
         #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
