@@ -45,8 +45,8 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
         "Stratum" = [PSCustomObject]@{ # Bminer uses different stratum types to select algo
             "equihash" = "stratum" #Stratum for Equihash
             "ethash" = "ethstratum" #Stratum for Ethereum
-            "ethash2gb" = "ethash" #Stratum for Ethash2GB
-            "ethash3gb" = "ethash" #Stratum for Ethash3GB
+            "ethash2gb" = "ethstratum" #Stratum for Ethash2GB
+            "ethash3gb" = "ethstratum" #Stratum for Ethash3GB
         }
         "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
             #e.g. "equihash" = @("Zpool", "ZpoolCoins")
