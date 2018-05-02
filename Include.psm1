@@ -298,6 +298,58 @@ function Get-CommandPerDevice {
     $CommandPerDevice
 }
 
+function Add-MinerConfig {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [String]$MinerName,
+        [Parameter(Mandatory = $true)]
+        [PSCustomObject]$DefaultMinerConfig
+    )
+
+    $FileName = ".\Config.txt"
+
+    # Read existing config file, do not use $Config from core because variables are expanded (e.g. $Wallet)
+    $Config = Get-Content -Path $FileName -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    # Add default miner config
+    $Config.Miners | Add-Member $MinerName $DefaultMinerConfig -Force -ErrorAction Stop
+    # Save config to file
+    Write-Config $Config $MinerName
+    # Apply config, must re-read from file to expand variables
+    return Get-ChildItemContent $FileName -ErrorAction Stop | Select-Object -ExpandProperty Content        
+}
+        
+function Write-Config {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [PSCustomObject]$Config,
+        [Parameter(Mandatory = $true)]
+        [String]$MinerName
+    )
+
+    Begin { }
+    Process {
+        # Get mutex named MPMWriteConfig. Mutexes are shared across all threads and processes.
+        # This lets us ensure only one thread is trying to write to the file at a time.
+        $Mutex = New-Object System.Threading.Mutex($false, "MPMWriteConfig")
+
+        $FileName = ".\Config.txt"
+
+        # Attempt to aquire mutex, waiting up to 1 second if necessary. If aquired, write to the config file and release mutex. Otherwise, display an error.
+        if ($Mutex.WaitOne(1000)) {
+            $Config | ConvertTo-Json -Depth 10 | Out-File -FilePath $FileName -Encoding ASCII -ErrorAction Stop
+            $Mutex.ReleaseMutex()
+            # Update log
+            Write-Log -Level Info "Wrote miner config ($MinerName [$($Config.Miners.$MinerName.MinerFileVersion)]) to Config.txt. "
+        }
+        else {
+            Write-Error -Message "Config file is locked, unable to write message to $FileName."
+        }
+    }
+    End {}
+}
+
 function Write-Log {
     [CmdletBinding()]
     Param(
@@ -314,10 +366,10 @@ function Write-Log {
 
         # Get mutex named MPMWriteLog. Mutexes are shared across all threads and processes.
         # This lets us ensure only one thread is trying to write to the file at a time.
-        $mutex = New-Object System.Threading.Mutex($false, "MPMWriteLog")
+        $Mutex = New-Object System.Threading.Mutex($false, "MPMWriteLog")
 
-        $filename = ".\Logs\MultiPoolMiner_$(Get-Date -Format "yyyy-MM-dd").txt"
-        $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $FileName = ".\Logs\MultiPoolMiner_$(Get-Date -Format "yyyy-MM-dd").txt"
+        $Date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
         if (-not (Test-Path "Stats")) {New-Item "Stats" -ItemType "directory" | Out-Null}
 
@@ -344,13 +396,13 @@ function Write-Log {
             }
         }
 
-        # Attempt to aquire mutex, waiting up to 1 second if necessary.  If aquired, write to the log file and release mutex.  Otherwise, display an error.
-        if ($mutex.WaitOne(1000)) {
-            "$date $LevelText $Message" | Out-File -FilePath $filename -Append -Encoding ascii
-            $mutex.ReleaseMutex()
+        # Attempt to aquire mutex, waiting up to 1 second if necessary. If aquired, write to the log file and release mutex. Otherwise, display an error.
+        if ($Mutex.WaitOne(1000)) {
+            "$Date $LevelText $Message" | Out-File -FilePath $FileName -Append -Encoding ASCII
+            $Mutex.ReleaseMutex()
         }
         else {
-            Write-Error -Message "Log file is locked, unable to write message to log."
+            Write-Error -Message "Log file is locked, unable to write message to $FileName."
         }
     }
     End {}
