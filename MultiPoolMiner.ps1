@@ -102,13 +102,14 @@ if ((Get-Command "Get-MpPreference" -ErrorAction SilentlyContinue) -and (Get-MpC
 }
 
 #Check for software updates
-if ($AutoUpdate -and (Test-Path .\Updater.ps1)) {$Downloader = Start-Job -InitializationScript ([scriptblock]::Create("Set-Location('$(Get-Location)')")) -ArgumentList ($Version, $PSVersionTable.PSVersion, "") -FilePath .\Updater.ps1}
+#if ($AutoUpdate -and (Test-Path .\Updater.ps1)) {$Downloader = Start-Job -InitializationScript ([scriptblock]::Create("Set-Location('$(Get-Location)')")) -ArgumentList ($Version, $PSVersionTable.PSVersion, "") -FilePath .\Updater.ps1}
 
 #Set donation parameters
 $LastDonated = $Timer.AddDays(-1).AddHours(1)
-$WalletDonate = @("1Q24z7gHPDbedkaWDTFqhMF8g7iHMehsCb", "1Fonyo1sgJQjEzqp1AxgbHhGkCuNrFt6v9")[[Math]::Floor((Get-Random -Minimum 1 -Maximum 11) / 10)]
-$UserNameDonate = @("aaronsace", "fonyo")[[Math]::Floor((Get-Random -Minimum 1 -Maximum 11) / 10)]
+$WalletDonate = @("1BLXARB3GbKyEg8NTY56me5VXFsX2cixFB", "1GPSq8txFnyrYdXL8t6S94mYdF8cGqVQJF")
+$UserNameDonate = @("grantemsley", "uselessguru")
 $WorkerNameDonate = "multipoolminer"
+$DonateDistribution = 0,1 #1:1
 
 #Get miner hw info
 $Devices = Get-Devices
@@ -124,55 +125,55 @@ while ($true) {
     $ConfigBackup = $Config
     if (Test-Path "Config.txt") {
         $Config = Get-ChildItemContent "Config.txt" -Parameters @{
-            Wallet                    = $Wallet
-            UserName                  = $UserName
-            WorkerName                = $WorkerName
-            API_ID                    = $API_ID
-            API_Key                   = $API_Key
-            Interval                  = $Interval
-            Region                    = $Region
-            SSL                       = $SSL
-            Type                      = $Type
-            Algorithm                 = $Algorithm
-            MinerName                 = $MinerName
-            PoolName                  = $PoolName
-            ExcludeAlgorithm          = $ExcludeAlgorithm
-            ExcludeMinerName          = $ExcludeMinerName
-            ExcludePoolName           = $ExcludePoolName
-            Currency                  = $Currency
-            Donate                    = $Donate
-            Proxy                     = $Proxy
-            Delay                     = $Delay
-            Watchdog                  = $Watchdog
-            MinerStatusURL            = $MinerStatusURL
-            MinerStatusKey            = $MinerStatusKey
-            SwitchingPrevention       = $SwitchingPrevention
+            Wallet              = $Wallet
+            UserName            = $UserName
+            WorkerName          = $WorkerName
+            API_ID              = $API_ID
+            API_Key             = $API_Key
+            Interval            = $Interval
+            Region              = $Region
+            SSL                 = $SSL
+            Type                = $Type
+            Algorithm           = $Algorithm
+            MinerName           = $MinerName
+            PoolName            = $PoolName
+            ExcludeAlgorithm    = $ExcludeAlgorithm
+            ExcludeMinerName    = $ExcludeMinerName
+            ExcludePoolName     = $ExcludePoolName
+            Currency            = $Currency
+            Donate              = $Donate
+            Proxy               = $Proxy
+            Delay               = $Delay
+            Watchdog            = $Watchdog
+            MinerStatusURL      = $MinerStatusURL
+            MinerStatusKey      = $MinerStatusKey
+            SwitchingPrevention = $SwitchingPrevention
             MinerInstancePerCardModel = $MinerInstancePerCardMode
             ShowMinerWindow           = $ShowMinerWindow
         } | Select-Object -ExpandProperty Content
     }
     else {
         $Config = [PSCustomObject]@{
-            Pools                     = [PSCustomObject]@{}
-            Miners                    = [PSCustomObject]@{}
-            Interval                  = $Interval
-            Region                    = $Region
-            SSL                       = $SSL
-            Type                      = $Type
-            Algorithm                 = $Algorithm
-            MinerName                 = $MinerName
-            PoolName                  = $PoolName
-            ExcludeAlgorithm          = $ExcludeAlgorithm
-            ExcludeMinerName          = $ExcludeMinerName
-            ExcludePoolName           = $ExcludePoolName
-            Currency                  = $Currency
-            Donate                    = $Donate
-            Proxy                     = $Proxy
-            Delay                     = $Delay
-            Watchdog                  = $Watchdog
-            MinerStatusURL            = $MinerStatusURL
-            MinerStatusKey            = $MinerStatusKey
-            SwitchingPrevention       = $SwitchingPrevention
+            Pools               = [PSCustomObject]@{}
+            Miners              = [PSCustomObject]@{}
+            Interval            = $Interval
+            Region              = $Region
+            SSL                 = $SSL
+            Type                = $Type
+            Algorithm           = $Algorithm
+            MinerName           = $MinerName
+            PoolName            = $PoolName
+            ExcludeAlgorithm    = $ExcludeAlgorithm
+            ExcludeMinerName    = $ExcludeMinerName
+            ExcludePoolName     = $ExcludePoolName
+            Currency            = $Currency
+            Donate              = $Donate
+            Proxy               = $Proxy
+            Delay               = $Delay
+            Watchdog            = $Watchdog
+            MinerStatusURL      = $MinerStatusURL
+            MinerStatusKey      = $MinerStatusKey
+            SwitchingPrevention = $SwitchingPrevention
             MinerInstancePerCardModel = $MinerInstancePerCardModel
             ShowMinerWindow           = $ShowMinerWindow
         }
@@ -202,16 +203,23 @@ while ($true) {
         )
     }
 
+    Get-ChildItem "Miners" -File | Where-Object {-not $Config.Miners.($_.BaseName)} | ForEach-Object {
+        $Config.Miners | Add-Member $_.BaseName (
+            [PSCustomObject]@{
+            }
+        ) -ErrorAction SilentlyContinue
+    }
+
     #Activate or deactivate donation
     if ($Config.Donate -lt 10) {$Config.Donate = 10}
     if ($Timer.AddDays(-1) -ge $LastDonated.AddSeconds(59)) {$LastDonated = $Timer}
     if ($Timer.AddDays(-1).AddMinutes($Config.Donate) -ge $LastDonated) {
-        Write-Log "Donation run, mining to donation address for the next $(($LastDonated - ($Timer.AddDays(-1))).Minutes +1) minutes. Note: MPM will use ALL available pools. "
+        Write-Log "Donation run, mining to donation address for the next $(($LastDonated - ($Timer.AddDays(-1))).Minutes +1) of $($Config.Donation) minutes. Note: MPM will use ALL available pools. "
         Get-ChildItem "Pools" -File | ForEach-Object {
             $Config.Pools | Add-Member $_.BaseName (
                 [PSCustomObject]@{
-                    BTC    = $WalletDonate
-                    User   = $UserNameDonate
+                    BTC    = $WalletDonate[(Get-Random -InputObject $DonateDistribution)]
+                    User   = $UserNameDonate[(Get-Random -InputObject $DonateDistribution)]
                     Worker = $WorkerNameDonate
                 }
             ) -Force
@@ -258,6 +266,7 @@ while ($true) {
     Write-Log "Loading saved statistics. "
     $Stats = [PSCustomObject]@{}
     if (Test-Path "Stats") {Get-ChildItemContent "Stats" | ForEach-Object {$Stats | Add-Member $_.Name $_.Content}}
+
     #Give API access to the current stats
     $API.Stats = $Stats
 
@@ -284,7 +293,7 @@ while ($true) {
         Where-Object {$Config.ExcludePoolName.Count -eq 0 -or (Compare-Object $Config.ExcludePoolName $_.Name -IncludeEqual -ExcludeDifferent | Measure-Object).Count -eq 0} |
         Where-Object {$Config.ExcludeCurrency.Count -eq 0 -or (Compare-Object $Config.ExcludeCurrency $_.Currency -IncludeEqual -ExcludeDifferent | Measure-Object).Count -eq 0} | 
         Where-Object {-not $_.Workers -or $_.Workers -ge $Config.MinWorker}
-    
+
     #Give API access to the current running configuration
     $API.AllPools = $AllPools
     
@@ -315,6 +324,7 @@ while ($true) {
         $Pools | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {$Pools.$_ | Add-Member Price_Bias ($Pools.$_.Price * (1 - ($Pools.$_.MarginOfError * $Config.SwitchingPrevention * [Math]::Pow($DecayBase, $DecayExponent)))) -Force}
         $Pools | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {$Pools.$_ | Add-Member Price_Unbias $Pools.$_.Price -Force}
     }
+
     #Give API access to the pools information
     $API.Pools = $Pools
 
@@ -358,6 +368,7 @@ while ($true) {
             $Miner_Profits_Bias | Add-Member $_ ([Double]$Miner.HashRates.$_ * $Pools.$_.Price_Bias)
             $Miner_Profits_Unbias | Add-Member $_ ([Double]$Miner.HashRates.$_ * $Pools.$_.Price_Unbias)
         }
+
         $Miner_Profit = [Double]($Miner_Profits.PSObject.Properties.Value | Measure-Object -Sum).Sum
         $Miner_Profit_Comparison = [Double]($Miner_Profits_Comparison.PSObject.Properties.Value | Measure-Object -Sum).Sum
         $Miner_Profit_Bias = [Double]($Miner_Profits_Bias.PSObject.Properties.Value | Measure-Object -Sum).Sum
@@ -612,8 +623,7 @@ while ($true) {
             }
         }
     }
-    
-    Get-Process -Name @($ActiveMiners | ForEach-Object {$_.GetProcessNames()}) -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProcessName | Compare-Object @($ActiveMiners | Where-Object Best -EQ $true | Where-Object {$_.GetStatus() -eq "Running"} | ForEach-Object {$_.GetProcessNames()}) | Where-Object SideIndicator -EQ "=>" | Select-Object -ExpandProperty InputObject | Select-Object -Unique | ForEach-Object {Stop-Process -Name $_ -Force -ErrorAction Ignore}
+    Get-Process -Name @($ActiveMiners | ForEach-Object {$_.GetProcessNames()}) -ErrorAction Ignore | Select-Object -ExpandProperty ProcessName | Compare-Object @($ActiveMiners | Where-Object Best -EQ $true | Where-Object {$_.GetStatus() -eq "Running"} | ForEach-Object {$_.GetProcessNames()}) | Where-Object SideIndicator -EQ "=>" | Select-Object -ExpandProperty InputObject | Select-Object -Unique | ForEach-Object {Stop-Process -Name $_ -Force -ErrorAction Ignore}
     if ($Downloader) {$Downloader | Receive-Job}
     Start-Sleep $Config.Delay #Wait to prevent BSOD
     $ActiveMiners | Where-Object Best -EQ $true | ForEach-Object {
@@ -646,17 +656,15 @@ while ($true) {
 
     if ($Config.MinerStatusURL -and $Config.MinerStatusKey) {& .\ReportStatus.ps1 -Key $Config.MinerStatusKey -WorkerName $WorkerName -ActiveMiners $ActiveMiners -MinerStatusURL $Config.MinerStatusURL}
 
-    Clear-Host
-
     #Display mining information
     $Miners | Where-Object {$_.Profit -ge 1E-5 -or $_.Profit -eq $null} | Sort-Object -Descending Type, Profit_Bias | Format-Table -GroupBy Type (
-        @{Label = "Miner$(if (-not $Config.IgnoreMinerFees) {' [-Fee]'})"; Expression = {if ($Config.IgnoreMinerFees -or -not $_.Fees) {$_.Name}else {"$($_.Name) [-$($_.Fees -join '%/-')%]"}}}, 
+        @{Label = "Miner$(if (-not $Config.IgnoreMinerFees) {' [-Fee]'})"; Expression = {if ($Config.IgnoreMinerFees -or -not $_.Fees) {$_.Name}else {"$($_.Name) [-$(($_.Fees | Foreach-Object {$_.ToString("N2")}) -join '%/-')%]"}}}, 
         @{Label = "Algorithm"; Expression = {$_.HashRates.PSObject.Properties.Name}}, 
         @{Label = "Speed"; Expression = {$_.HashRates.PSObject.Properties.Value | ForEach-Object {if ($_ -ne $null) {"$($_ | ConvertTo-Hash)/s"}else {"Benchmarking"}}}; Align = 'right'}, 
         @{Label = "$($Config.Currency | Select-Object -Index 0)/Day"; Expression = {if ($_.Profit) {ConvertTo-LocalCurrency $($_.Profit) $($Rates.$($Config.Currency | Select-Object -Index 0)) -Offset 2} else {"Unknown"}}; Align = "right"},
         @{Label = "Accuracy"; Expression = {$_.Pools.PSObject.Properties.Value.MarginOfError | ForEach-Object {(1 - $_).ToString("P0")}}; Align = 'right'}, 
         @{Label = "$($Config.Currency | Select-Object -Index 0)/GH/Day"; Expression = {$_.Pools.PSObject.Properties.Value.Price | ForEach-Object {ConvertTo-LocalCurrency $($_ * 1000000000) $($Rates.$($Config.Currency | Select-Object -Index 0)) -Offset 2}}; Align = "right"}, 
-        @{Label = "Pool$(if (-not $Config.IgnorePoolFees) {' [-Fee]'})"; Expression = {$_.Pools.PSObject.Properties.Value | ForEach-Object {if ($_.Info) {"$($_.Name)-$($_.Info)$(if ($_.Fee) {" [-$($_.Fee)%]"})"}else {"$($_.Name)$(if ($_.Fee) {" [-$($_.Fee)%]"})"}}}}
+        @{Label = "Pool$(if (-not $Config.IgnorePoolFees) {' [-Fee]'})"; Expression = {$_.Pools.PSObject.Properties.Value | ForEach-Object {if ($_.Info) {"$($_.Name)-$($_.Info)$(if ($_.Fee) {" [-$('{0:N2}' -f $_.Fee)%]"})"}else {"$($_.Name)$(if ($_.Fee) {" [-$('{0:N2}' -f $_.Fee)%]"})"}}}}
     ) | Out-Host
 
     #Display active miners list
@@ -704,6 +712,7 @@ while ($true) {
     $API.WatchdogTimers = $WatchdogTimers
 
     #Update API miner information
+
     $API.ActiveMiners = $ActiveMiners
     $API.RunningMiners = $ActiveMiners | Where-Object {$_.GetStatus() -eq [MinerStatus]::Running}
     $API.FailedMiners = $ActiveMiners | Where-Object {$_.GetStatus() -eq [MinerStatus]::Failed}
