@@ -73,13 +73,13 @@ if ($Info) {
         },
         [PSCustomObject]@{
             Name        = "PricePenaltyFactor"
-            ControlType = "int"
-            Min         = 0
-            Max         = 99
-            Default     = $Config.PricePenaltyFactor
+            ControlType = "double"
+            Min         = 0.01
+            Max         = 1
+            Default     = 1
             Description = "This adds a multiplicator on estimations presented by the pool. "
-            Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
-        },  
+            Tooltip     = "If not set then the default of 1 (no penalty) is used."
+        },
         [PSCustomObject]@{
             Name        = "ExcludeCoin"
             Required    = $false
@@ -138,18 +138,18 @@ if ($User) {
 
     $APIRequest.return | 
         # allow well defined coins only
-        Where-Object {$Config.Pools.$Name.Coin.Count -eq 0 -or ($Config.Pools.$Name.Coin -icontains $_.current_mining_coin)} |
+        Where-Object {$Config.Pools.$Name.Coin.Count -eq 0 -or ($Config.Pools.$Name.Coin -icontains $_.coin_name)} |
 
         # filter excluded coins
-        Where-Object {$Config.Pools.$Name.ExcludeCoin -inotcontains $_.current_mining_coin} |
-        
+        Where-Object {$Config.Pools.$Name.ExcludeCoin -inotcontains $_.coin_name} |
+
         # filter excluded algorithms
-        Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $_)} |
+        Where-Object {$Config.Pools.$Name.ExcludeAlgorithm -inotcontains (Get-Algorithm $_.algo)} |
 
         ForEach-Object {
         $PoolHost       = $_.host
-        $Hosts          = $_.all_host_list.split(";")
-        $Port           = $_.algo_switch_port
+        $Hosts          = $_.host_list.split(";")
+        $Port           = $_.port
         $Algorithm      = $_.algo
         $Algorithm_Norm = Get-Algorithm $Algorithm
         $CoinName       = $_.name
@@ -158,7 +158,7 @@ if ($User) {
         if (-not $Config.IgnorePoolFee -and $Config.Pools.$Name.PoolFee -gt 0) {
             $FeeInPercent = $Config.Pools.$Name.PoolFee
         }
-        
+
         if ($FeeInPercent) {
             $FeeFactor = 1 - $FeeInPercent / 100
         }
@@ -166,13 +166,14 @@ if ($User) {
             $FeeFactor = 1
         }
 
+        $PricePenaltyFactor = $Config.Pools.$Name.$PricePenaltyFactor
+        if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {
+            $PricePenaltyFactor = 1
+        }
+
         if ($Algorithm_Norm -eq "Sia") {$Algorithm_Norm = "SiaClaymore"} #temp fix
 
         $Divisor = 1000000000
-
-        if ($PricePenaltyFactor -le 0) {
-            $PricePenaltyFactor = 1
-        }
 
         $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$_.profit / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
