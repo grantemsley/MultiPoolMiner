@@ -22,7 +22,7 @@ $MinerBinaryHash = "b4d0723f5be34731108b558b8ba9e9f1dfce92afd6c2d93d9a7fd0e0c554
 $Uri = "https://github.com/ethash/eminer-release/releases/download/v0.6.1-rc2/eminer.v0.6.1-rc2.win64.zip"
 $ManualUri = ""
 $WebLink = "https://github.com/ethash/eminer-release" # See here for more information about the miner
-$MinerFeeInPercent = 2.0 # Fixed
+$MinerFeeInPercent = 2.0 # Fixed value, but can be disabled altogether
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config, required for setup
@@ -190,17 +190,19 @@ $Devices.$Type | ForEach-Object {
             }
             
             $HashRate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
+
+            if ($Config.Miners.$Name.DisableMinerFee) {
+                $MinerFeeInPercent = $null
+                $DisableMinerFee = " --no-devfee"
+                $Fees = @($null)
+            }
+
             if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
                 $Fees = @($null)
             }
             else {
                 $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
                 $Fees = @($MinerFeeInPercent)
-            }
-
-            if ($Config.Miners.$Name.DisableMinerFee) {
-                $DisableMinerFee = " --no-devfee"
-                $Fees = @($null)
             }
 
             [PSCustomObject]@{
