@@ -242,7 +242,7 @@ function Get-CommandPerDevice {
 
 # rewrites the command parameters
 # if a parameter has multiple values, only the values for the available devices are returned
-# parameters without values are valid for all devices an are left untouched
+# parameters without values are valid for all devices and are left untouched
 # supported parameter syntax:
 #$Command = ",c=BTC -9 1  -y  2 -a 00,11,22,33,44,55  -b=00,11,22,33,44,55 --c==00,11,22,33,44,55 --d --e=00,11,22,33,44,55 -f -g 00 11 22 33 44 55 ,c=LTC  -h 00 11 22 33 44 55 -i=,11,,33,,55 --j=00,11,,,44,55 --k==00,,,33,44,55 -l -zzz=0123,1234,2345,3456,4567,5678,6789 -u 0  --p all ,something=withcomma blah *blah *blah"
 #$Devices = @(0;1;4)
