@@ -9,25 +9,31 @@ $StatSpan = New-TimeSpan $StatStart $StatEnd
 $Stats = [PSCustomObject]@{}
 if (Test-Path "Stats") {Get-ChildItemContent "Stats" | ForEach-Object {$Stats | Add-Member $_.Name $_.Content}}
 
-$Config = [PSCustomObject]@{
-    Pools = [PSCustomObject]@{}
-    Miners = [PSCustomObject]@{}
-    Interval = 60
-    Region = 'US'
-    SSL = $True
-    Type = @('CPU','NVIDIA','AMD')
-    Algorithm = @()
-    Minername = @()
-    Poolname = @()
-    ExcludeAlgorithm = @()
-    ExcludeMinerName = @()
-    ExcludePoolName = @()
-    Currency = 'USD'
-    Donate = 10
-    Proxy = ''
-    Delay = 0
-    Watchdog = $True
-    SwitchingPrevention = 1
+$Devices = Get-Devices
+if (Test-Path "Config.txt") {
+    $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
+}
+else {
+    $Config = [PSCustomObject]@{
+        Pools = [PSCustomObject]@{}
+        Miners = [PSCustomObject]@{}
+        Interval = 60
+        Region = 'US'
+        SSL = $True
+        Type = @('CPU','NVIDIA','AMD')
+        Algorithm = @()
+        Minername = @()
+        Poolname = @()
+        ExcludeAlgorithm = @()
+        ExcludeMinerName = @()
+        ExcludePoolName = @()
+        Currency = 'USD'
+        Donate = 10
+        Proxy = ''
+        Delay = 0
+        Watchdog = $True
+        SwitchingPrevention = 1
+    }
 }
 
 # Generate fake pools for each algorithm
@@ -56,7 +62,7 @@ $algorithms | Foreach-Object {
 }
 
 # Get all the miners using the fake configuration, then filter to just the ones with unique paths
-$Miners = Get-ChildItemContent "Miners" -Parameters @{Pools = $Pools; Stats = $Stats; Config = $Config} | ForEach-Object {$_.Content | Add-Member Name $_.Name -PassThru -Force} | Group-Object -Property Path | Foreach-Object {$_.Group | Select-Object -First 1}
+$Miners = Get-ChildItemContent "Miners" -Parameters @{Pools = $Pools; Stats = $Stats; Config = $Config; Devices = $Devices} | ForEach-Object {$_.Content | Add-Member Name $_.Name -PassThru -Force} | Group-Object -Property Path | Foreach-Object {$_.Group | Select-Object -First 1}
 
 if(!(Test-Path ".\Bin")) {
     New-Item ".\Bin" -ItemType "Directory" | Out-Null
