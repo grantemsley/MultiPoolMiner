@@ -92,19 +92,20 @@ if ($Info) {
             Tooltip     = "$($Name) applies different pool fees for internal and external wallets"
         },
         [PSCustomObject]@{
-            Name        = "IgnorePoolFee"
-            Required    = $false
-            ControlType = "switch"
-            Default     = $false
-            Description = "Tick to disable pool fee calculation for this pool"
-            Tooltip     = "If ticked MPM will NOT take pool fees into account"
+            Name        = "PricePenaltyFactor"
+            ControlType = "double"
+            Min         = 0.01
+            Max         = 1
+            Default     = 1
+            Description = "This adds a multiplicator on estimations presented by the pool. "
+            Tooltip     = "If not set then the default of 1 (no penalty) is used."
         },
         [PSCustomObject]@{
             Name        = "PricePenaltyFactor"
             ControlType = "int"
             Min         = 0
             Max         = 99
-            Default     = $Config.PricePenaltyFactor
+            Default     = 1
             Description = "This adds a multiplicator on estimations presented by the pool. "
             Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
         },
@@ -184,14 +185,15 @@ $Payout_Currencies | Foreach-Object {
             $FeeFactor = 1
         }
 
+        $PricePenaltyFactor = $Config.Pools.$Name.$PricePenaltyFactor
+        if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {
+            $PricePenaltyFactor = 1
+        }
+
         if ($Algorithm_Norm -eq "Sia") {$Algorithm_Norm = "SiaNiceHash"} #temp fix
         if ($Algorithm_Norm -eq "Decred") {$Algorithm_Norm = "DecredNiceHash"} #temp fix
 
         $Divisor = 1000000000
-
-        if ($PricePenaltyFactor -le 0) {
-            $PricePenaltyFactor = 1
-        }
 
         $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$_.paying / $Divisor) -Duration $StatSpan -ChangeDetection $true
 

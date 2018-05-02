@@ -60,13 +60,13 @@ if ($Info) {
         },
         [PSCustomObject]@{
             Name        = "PricePenaltyFactor"
-            ControlType = "int"
-            Min         = 0
-            Max         = 99
-            Default     = $Config.PricePenaltyFactor
+            ControlType = "double"
+            Min         = 0.01
+            Max         = 1
+            Default     = 1
             Description = "This adds a multiplicator on estimations presented by the pool. "
-            Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
-        },  
+            Tooltip     = "If not set then the default of 1 (no penalty) is used."
+        },
         [PSCustomObject]@{
             Name        = "MinWorker"
             ControlType = "int"
@@ -75,7 +75,7 @@ if ($Info) {
             Default     = $Config.MinWorker
             Description = "Minimum number of workers that must be mining an alogrithm.`nLow worker numbers will cause long delays until payout. "
             Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
-        }
+        },
         [PSCustomObject]@{
             Name        = "ExcludeAlgorithm"
             Required    = $false
@@ -144,6 +144,11 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
         $FeeFactor = 1
     }
 
+    $PricePenaltyFactor = $Config.Pools.$Name.$PricePenaltyFactor
+    if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {
+        $PricePenaltyFactor = 1
+    }
+
     $Divisor = 1000000
 
     switch ($Algorithm_Norm) {
@@ -155,10 +160,6 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
         "qubit"     {$Divisor *= 1000}
         "scrypt"    {$Divisor *= 1000}
         "x11"       {$Divisor *= 1000}
-    }
-
-    if ($PricePenaltyFactor -le 0) {
-        $PricePenaltyFactor = 1
     }
 
     if ((Get-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit") -eq $null) {$Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APIRequest.$_.estimate_last24h / $Divisor) -Duration (New-TimeSpan -Days 1)}

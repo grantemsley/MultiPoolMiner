@@ -94,6 +94,15 @@ if ($Info) {
             Tooltip     = "If ticked MPM will NOT take pool fees into account"
         },
         [PSCustomObject]@{
+            Name        = "PricePenaltyFactor"
+            ControlType = "double"
+            Min         = 0.01
+            Max         = 1
+            Default     = 1
+            Description = "This adds a multiplicator on estimations presented by the pool. "
+            Tooltip     = "If not set then the default of 1 (no penalty) is used."
+        },
+        [PSCustomObject]@{
             Name        = "MinWorker"
             ControlType = "int"
             Min         = 0
@@ -102,15 +111,6 @@ if ($Info) {
             Description = "Minimum number of workers that must be mining an alogrithm.`nLow worker numbers will cause long delays until payout. "
             Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
         },
-        [PSCustomObject]@{
-            Name        = "PricePenaltyFactor"
-            ControlType = "int"
-            Min         = 0
-            Max         = 99
-            Default     = $Config.PricePenaltyFactor
-            Description = "This adds a multiplicator on estimations presented by the pool. "
-            Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
-        },  
         [PSCustomObject]@{
             Name        = "ExcludeCurrency"
             Required    = $false
@@ -228,6 +228,11 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
         $FeeFactor = 1
     }
 
+    $PricePenaltyFactor = $Config.Pools.$Name.$PricePenaltyFactor
+    if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {
+        $PricePenaltyFactor = 1
+    }
+
     $Divisor = 1000000000
 
     switch ($Algorithm_Norm) {
@@ -239,10 +244,6 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
         "qubit"     {$Divisor *= 1000}
         "scrypt"    {$Divisor *= 1000}
         "x11"       {$Divisor *= 1000}
-    }
-
-    if ($PricePenaltyFactor -le 0) {
-        $PricePenaltyFactor = 1
     }
 
     $Stat = Set-Stat -Name "$($Name)_$($Currency)_Profit" -Value ([Double]$APICurrenciesRequest.$Currency.estimate / $Divisor) -Duration $StatSpan -ChangeDetection $true

@@ -69,13 +69,13 @@ if ($Info) {
         },
         [PSCustomObject]@{
             Name        = "PricePenaltyFactor"
-            ControlType = "int"
-            Min         = 0
-            Max         = 99
-            Default     = $Config.PricePenaltyFactor
+            ControlType = "double"
+            Min         = 0.01
+            Max         = 1
+            Default     = 1
             Description = "This adds a multiplicator on estimations presented by the pool. "
-            Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
-        },  
+            Tooltip     = "If not set then the default of 1 (no penalty) is used."
+        },
         [PSCustomObject]@{
             Name        = "MinWorker"
             ControlType = "int"
@@ -84,7 +84,7 @@ if ($Info) {
             Default     = $Config.MinWorker
             Description = "Minimum number of workers that must be mining an alogrithm.`nLow worker numbers will cause long delays until payout. "
             Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
-        }
+        },
         [PSCustomObject]@{
             Name        = "ExcludeCurrency"
             Required    = $false
@@ -185,6 +185,11 @@ $Payout_Currencies |
         $FeeFactor = 1
     }
 
+    $PricePenaltyFactor = $Config.Pools.$Name.$PricePenaltyFactor
+    if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {
+        $PricePenaltyFactor = 1
+    }
+
     $Divisor = 1000000000
 
     switch ($Algorithm_Norm) {
@@ -196,10 +201,6 @@ $Payout_Currencies |
         "qubit"     {$Divisor *= 1000}
         "scrypt"    {$Divisor *= 1000}
         "x11"       {$Divisor *= 1000}
-    }
-
-    if ($PricePenaltyFactor -le 0) {
-        $PricePenaltyFactor = 1
     }
 
     $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APICurrenciesRequest.$_.estimate / $Divisor) -Duration $StatSpan -ChangeDetection $true
