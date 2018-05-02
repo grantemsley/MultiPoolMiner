@@ -206,7 +206,7 @@ $Devices.$Type | ForEach-Object {
                 $Fees = @($MinerFeeInPercent)
             }
             
-            if (-not $Pools.$Algorithm_Norm.SSL -and $Config.Miners.$Name.Stratum.$Algorithm -ne 'ethstratum') { # temp fix: Bminer cannot do ethstratum over SSL
+            if (-not ($Pools.$Algorithm_Norm.SSL -and $Config.Miners.$Name.Stratum.$Algorithm -eq 'ethstratum')) { # temp fix: Bminer cannot do ethstratum over SSL
                 [PSCustomObject]@{
                     Name             = $Miner_Name
                     Type             = $Type
