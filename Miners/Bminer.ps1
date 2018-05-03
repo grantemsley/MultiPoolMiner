@@ -211,7 +211,7 @@ $Devices.$Type | ForEach-Object {
                     Name             = $Miner_Name
                     Type             = $Type
                     Path             = $Path
-                    Arguments        = "-api 127.0.0.1:1880 -uri $($Config.Miners.$Name.Stratum.$Algorithm)$(if ($Pools.$Algorithm_Norm.SSL) {'+ssl'})://$($Pools.$Algorithm_Norm.User):$(($Pools.$Algorithm_Norm.Pass) -split "," | Select-Object -Index 0)@$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port)$Commmands$CommonCommands$DisableMinerFee -devices $DeviceIDs"
+                    Arguments        = "-api 127.0.0.1:1880 -uri $($Config.Miners.$Name.Stratum.$Algorithm)$(if ($Pools.$Algorithm_Norm.SSL) {'+ssl'})://$([System.Web.HttpUtility]::UrlEncode($Pools.$Algorithm_Norm.User)):$([System.Web.HttpUtility]::UrlEncode($Pools.$Algorithm_Norm.Pass) -split "," | Select-Object -Index 0)@$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port)$Commmands$($Config.Miners.$Name.CommonCommands)$DisableMinerFee -devices $DeviceIDs"
                     HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
                     API              = $Api
                     Port             = $Port
