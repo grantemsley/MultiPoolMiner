@@ -51,7 +51,7 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             #"lyra2z" = "" #Lyra2z - Not Supported
             #"myr-gr" = "" #MyriadGroestl - Not Supported
             #"neoscrypt" = "" #NeoScrypt - Not Supported
-            #"nist5" = "" #Nist5 - Not Supported
+            #"nist5" = "" #Nist5 is ASIC territory
             #"pascal" = "" #Pascal - Not Supported
             "phi" = "" #PHI
             "poly" = "" #Polytmos - NOT TESTED

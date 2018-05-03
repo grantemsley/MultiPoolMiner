@@ -49,7 +49,6 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             "lyra2z" = "" #Lyra2z
             "myr-gr" = "" #MyriadGroestl
             "neoscrypt" = "" #NeoScrypt
-            "nist5" = "" #Nist5
             "phi" = "" #PHI
             "sib" = "" #Sib
             "skein" = "" #Skein
