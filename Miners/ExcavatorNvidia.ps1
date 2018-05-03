@@ -50,7 +50,6 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             "daggerhashimoto:2" = @() #Ethash
             "equihash:2"        = @() #Equihash
             #"neoscrypt:2"       = @() #NeoScrypt; out of memory
-            "nist5:2"           = @() #Nist5
             "keccak:2"          = @() #Keccak
             "lbry:2"            = @() #Lbry
             "lyra2rev2:2"       = @() #Lyra2RE2
@@ -92,10 +91,13 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
             $NewConfig.Miners.$Name | Foreach-Object {
                 $_.Commands.PSObject.Properties.Remove("nist5:1")
+                $_.Commands.PSObject.Properties.Remove("nist5:2")
             } -ErrorAction SilentlyContinue
             # Cleanup stat files
-            if (Test-Path ".\Stats\$($Name)*_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)*_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-            if (Test-Path ".\Stats\$($Name)*-*_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)*-*_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\$($Name)1_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)1_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\$($Name)1-*_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)1-*_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\$($Name)2_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)2_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\$($Name)2-*_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)2-*_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             if (Test-Path ".\Stats\*_$(Get-Algorithm 'nist5')_Profit.txt") {Remove-Item ".\Stats\*_$(Get-Algorithm 'nist5')_Profit.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
 
             # Add config item if not in existing config file, -ErrorAction SilentlyContinue to ignore errors if item exists
