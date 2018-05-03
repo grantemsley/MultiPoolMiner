@@ -16,7 +16,7 @@ $Type = "AMD"
 $API  = "Claymore"
 $Port = 13333
 
-$MinerFileVersion = "2018040500" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050300" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.7"
 $MinerBinaryHash = "11743a7b0f8627ceb088745f950557e303c7350f8e4241814c39904278204580" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = ""
@@ -100,12 +100,8 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             }
 
             # Always update MinerFileVersion -Force to enforce setting
-            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+           $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
 
-            # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
-            $NewConfig.Miners.$Name | Foreach-Object {
-                $_.Commands.PSObject.Properties.Remove("ethash;pascal:-dcoin pasc -dcri 20")
-            } -ErrorAction SilentlyContinue
 
             # Add config item if not in existing config file, -ErrorAction SilentlyContinue to ignore errors if item exists
             $NewConfig.Miners.$Name.Commands | Add-Member "ethash;pascal:60" "" -ErrorAction SilentlyContinue
@@ -115,7 +111,7 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             $NewConfig.Miners.$Name.Commands | Add-Member "ethash2gb;pascal:80" "" -ErrorAction SilentlyContinue
 
             # Save config to file
-            $NewConfig | ConvertTo-Json -Depth 10 | Set-Content "Config.txt" -Force -ErrorAction Stop
+            Write-Config $NewConfig $Name
 
             # Apply config, must re-read from file to expand variables
             $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
@@ -128,12 +124,14 @@ if ($Info) {
     # Just return info about the miner for use in setup
     # attributes without a curresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
     return [PSCustomObject]@{
-        MinerFileVersion = $MinerFileVersion
-        MinerBinaryInfo  = $MinerBinaryInfo
-        Type             = $Type
-        Path             = $Path
-        Port             = $Port
-        Api              = $Api
+        MinerFileVersion  = $MinerFileVersion
+        MinerBinaryInfo   = $MinerBinaryInfo
+        Uri               = $Uri
+        ManualUri         = $ManualUri
+        Type              = $Type
+        Path              = $Path
+        Port              = $Port
+        WebLink           = $WebLink
         MinerFeeInPercentSingleMode = $MinerFeeInPercentSingleMode
         MinerFeeInPercentDualMode   = $MinerFeeInPercentDualMode
         Settings         = @(
@@ -167,7 +165,7 @@ if ($Info) {
                 Name        = "Commands"
                 ControlType = "PSCustomObject[1,]"
                 Default     = $DefaultMinerConfig.Commands
-                Description = "Each line defines an algorithm that can be mined with this miner. For dual mining the two algorithms are separated with ';', intensity parameter for the secondary algorithm is defined after the ':'. nOptional miner parameters can be added after the '=' sign. "
+                Description = "Each line defines an algorithm that can be mined with this miner. For dual mining the two algorithms are separated with ';', intensity parameter for the secondary algorithm is defined after the ':'. Optional miner parameters can be added after the '=' sign. "
                 Tooltip     = "Note: Most extra parameters must be prefixed with a space`nTo disable an algorithm prefix it with '#'"
             }
             [PSCustomObject]@{
@@ -198,15 +196,11 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
     # Get list of active devices, returned deviceIDs are in hex format starting from 0
     $DeviceSet = Get-DeviceSet -Config $Config -Devices $Devices -NumberingFormat 16 -StartNumberingFrom 0
 
-    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$_ -match ".+:[1-9]" -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm ($_.Split(":") | Select-Object -Index 0)).Name} | ForEach-Object {
+    $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm ($_.Split(":") | Select-Object -Index 0)) -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm ($_.Split(":") | Select-Object -Index 0)).Name} | ForEach-Object {
 
-        $Algorithm = $_.Split(":") | Select-Object -Index 0
-        $Algorithm_Norm = Get-Algorithm $Algorithm
-        
-        $Threads = $_.Split(":") | Select-Object -Index 1
-
-        [Array]$Commands = $Config.Miners.$Name.Commands.$_ # additional command line options for algorithm
-
+        $MainAlgorithm = $_.Split(";") | Select-Object -Index 0
+        $MainAlgorithm_Norm = Get-Algorithm $MainAlgorithm
+            
         Switch ($Algorithm_Norm) { # default is all devices, ethash has a 4GB minimum memory limit
             "Ethash"    {$DeviceIDs = $DeviceSet."4gb"}
             "Ethash3gb" {$DeviceIDs = $DeviceSet."3gb"}
@@ -251,7 +245,7 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
                     Port             = $Port
                     URI              = $Uri
                     Fees             = $Fees
-                    Index            = $DeviceIDs -join ';'
+                    Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                     ShowMinerWindow  = $Config.ShowMinerWindow
                 }
             }
@@ -286,7 +280,7 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
                         Port             = $Port
                         URI              = $Uri
                         Fees             = $Fees
-                        Index            = $DeviceIDs -join ';'
+                        Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                         ShowMinerWindow  = $Config.ShowMinerWindow
                     }
                     if ($SecondaryAlgorithm_Norm -eq "Sia" -or $SecondaryAlgorithm_Norm -eq "Decred") {
@@ -301,7 +295,7 @@ $Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains
                             Port             = $Port
                             URI              = $Uri
                             Fees             = $Fees
-                            Index            = $DeviceIDs -join ';'
+                            Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                             ShowMinerWindow  = $Config.ShowMinerWindow
                         }
                     }
