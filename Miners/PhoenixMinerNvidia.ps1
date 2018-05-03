@@ -15,8 +15,10 @@ $Path = ".\Bin\PhoenixMiner\PhoenixMiner.exe"
 $Type = "NVIDIA"
 $API  = "Claymore"
 $Port = 23334
+$DeviceIdBase = 16 # DeviceIDs are in decimal format
+$DeviceIdOffset = 1 # DeviceIDs start at 1
 
-$MinerFileVersion = "2018050101" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050101" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "PhoenixMiner 2.9e: fastest Ethereum/Ethash miner with lowest devfee"
 $MinerBinaryHash = "a531b7b0bb925173d3ea2976b72f3d280f64751bdb094d5bb980553dfa85fb07" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = ""
@@ -110,7 +112,7 @@ if ($Info) {
                 Max         = $Devices.$Type.DeviceIDs
                 Default     = $DefaultMinerConfig.IgnoreHWModel
                 Description = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'. Leave empty to mine with all available hardware. "
-                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
+                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')"})"
             },
             [PSCustomObject]@{
                 Name        = "IgnoreDeviceID"
@@ -118,7 +120,7 @@ if ($Info) {
                 ControlType = "int[0,$($Devices.$Type.DeviceIDs)];0;$($Devices.$Type.DeviceIDs)"
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
                 Description = "List of device IDs you do not want to mine with this miner, e.g. '0'. Leave empty to mine with all available hardware. "
-                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
+                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')"})"
             },
             [PSCustomObject]@{
                 Name        = "Commands"
@@ -151,16 +153,17 @@ if ($Info) {
 # Get device list
 $Devices.$Type | ForEach-Object {
 
-    if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
+    if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} # after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
 
-    # Get list of active devices, returned deviceIDs are in decimal format starting from 1
-    $DeviceSet = Get-DeviceSet -Config $Config -Devices $Devices -StartNumberingFrom 1 -NumberingFormat 10
+    # Get list of active devices
+    $DeviceSet = Get-DeviceSet
 
     $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_).Protocol -eq "stratum+tcp" -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name} | ForEach-Object {
 
         $Algorithm_Norm = Get-Algorithm $_
 
+        # Retrieve array of all DeviceIDs in DeviceSet, returned DeviceIDs are of base $DeviceIdBase representation starting from $DeviceIdOffset
         Switch ($Algorithm_Norm) { # default is all devices, ethash has a 4GB minimum memory limit
             "Ethash"    {$DeviceIDs = $DeviceSet."4gb"}
             "Ethash3gb" {$DeviceIDs = $DeviceSet."3gb"}
@@ -168,9 +171,9 @@ $Devices.$Type | ForEach-Object {
         }
 
         if ($DeviceIDs.Count -gt 0) {
-            if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
+            if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDeviceSet" -ErrorAction SilentlyContinue)) {
                 $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
-                $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for algorithm
+                $Commands = Get-CommandPerDeviceSet -Command $Config.Miners.$Name.Commands.$_ # additional command line options for algorithm
             }
             else {
                 $Miner_Name = $Name

@@ -15,8 +15,10 @@ $Path = ".\Bin\Ethash-Eminer\eminer.exe"
 $Type = "NVIDIA"
 $API  = "Eminer"
 $Port = 8550
+$DeviceIdBase = 10 # DeviceIDs are in decimal format
+$DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050100" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050100" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "Eminer v0.6.1-rc2 (x64)"
 $MinerBinaryHash = "b4d0723f5be34731108b558b8ba9e9f1dfce92afd6c2d93d9a7fd0e0c55430d3" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/ethash/eminer-release/releases/download/v0.6.1-rc2/eminer.v0.6.1-rc2.win64.zip"
@@ -117,7 +119,7 @@ if ($Info) {
                 Max         = $Devices.$Type.DeviceIDs
                 Default     = $DefaultMinerConfig.IgnoreHWModel
                 Description = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'. Leave empty to mine with all available hardware. "
-                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
+                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')"})"
             },
             [PSCustomObject]@{
                 Name        = "IgnoreDeviceID"
@@ -125,7 +127,7 @@ if ($Info) {
                 ControlType = "int[0,$($Devices.$Type.DeviceIDs)];0;$($Devices.$Type.DeviceIDs)"
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
                 Description = "List of device IDs you do not want to mine with this miner, e.g. '0'. Leave empty to mine with all available hardware. "
-                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
+                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')"})"
             },
             [PSCustomObject]@{
                 Name        = "Commands"
@@ -162,11 +164,11 @@ if ($Config.MinerInstancePerCardModel -and $Devices.AMD -and $Devices.NVIDIA) {b
 # Get device list
 $Devices.$Type | ForEach-Object {
 
-    if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
+    if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} # after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
 
-    # Get list of active devices, returned deviceIDs are in decimal format starting from 0
-    $DeviceSet = Get-DeviceSet -Config $Config -Devices $Devices -NumberingFormat 10 -StartNumberingFrom 0
+    # Get array of IDs of all devices in device set, returned DeviceIDs are of base $DeviceIdBase representation starting from $DeviceIdOffset
+    $DeviceSet = Get-DeviceSet
 
     $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_).Protocol -eq "stratum+tcp" -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name} | ForEach-Object {
 
@@ -180,9 +182,9 @@ $Devices.$Type | ForEach-Object {
 
         if ($DeviceIDs.Count -gt 0) {
 
-            if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
+            if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDeviceSet" -ErrorAction SilentlyContinue)) {
                 $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
-                $Commands = Get-CommandPerDevice -Command $Config.Miners.$Name.Commands.$_ -Devices $DeviceIDs # additional command line options for algorithm
+                $Commands = Get-CommandPerDeviceSet -Command $Config.Miners.$Name.Commands.$_ # additional command line options for algorithm
             }
             else {
                 $Miner_Name = $Name

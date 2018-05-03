@@ -15,8 +15,10 @@ $Path = ".\Bin\Excavator\excavator.exe"
 $Type = "NVIDIA"
 $API  = "Excavator"
 $Port = 23456
+$DeviceIdBase = 16 # DeviceIDs are in hex
+$DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050300" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050300" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "NiceHash Excavator 1.4.4 alpha (x64)"
 $MinerBinaryHash = "4cc2ff8c07f17e940a1965b8d0f7dd8508096a4e4928704912fa96c442346642" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
@@ -132,7 +134,7 @@ if ($Info) {
                 ControlType = "string[0,$($Devices.$Type.count)]"
                 Default     = $DefaultMinerConfig.IgnoreHWModel
                 Description = "List of hardware models you do not want to mine with this miner, e.g. 'GeforceGTX1070'.`nLeave empty to mine with all available hardware. "
-                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
+                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')"})"
             },
             [PSCustomObject]@{
                 Name        = "IgnoreDeviceID"
@@ -142,7 +144,7 @@ if ($Info) {
                 Max         = $Devices.$Type.DeviceIDs
                 Default     = $DefaultMinerConfig.IgnoreDeviceID
                 Description = "List of device IDs you do not want to mine with this miner, e.g. '0'.`nLeave empty to mine with all available hardware. "
-                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')`n"})"
+                Tooltip     = "Detected $Type miner HW:`n$($Devices.$Type | ForEach-Object {"$($_.Name_Norm): DeviceIDs $($_.DeviceIDs -join ' ,')"})"
             },
             [PSCustomObject]@{
                 Name        = "Commands"
@@ -178,11 +180,11 @@ if (-not (Test-Path (Split-Path $Path))) {New-Item (Split-Path $Path) -ItemType 
 # Get device list
 $Devices.$Type | ForEach-Object {
 
-    if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
+    if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} # after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
 
-    # Get list of active devices, returned deviceIDs are in hex format starting from 0
-    $DeviceSet = Get-DeviceSet -Config $Config -Devices $Devices -NumberingFormat 16 -StartNumberingFrom 0    
+    # Get array of IDs of all devices in device set, returned DeviceIDs are of base $DeviceIdBase representation starting from $DeviceIdOffset
+    $DeviceSet = Get-DeviceSet
 
     $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$_ -match ".+:[1-9]" -and  $Pools.(Get-Algorithm ($_.Split(":") | Select-Object -Index 0)) -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm ($_.Split(":") | Select-Object -Index 0)).Name} | ForEach-Object {
 
@@ -201,7 +203,7 @@ $Devices.$Type | ForEach-Object {
 
         if ($DeviceIDs.Count -gt 0) {
 
-            if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDevice" -ErrorAction SilentlyContinue)) {
+            if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDeviceSet" -ErrorAction SilentlyContinue)) {
                 $Miner_Name = "$Name$($Threads)-$($DeviceTypeModel.Name_Norm)"
             }
             else {
