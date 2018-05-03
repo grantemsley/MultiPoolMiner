@@ -16,7 +16,7 @@ $Type = "NVIDIA"
 $API  = "Ccminer"
 $Port = 4068
 
-$MinerFileVersion = "2018050100" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050300" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "Ccminer (x64) 2.2.5 by Tpruvot"
 $MinerBinaryHash = "9156d5fc42daa9c8739d04c3456da8fbf3e9dc91d4894d351334f69a7cee58c5" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/tpruvot/ccminer/releases/download/2.2.5-tpruvot/ccminer-x64-2.2.5-cuda9.7z"
@@ -80,7 +80,7 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
                     Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop # Remove miner binary to force re-download
                     # Update log
                     Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
-                    # Remove benchmark files
+                    # Remove all benchmark files (will trigger re-benchmark)
                     # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
                     # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
                 }
@@ -93,6 +93,15 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
 
             # Always update MinerFileVersion -Force to enforce setting
             $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+
+            # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
+            $NewConfig.Miners.$Name | Foreach-Object {
+                $_.Commands.PSObject.Properties.Remove("nist5")
+            } -ErrorAction SilentlyContinue
+            # Cleanup stat files
+            if (Test-Path ".\Stats\$($Name)_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\$($Name)-*_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)-*_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\*_$(Get-Algorithm 'nist5')_Profit.txt") {Remove-Item ".\Stats\*_$(Get-Algorithm 'nist5')_Profit.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
 
             # Save config to file
             Write-Config $NewConfig $Name

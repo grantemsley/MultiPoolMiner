@@ -16,7 +16,7 @@ $Type = "NVIDIA"
 $API  = "Excavator"
 $Port = 23456
 
-$MinerFileVersion = "2018040200" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050300" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "NiceHash Excavator 1.4.4 alpha (x64)"
 $MinerBinaryHash = "4cc2ff8c07f17e940a1965b8d0f7dd8508096a4e4928704912fa96c442346642" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
@@ -40,7 +40,6 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             "daggerhashimoto:1" = @() #Ethash
             "equihash:1"        = @() #Equihash
             "neoscrypt:1"       = @() #NeoScrypt
-            "nist5:1"           = @() #Nist5
             "keccak:1"          = @() #Keccak
             "lbry:1"            = @() #Lbry
             "lyra2rev2:1"       = @() #Lyra2RE2
@@ -92,8 +91,12 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
 
             # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
             $NewConfig.Miners.$Name | Foreach-Object {
-                # e.g. $_.Commands.PSObject.Properties.Remove("ethash;pascal:-dcoin pasc -dcri 20")
+                $_.Commands.PSObject.Properties.Remove("nist5:1")
             } -ErrorAction SilentlyContinue
+            # Cleanup stat files
+            if (Test-Path ".\Stats\$($Name)*_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)*_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\$($Name)*-*_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)*-*_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\*_$(Get-Algorithm 'nist5')_Profit.txt") {Remove-Item ".\Stats\*_$(Get-Algorithm 'nist5')_Profit.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
 
             # Add config item if not in existing config file, -ErrorAction SilentlyContinue to ignore errors if item exists
             # e.g. $NewConfig.Miners.$Name.Commands | Add-Member "ethash;pascal:60" "" -ErrorAction SilentlyContinue
