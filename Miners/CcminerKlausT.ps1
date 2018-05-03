@@ -33,7 +33,7 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
         "IgnoreDeviceID" = @()
         "Commands" = [PSCustomObject]@{
             "groestl" = "" #Groestl
-            "myr-gr" = "" #MyriadGroestl
+            #"myr-gr" = "" #MyriadGroestl
             "neoscrypt" = "" #NeoScrypt
         }
         "CommonCommands" = ""
@@ -69,6 +69,15 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
 
             # Always update MinerFileVersion -Force to enforce setting
             $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+
+            # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
+            $NewConfig.Miners.$Name | Foreach-Object {
+                $_.Commands.PSObject.Properties.Remove("myr-gr")
+            } -ErrorAction SilentlyContinue
+            # Cleanup stat files
+            if (Test-Path ".\Stats\$($Name)_$(Get-Algorithm 'myr-gr')_HashRate.txt") {Remove-Item ".\Stats\$($Name)_$(Get-Algorithm 'myr-gr')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\$($Name)-*_$(Get-Algorithm 'myr-gr')_HashRate.txt") {Remove-Item ".\Stats\$($Name)-*_$(Get-Algorithm 'myr-gr')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\*_$(Get-Algorithm 'myr-gr')_Profit.txt") {Remove-Item ".\Stats\*_$(Get-Algorithm 'myr-gr')_Profit.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
 
             # Save config to file
             Write-Config $NewConfig $Name

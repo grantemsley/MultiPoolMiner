@@ -47,7 +47,7 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             "lbry" = "" #Lbry
             "lyra2v2" = "" #Lyra2RE2
             "lyra2z" = "" #Lyra2z
-            "myr-gr" = "" #MyriadGroestl
+            #"myr-gr" = "" #MyriadGroestl is ASIC territory
             "neoscrypt" = "" #NeoScrypt
             "phi" = "" #PHI
             "sib" = "" #Sib
@@ -97,11 +97,15 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
             $NewConfig.Miners.$Name | Foreach-Object {
                 $_.Commands.PSObject.Properties.Remove("nist5")
+                $_.Commands.PSObject.Properties.Remove("myr-gr")
             } -ErrorAction SilentlyContinue
             # Cleanup stat files
             if (Test-Path ".\Stats\$($Name)_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             if (Test-Path ".\Stats\$($Name)-*_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)-*_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
             if (Test-Path ".\Stats\*_$(Get-Algorithm 'nist5')_Profit.txt") {Remove-Item ".\Stats\*_$(Get-Algorithm 'nist5')_Profit.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\$($Name)_$(Get-Algorithm 'myr-gr')_HashRate.txt") {Remove-Item ".\Stats\$($Name)_$(Get-Algorithm 'myr-gr')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\$($Name)-*_$(Get-Algorithm 'myr-gr')_HashRate.txt") {Remove-Item ".\Stats\$($Name)-*_$(Get-Algorithm 'myr-gr')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\*_$(Get-Algorithm 'myr-gr')_Profit.txt") {Remove-Item ".\Stats\*_$(Get-Algorithm 'myr-gr')_Profit.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
 
             # Save config to file
             Write-Config $NewConfig $Name

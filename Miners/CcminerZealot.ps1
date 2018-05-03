@@ -109,7 +109,13 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
             # Always update MinerFileVersion -Force to enforce setting
             $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force            
 
-            # Save config to file
+            $NewConfig.Miners.$Name | Foreach-Object {
+                $_.Commands.PSObject.Properties.Remove("myr-gr")
+            } -ErrorAction SilentlyContinue
+            # Cleanup stat files
+            if (Test-Path ".\Stats\$($Name)_$(Get-Algorithm 'myr-gr')_HashRate.txt") {Remove-Item ".\Stats\$($Name)_$(Get-Algorithm 'myr-gr')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\$($Name)-*_$(Get-Algorithm 'myr-gr')_HashRate.txt") {Remove-Item ".\Stats\$($Name)-*_$(Get-Algorithm 'myr-gr')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+            if (Test-Path ".\Stats\*_$(Get-Algorithm 'myr-gr')_Profit.txt") {Remove-Item ".\Stats\*_$(Get-Algorithm 'myr-gr')_Profit.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}            # Save config to file
             Write-Config $NewConfig $Name
 
             # Apply config, must re-read from file to expand variables
@@ -223,7 +229,7 @@ $Devices.$Type | ForEach-Object {
                 Name             = $Miner_Name
                 Type             = $Type
                 Path             = $Path
-                Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port) --donate  $($Config.Miners.$Name.MinerFeeInPercent) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
+                Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port) $($Config.Miners.$Name.MinerFeeInPercent) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
                 HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Hashrate}
                 API              = $Api
                 Port             = $Port
