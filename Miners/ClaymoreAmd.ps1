@@ -188,7 +188,7 @@ if ($Info) {
 }
 
 # Get device list
-$Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -or $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | ForEach-Object {
+$Devices.$Type | ForEach-Object {
 
     if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} #after first loop $DeviceTypeModel is present; generate only one miner
     $DeviceTypeModel = $_
