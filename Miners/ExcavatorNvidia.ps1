@@ -18,7 +18,7 @@ $Port = 23456
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050300" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050404" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "NiceHash Excavator 1.4.4 alpha (x64)"
 $MinerBinaryHash = "4cc2ff8c07f17e940a1965b8d0f7dd8508096a4e4928704912fa96c442346642" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
@@ -26,94 +26,6 @@ $PrerequisiteURI = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4
 $Uri = "https://github.com/nicehash/excavator/releases/download/v1.4.4a/excavator_v1.4.4a_NVIDIA_Win64.zip"
 $ManualUri = "" # Link for manual miner download
 $WebLink = "https://github.com/nicehash/excavator" # See here for more information about the miner
-
-if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
-    # Create default miner config, required for setup
-    $DefaultMinerConfig = [PSCustomObject]@{
-        "MinerFileVersion" = $MinerFileVersion
-        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-        "IgnoreHWModel" = @()
-        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-        "IgnoreDeviceID" = @()
-        "Commands" = [PSCustomObject]@{
-            "blake2s:1"         = @() #Blake2s 
-            "cryptonight:1"     = @() #Cryptonight
-            "decred:1"          = @() #Decred
-            "daggerhashimoto:1" = @() #Ethash
-            "equihash:1"        = @() #Equihash
-            "neoscrypt:1"       = @() #NeoScrypt
-            "keccak:1"          = @() #Keccak
-            "lbry:1"            = @() #Lbry
-            "lyra2rev2:1"       = @() #Lyra2RE2
-            "pascal:1"          = @() #Pascal
-            "blake2s:2"         = @() #Blake2s 
-            "cryptonight:2"     = @() #Cryptonight
-            "decred:2"          = @() #Decred
-            "daggerhashimoto:2" = @() #Ethash
-            "equihash:2"        = @() #Equihash
-            #"neoscrypt:2"       = @() #NeoScrypt; out of memory
-            "keccak:2"          = @() #Keccak
-            "lbry:2"            = @() #Lbry
-            "lyra2rev2:2"       = @() #Lyra2RE2
-            "pascal:2"          = @() #Pascal
-        }
-        "CommonCommands" = ""
-        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
-            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
-        }
-    }
-    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
-        $Config = Add-MinerConfig $Name $DefaultMinerConfig
-    }
-    else { # Update existing miner config
-        try {
-            # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-            $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
-            
-            # Execute action, e.g force re-download of binary
-            # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
-                if ($Uri) {
-                    Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop # Remove miner binary to force re-download
-                    # Update log
-                    Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
-                    # Remove benchmark files
-                    # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                    # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                }
-                else {
-                    # Update log
-                    Write-Log -Level Info "New miner binary is available - manual download from '$ManualUri' and install to '$(Split-Path $Path)' is required ($Name [$MinerFileVersion]). "
-                    #Write-Log -Level Info "For best performance it is recommended to remove the stat files for this miner. "
-                }
-            }
-            # Always update MinerFileVersion -Force to enforce setting
-            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
-
-            # Remove config item if in existing config file, -ErrorAction SilentlyContinue to ignore errors if item does not exist
-            $NewConfig.Miners.$Name | Foreach-Object {
-                $_.Commands.PSObject.Properties.Remove("nist5:1")
-                $_.Commands.PSObject.Properties.Remove("nist5:2")
-            } -ErrorAction SilentlyContinue
-            # Cleanup stat files
-            if (Test-Path ".\Stats\$($Name)1_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)1_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-            if (Test-Path ".\Stats\$($Name)1-*_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)1-*_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-            if (Test-Path ".\Stats\$($Name)2_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)2_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-            if (Test-Path ".\Stats\$($Name)2-*_$(Get-Algorithm 'nist5')_HashRate.txt") {Remove-Item ".\Stats\$($Name)2-*_$(Get-Algorithm 'nist5')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-            if (Test-Path ".\Stats\*_$(Get-Algorithm 'nist5')_Profit.txt") {Remove-Item ".\Stats\*_$(Get-Algorithm 'nist5')_Profit.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-
-            # Add config item if not in existing config file, -ErrorAction SilentlyContinue to ignore errors if item exists
-            # e.g. $NewConfig.Miners.$Name.Commands | Add-Member "ethash;pascal:60" "" -ErrorAction SilentlyContinue
-
-            # Save config to file
-            Write-Config $NewConfig $Name
-
-            # Apply config, must re-read from file to expand variables
-            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
-        }
-        catch {}
-    }
-}
 
 if ($Info) {
     # Just return info about the miner for use in setup
@@ -171,6 +83,81 @@ if ($Info) {
                 Tooltip     = "Syntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")"
             }
         )
+    }
+}
+
+if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    # Create default miner config, required for setup
+    $DefaultMinerConfig = [PSCustomObject]@{
+        "MinerFileVersion" = $MinerFileVersion
+        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+        "IgnoreHWModel" = @()
+        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
+        "IgnoreDeviceID" = @()
+        "Commands" = [PSCustomObject]@{
+            "blake2s:1"         = @() #Blake2s 
+            #"cryptonight:1"     = @() #Cryptonight; ASIC territory
+            "decred:1"          = @() #Decred
+            "daggerhashimoto:1" = @() #Ethash
+            "equihash:1"        = @() #Equihash
+            "neoscrypt:1"       = @() #NeoScrypt
+            "keccak:1"          = @() #Keccak
+            "lbry:1"            = @() #Lbry
+            "lyra2rev2:1"       = @() #Lyra2RE2
+            "pascal:1"          = @() #Pascal
+            "blake2s:2"         = @() #Blake2s 
+            #"cryptonight:2"     = @() #Cryptonight; out of memory; ASIC territory
+            "decred:2"          = @() #Decred
+            "daggerhashimoto:2" = @() #Ethash
+            "equihash:2"        = @() #Equihash
+            #"neoscrypt:2"       = @() #NeoScrypt; out of memory
+            "keccak:2"          = @() #Keccak
+            "lbry:2"            = @() #Lbry
+            "lyra2rev2:2"       = @() #Lyra2RE2
+            "pascal:2"          = @() #Pascal
+        }
+        "CommonCommands" = ""
+        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
+            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        }
+    }
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
+        $Config = Add-MinerConfig $Name $DefaultMinerConfig
+    }
+    else { # Update existing miner config
+        try {
+            # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
+            $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
+            
+            # Execute action, e.g force re-download of binary
+            # Should be the first action. If it fails no further update will take place, update will be retried on next loop
+            Update-Binaries -RemoveMinerBenchmarkFiles $Config.AutoReBenchmark
+
+            # Always update MinerFileVersion -Force to enforce setting
+            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+
+            # Remove config item if in existing config file
+            $NewConfig.Miners.Commands.PSObject.Properties.Remove("cryptonight:1")
+            $NewConfig.Miners.Commands.PSObject.Properties.Remove("nist5:1")
+            $NewConfig.Miners.Commands.PSObject.Properties.Remove("cryptonight:2")
+            $NewConfig.Miners.Commands.PSObject.Properties.Remove("nist5:2")
+
+            # Remove miner benchmark files, these are no longer needed
+            Remove-MinerBenchmarkFiles -MinerName "$($Name)1" -Algorithm (Get-Algorithm "cryptonight")
+            Remove-MinerBenchmarkFiles -MinerName "$($Name)1" -Algorithm (Get-Algorithm "nist5")
+            Remove-MinerBenchmarkFiles -MinerName "$($Name)2" -Algorithm (Get-Algorithm "cryptonight")
+            Remove-MinerBenchmarkFiles -MinerName "$($Name)2" -Algorithm (Get-Algorithm "nist5")
+
+            # Add config item if not in existing config file, -ErrorAction SilentlyContinue to ignore errors if item exists
+            # e.g. $NewConfig.Miners.$Name.Commands | Add-Member "ethash;pascal:60" "" -ErrorAction SilentlyContinue
+
+            # Save config to file
+            Write-Config $NewConfig $Name
+
+            # Apply config, must re-read from file to expand variables
+            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
+        }
+        catch {}
     }
 }
 

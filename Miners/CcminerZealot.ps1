@@ -18,114 +18,13 @@ $Port = 4068
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050100" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050402" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "zealot/enemy-1.08, 1% devfee"
 $MinerBinaryHash = "59e413741711e2984a1911db003fee807941f9a9f838cb96ff050194bc74bfce" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = ""
 $ManualUri = "https://mega.nz/#!5WACFRTT!tV1vUsFdBIDqCzBrcMoXVR2G9YHD6xqct5QB2nBiuzM"
 $WebLink = "https://bitcointalk.org/index.php?topic=3378390.0;all"
 $MinerFeeInPercent = 1 # Fixed at 1%. Dev fee will start randomly when miner is first started. After 1% of time mined then automatically switches back to user pool 
-
-if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
-    $DefaultMinerConfig = [PSCustomObject]@{
-        "MinerFileVersion" = $MinerFileVersion
-        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-        "IgnoreHWModel" = @()
-        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-        "IgnoreDeviceID" = @()
-        "Commands" = [PSCustomObject]@{
-            "bitcore" = "" #Bitcore
-            #"blake2s" = "" #Blake2s - Not Supported
-            #"blakecoin" = "" #Blakecoin - Not Supported
-            #"c11" = "" #C11 - Not Supported
-            "cryptonight" = "" #CryptoNight - NOT TESTED
-            "decred" = "" #Decred - NOT TESTED
-            #"equihash" = "" #Equihash - Not Supported
-            #"ethash" = "" #Ethash - Not Supported
-            #"groestl" = "" #Groestl - Not Supported
-            #"hmq1725" = "" #HMQ1725 - Not Supported
-            #"hsr" = "" #HSR - Not Supported
-            "jha" = "" #JHA - NOT TESTED
-            #"keccak" = "" #Keccak - Not Supported
-            #"keccakc" = "" #Keccakc - Not Supported
-            #"lbry" = "" #Lbry - Not Supported
-            #"lyra2v2" = "" #Lyra2RE2 - Not Supported
-            #"lyra2z" = "" #Lyra2z - Not Supported
-            #"myr-gr" = "" #MyriadGroestl - Not Supported
-            #"neoscrypt" = "" #NeoScrypt - Not Supported
-            #"nist5" = "" #Nist5 is ASIC territory
-            #"pascal" = "" #Pascal - Not Supported
-            "phi" = "" #PHI
-            "poly" = "" #Polytmos - NOT TESTED
-            #"qubit" = "" #qubit - Not Supported
-            #"quark" = "" #Quark - Not Supported
-            #"sib" = "" #Sib - Not Supported
-            #"skein" = "" #Skein - Not Supported
-            #"skunk" = "" #Skunk - Not Supported
-            #"timetravel" = "" #Timetravel - Not Supported
-            #"tribus" = "" #Tribus - Not Supported
-            "vanilla" = "" #BlakeVanilla - NOT TESTED
-            "veltor" = "" #Veltor - NOT TESTED
-            #"x11" = "" #X11 - Not Supported
-            #"x11evo" = "" #X11evo - Not Supported
-            "x12" = "" #X12 - NOT TESTED
-            #"x13" = "" #X13 - Not Supported
-            "x14" = "" #X14 - NOT TESTED
-            "x16r" = "" #Rave
-            "x16s" = "" #Pigeon
-            #"x17" = "" #X17 - Not Supported
-            #"xevan" = "" #Xevan - Not Supported
-            #"yescrypt" = "" #Yescrypt - Not Supported
-        }
-        "CommonCommands" = ""
-        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
-            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
-        }
-    }
-    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
-        $Config = Add-MinerConfig $Name $DefaultMinerConfig
-    }
-    else { # Update existing miner config
-        try {
-            # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-            $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
-
-            # Execute action, e.g force re-download of binary
-            # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
-                if ($Uri) {
-                    Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop # Remove miner binary to force re-download
-                    # Update log
-                    Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
-                    # Remove benchmark files
-                    # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                    # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                }
-                else {
-                    # Update log
-                    Write-Log -Level Info "New miner binary is available - manual download from '$ManualUri' and install to '$(Split-Path $Path)' is required ($Name [$MinerFileVersion]). "
-                    #Write-Log -Level Info "For best performance it is recommended to remove the stat files for this miner. "
-                }
-            }
-
-            # Always update MinerFileVersion -Force to enforce setting
-            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force            
-
-            $NewConfig.Miners.$Name | Foreach-Object {
-                $_.Commands.PSObject.Properties.Remove("myr-gr")
-            } -ErrorAction SilentlyContinue
-            # Cleanup stat files
-            if (Test-Path ".\Stats\$($Name)_$(Get-Algorithm 'myr-gr')_HashRate.txt") {Remove-Item ".\Stats\$($Name)_$(Get-Algorithm 'myr-gr')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-            if (Test-Path ".\Stats\$($Name)-*_$(Get-Algorithm 'myr-gr')_HashRate.txt") {Remove-Item ".\Stats\$($Name)-*_$(Get-Algorithm 'myr-gr')_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-            if (Test-Path ".\Stats\*_$(Get-Algorithm 'myr-gr')_Profit.txt") {Remove-Item ".\Stats\*_$(Get-Algorithm 'myr-gr')_Profit.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}            # Save config to file
-            Write-Config $NewConfig $Name
-
-            # Apply config, must re-read from file to expand variables
-            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
-        }
-        catch {}
-    }
-}
 
 if ($Info) {
     # Just return info about the miner for use in setup
@@ -191,6 +90,97 @@ if ($Info) {
                 Tooltip     = "Syntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")"
             }
         )
+    }
+}
+
+if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    $DefaultMinerConfig = [PSCustomObject]@{
+        "MinerFileVersion" = $MinerFileVersion
+        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+        "IgnoreHWModel" = @()
+        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
+        "IgnoreDeviceID" = @()
+        "Commands" = [PSCustomObject]@{
+            "bitcore" = "" #Bitcore
+            #"blake2s" = "" #Blake2s - Not Supported
+            #"blakecoin" = "" #Blakecoin - Not Supported
+            #"c11" = "" #C11 - Not Supported
+            #"cryptonight" = "" #CryptoNight - Not Supported; ASIC territory
+            "decred" = "" #Decred - NOT TESTED
+            #"equihash" = "" #Equihash - Not Supported
+            #"ethash" = "" #Ethash - Not Supported
+            #"groestl" = "" #Groestl - Not Supported
+            #"hmq1725" = "" #HMQ1725 - Not Supported
+            #"hsr" = "" #HSR - Not Supported
+            "jha" = "" #JHA - NOT TESTED
+            #"keccak" = "" #Keccak - Not Supported
+            #"keccakc" = "" #Keccakc - Not Supported
+            #"lbry" = "" #Lbry - Not Supported
+            #"lyra2v2" = "" #Lyra2RE2 - Not Supported
+            #"lyra2z" = "" #Lyra2z - Not Supported
+            #"myr-gr" = "" #MyriadGroestl - Not Supported
+            #"neoscrypt" = "" #NeoScrypt - Not Supported
+            #"nist5" = "" #Nist5 is ASIC territory
+            #"pascal" = "" #Pascal - Not Supported
+            "phi" = "" #PHI
+            "poly" = "" #Polytmos - NOT TESTED
+            #"qubit" = "" #qubit - Not Supported
+            #"quark" = "" #Quark - Not Supported
+            #"sib" = "" #Sib - Not Supported
+            #"skein" = "" #Skein - Not Supported
+            #"skunk" = "" #Skunk - Not Supported
+            #"timetravel" = "" #Timetravel - Not Supported
+            #"tribus" = "" #Tribus - Not Supported
+            "vanilla" = "" #BlakeVanilla - NOT TESTED
+            "veltor" = "" #Veltor - NOT TESTED
+            #"x11" = "" #X11 - Not Supported
+            #"x11evo" = "" #X11evo - Not Supported
+            "x12" = "" #X12 - NOT TESTED
+            #"x13" = "" #X13 - Not Supported
+            "x14" = "" #X14 - NOT TESTED
+            "x16r" = "" #Rave
+            "x16s" = "" #Pigeon
+            #"x17" = "" #X17 - Not Supported
+            #"xevan" = "" #Xevan - Not Supported
+            #"yescrypt" = "" #Yescrypt - Not Supported
+        }
+        "CommonCommands" = ""
+        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
+            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        }
+    }
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
+        $Config = Add-MinerConfig $Name $DefaultMinerConfig
+    }
+    else { # Update existing miner config
+        try {
+            # Execute action, e.g force re-download of binary
+            # Should be the first action. If it fails no further update will take place, update will be retried on next loop
+            Update-Binaries -RemoveMinerBenchmarkFiles $Config.AutoReBenchmark
+
+            # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
+            $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
+
+            # Always update MinerFileVersion -Force to enforce setting
+            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+
+            # Remove config item if in existing config file
+            $NewConfig.Miners.$Name.Commands.PSObject.Properties.Remove("myr-gr")
+            $NewConfig.Miners.$Name.Commands.PSObject.Properties.Remove("nist5")
+            $NewConfig.Miners.$Name.Commands.PSObject.Properties.Remove("cryptonight")
+                        
+            # Remove miner benchmark files, these are no longer needed
+            Remove-MinerBenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "cryptonight")
+            Remove-MinerBenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "nist5")
+            Remove-MinerBenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "myr-gr")
+
+            # Save config to file
+            Write-Config $NewConfig $Name
+
+            # Apply config, must re-read from file to expand variables
+            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
+        }
+        catch {}
     }
 }
 

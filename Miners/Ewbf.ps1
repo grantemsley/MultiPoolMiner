@@ -19,7 +19,7 @@ $Port = 42000
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050100" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "EWBF's CUDA Zcash miner Version 0.3.4b (x64)"
 $MinerBinaryHash = "84dd02debbf2b0c5ed7eebf813305543265e34ec98635139787bf8b882e7c7b4" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
@@ -28,61 +28,6 @@ $Uri = ""
 $ManualUri = "https://mega.nz/#F!usQh2bTa!3qp_PaiO-dw3F0mpvLXynA"
 $WebLink = "https://bitcointalk.org/index.php?topic=1707546.0" # See here for more information about the miner
 $MinerFeeInPercent = 2.0 # Fixed at 2%
-
-if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
-    # Create default miner config, required for setup
-    $DefaultMinerConfig = [PSCustomObject]@{
-        "MinerFileVersion" = $MinerFileVersion
-        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-        "IgnoreHWModel" = @()
-        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-        "IgnoreDeviceID" = @()
-        "Commands" = [PSCustomObject]@{
-            "equihash" = @() #Equihash
-        }
-        "CommonCommands" = " --eexit --intensity 64"
-        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
-            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
-        }
-    }
-    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
-        $Config = Add-MinerConfig $Name $DefaultMinerConfig
-    }
-    else { # Update existing miner config
-        try {
-            # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-            $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
-            
-            # Execute action, e.g force re-download of binary
-            # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
-                if ($Uri) {
-                    Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop # Remove miner binary to force re-download
-                    # Update log
-                    Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
-                    # Remove benchmark files
-                    # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                    # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                }
-                else {
-                    # Update log
-                    Write-Log -Level Info "New miner binary is available - manual download from '$ManualUri' and install to '$(Split-Path $Path)' is required ($Name [$MinerFileVersion]). "
-                    #Write-Log -Level Info "For best performance it is recommended to remove the stat files for this miner. "
-                }
-            }
-
-            # Always update MinerFileVersion -Force to enforce setting
-            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
-
-            # Save config to file
-            Write-Config $NewConfig $Name
-
-            # Apply config, must re-read from file to expand variables
-            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
-        }
-        catch {}
-    }
-}
 
 if ($Info) {
     # Just return info about the miner for use in setup
@@ -149,6 +94,57 @@ if ($Info) {
                 Tooltip     = "Syntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")"
             }
         )
+    }
+}
+
+if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    # Create default miner config, required for setup
+    $DefaultMinerConfig = [PSCustomObject]@{
+        "MinerFileVersion" = $MinerFileVersion
+        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+        "IgnoreHWModel" = @()
+        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
+        "IgnoreDeviceID" = @()
+        "Commands" = [PSCustomObject]@{
+            "equihash" = @() #Equihash
+        }
+        "CommonCommands" = " --eexit --intensity 64"
+        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
+            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        }
+    }
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
+        $Config = Add-MinerConfig $Name $DefaultMinerConfig
+    }
+    else { # Update existing miner config
+        try {
+            # Execute action, e.g force re-download of binary
+            # Should be the first action. If it fails no further update will take place, update will be retried on next loop
+            Update-Binaries -RemoveMinerBenchmarkFiles $Config.AutoReBenchmark
+
+            # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
+            $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
+
+            # Always update MinerFileVersion -Force to enforce setting
+            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+
+            # Remove config item if in existing config file
+            $NewConfig.Miners.$Name.Commands.PSObject.Properties.Remove("myr-gr")
+            $NewConfig.Miners.$Name.Commands.PSObject.Properties.Remove("nist5")
+            $NewConfig.Miners.$Name.Commands.PSObject.Properties.Remove("cryptonight")
+                        
+            # Remove miner benchmark files, these are no longer needed
+            Remove-MinerBenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "cryptonight")
+            Remove-MinerBenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "nist5")
+            Remove-MinerBenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "myr-gr")
+
+            # Save config to file
+            Write-Config $NewConfig $Name
+
+            # Apply config, must re-read from file to expand variables
+            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
+        }
+        catch {}
     }
 }
 

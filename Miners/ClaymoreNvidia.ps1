@@ -27,101 +27,6 @@ $WebLink = "https://bitcointalk.org/index.php?topic=1433925.0" # See here for mo
 $MinerFeeInPercentSingleMode = 1.0 # Fixed
 $MinerFeeInPercentDualMode = 1.5 # Fixed
 
-if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
-    # Create default miner config, required for setup
-    $DefaultMinerConfig = [PSCustomObject]@{
-        "MinerFileVersion" = $MinerFileVersion
-        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-        "IgnoreHWModel" = @()
-        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-        "IgnoreDeviceID" = @()
-        "Commands" = [PSCustomObject]@{
-            "ethash" = ""
-            "ethash2gb" = ""
-            "ethash;blake2s:40" = ""
-            "ethash;blake2s:60" = ""
-            "ethash;blake2s:80" = ""
-            "ethash;decred:" = ""
-            "ethash;decred:130" = ""
-            "ethash;decred:160" = ""
-            "ethash;keccak:70" = ""
-            "ethash;keccak:90" = ""
-            "ethash;keccak:110" = ""
-            "ethash;lbry:60" = ""
-            "ethash;lbry:75" = ""
-            "ethash;lbry:90" = ""
-            "ethash;pascal:40" = ""
-            "ethash;pascal:60" = ""
-            "ethash;pascal:80" = ""
-            "ethash;pascal:100" = ""
-            "ethash2gb;blake2s:75" = ""
-            "ethash2gb;blake2s:100" = ""
-            "ethash2gb;blake2s:125" =  ""
-            "ethash2gb;decred:100" = ""
-            "ethash2gb;decred:130" = ""
-            "ethash2gb;decred:160" = ""
-            "ethash2gb;keccak:70" = ""
-            "ethash2gb;keccak:90" = ""
-            "ethash2gb;keccak:110" = ""
-            "ethash2gb;lbry:60" = ""
-            "ethash2gb;lbry:75" = ""
-            "ethash2gb;lbry:90" = ""
-            "ethash2gb;pascal:40" = ""
-            "ethash2gb;pascal:60" = ""
-            "ethash2gb;pascal:80" = ""
-        }
-        "CommonCommands" = @(" -eres 0 -logsmaxsize 1", "") # array, first value for main algo, sesond value for secondary algo
-        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
-            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
-        }
-    }
-    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
-        $Config = Add-MinerConfig $Name $DefaultMinerConfig
-    }
-    else { # Update existing miner config
-        try {
-            # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-            $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
-            
-            # Execute action, e.g force re-download of binary
-            # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
-                if ($Uri) {
-                    Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop # Remove miner binary to force re-download
-                    # Update log
-                    Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
-                    # Remove benchmark files
-                    # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                    # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                }
-                else {
-                    # Update log
-                    Write-Log -Level Info "New miner binary is available - manual download from '$ManualUri' and install to '$(Split-Path $Path)' is required ($Name [$MinerFileVersion]). "
-                    #Write-Log -Level Info "For best performance it is recommended to remove the stat files for this miner. "
-                }
-            }
-
-            # Always update MinerFileVersion -Force to enforce setting
-            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
-
-
-            # Add config item if not in existing config file, -ErrorAction SilentlyContinue to ignore errors if item exists
-            $NewConfig.Miners.$Name.Commands | Add-Member "ethash;pascal:60" "" -ErrorAction SilentlyContinue
-            $NewConfig.Miners.$Name.Commands | Add-Member "ethash;pascal:80" "" -ErrorAction SilentlyContinue
-            $NewConfig.Miners.$Name.Commands | Add-Member "ethash2gb;pascal:40" "" -ErrorAction SilentlyContinue
-            $NewConfig.Miners.$Name.Commands | Add-Member "ethash2gb;pascal:60" "" -ErrorAction SilentlyContinue
-            $NewConfig.Miners.$Name.Commands | Add-Member "ethash2gb;pascal:80" "" -ErrorAction SilentlyContinue
-
-            # Save config to file
-            Write-Config $NewConfig $Name
-
-            # Apply config, must re-read from file to expand variables
-            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
-        }
-        catch {}
-    }
-}
-
 if ($Info) {
     # Just return info about the miner for use in setup
     # attributes without a curresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
@@ -186,6 +91,86 @@ if ($Info) {
                 Tooltip     = "Syntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")"
             }
         )
+    }
+}
+
+if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    # Create default miner config, required for setup
+    $DefaultMinerConfig = [PSCustomObject]@{
+        "MinerFileVersion" = $MinerFileVersion
+        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+        "IgnoreHWModel" = @()
+        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
+        "IgnoreDeviceID" = @()
+        "Commands" = [PSCustomObject]@{
+            "ethash" = ""
+            "ethash2gb" = ""
+            "ethash;blake2s:40" = ""
+            "ethash;blake2s:60" = ""
+            "ethash;blake2s:80" = ""
+            "ethash;decred:" = ""
+            "ethash;decred:130" = ""
+            "ethash;decred:160" = ""
+            "ethash;keccak:70" = ""
+            "ethash;keccak:90" = ""
+            "ethash;keccak:110" = ""
+            "ethash;lbry:60" = ""
+            "ethash;lbry:75" = ""
+            "ethash;lbry:90" = ""
+            "ethash;pascal:40" = ""
+            "ethash;pascal:60" = ""
+            "ethash;pascal:80" = ""
+            "ethash;pascal:100" = ""
+            "ethash2gb;blake2s:75" = ""
+            "ethash2gb;blake2s:100" = ""
+            "ethash2gb;blake2s:125" =  ""
+            "ethash2gb;decred:100" = ""
+            "ethash2gb;decred:130" = ""
+            "ethash2gb;decred:160" = ""
+            "ethash2gb;keccak:70" = ""
+            "ethash2gb;keccak:90" = ""
+            "ethash2gb;keccak:110" = ""
+            "ethash2gb;lbry:60" = ""
+            "ethash2gb;lbry:75" = ""
+            "ethash2gb;lbry:90" = ""
+            "ethash2gb;pascal:40" = ""
+            "ethash2gb;pascal:60" = ""
+            "ethash2gb;pascal:80" = ""
+        }
+        "CommonCommands" = @(" -eres 0 -logsmaxsize 1", "") # array, first value for main algo, sesond value for secondary algo
+        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
+            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        }
+    }
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
+        $Config = Add-MinerConfig $Name $DefaultMinerConfig
+    }
+    else { # Update existing miner config
+        try {
+            # Execute action, e.g force re-download of binary
+            # Should be the first action. If it fails no further update will take place, update will be retried on next loop
+            Update-Binaries -RemoveMinerBenchmarkFiles $Config.AutoReBenchmark
+
+            # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
+            $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
+
+            # Always update MinerFileVersion -Force to enforce setting
+            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+
+            # Add config item if not in existing config file, -ErrorAction SilentlyContinue to ignore errors if item exists
+            $NewConfig.Miners.$Name.Commands | Add-Member "ethash;pascal:60" "" -ErrorAction SilentlyContinue
+            $NewConfig.Miners.$Name.Commands | Add-Member "ethash;pascal:80" "" -ErrorAction SilentlyContinue
+            $NewConfig.Miners.$Name.Commands | Add-Member "ethash2gb;pascal:40" "" -ErrorAction SilentlyContinue
+            $NewConfig.Miners.$Name.Commands | Add-Member "ethash2gb;pascal:60" "" -ErrorAction SilentlyContinue
+            $NewConfig.Miners.$Name.Commands | Add-Member "ethash2gb;pascal:80" "" -ErrorAction SilentlyContinue
+
+            # Save config to file
+            Write-Config $NewConfig $Name
+
+            # Apply config, must re-read from file to expand variables
+            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
+        }
+        catch {}
     }
 }
 

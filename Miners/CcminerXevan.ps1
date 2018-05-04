@@ -18,66 +18,12 @@ $Port = 4068
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018040300" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "Ccminer forked from krnlx/ccminer-xevan, compiled by Nemosminer (x86)"
 $MinerBinaryHash = "e71488c61263c080964596b72880f04ac20e91a00cb6a217bce7863685705243" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/nemosminer/ccminer-xevan/releases/download/ccminer-xevan/ccminer_x86.7z"
 $ManualUri = ""    
 $WebLink = "https://github.com/nemosminer/ccminer-xevan" # See here for more information about the miner
-
-if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
-    # Create default miner config, required for setup
-    $DefaultMinerConfig = [PSCustomObject]@{
-        "MinerFileVersion" = $MinerFileVersion
-        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-        "IgnoreHWModel" = @()
-        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-        "IgnoreDeviceID" = @()
-        "Commands" = [PSCustomObject]@{
-            "xevan" = "" #Xevan
-        }
-        "CommonCommands" = ""
-        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
-        }
-    }
-    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
-        $Config = Add-MinerConfig $Name $DefaultMinerConfig
-    }
-    else { # Update existing miner config
-        try {
-            # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
-            $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
-            
-            # Execute action, e.g force re-download of binary
-            # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
-                if ($Uri) {
-                    Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop # Remove miner binary to force re-download
-                    # Update log
-                    Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
-                    # Remove benchmark files
-                    # if (Test-Path ".\Stats\$($Name)_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                    # if (Test-Path ".\Stats\$($Name)-*_*_hashrate.txt") {Remove-Item ".\Stats\$($Name)-*_*_hashrate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
-                }
-                else {
-                    # Update log
-                    Write-Log -Level Info "New miner binary is available - manual download from '$ManualUri' and install to '$(Split-Path $Path)' is required ($Name [$MinerFileVersion]). "
-                    #Write-Log -Level Info "For best performance it is recommended to remove the stat files for this miner. "
-                }
-            }
-
-            # Always update MinerFileVersion -Force to enforce setting
-            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
-
-            # Save config to file
-            Write-Config $NewConfig $Name
-
-            # Apply config, must re-read from file to expand variables
-            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
-        }
-        catch {}
-    }
-}
 
 if ($Info) {
     # Just return info about the miner for use in setup
@@ -134,6 +80,47 @@ if ($Info) {
                 Tooltip     = "Syntax: 'Algorithm_Norm = @(`"Poolname`", `"PoolnameCoins`")"
             }
         )
+    }
+}
+
+if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
+    # Create default miner config, required for setup
+    $DefaultMinerConfig = [PSCustomObject]@{
+        "MinerFileVersion" = $MinerFileVersion
+        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+        "IgnoreHWModel" = @()
+        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
+        "IgnoreDeviceID" = @()
+        "Commands" = [PSCustomObject]@{
+            "xevan" = "" #Xevan
+        }
+        "CommonCommands" = ""
+        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        }
+    }
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, create basic config
+        $Config = Add-MinerConfig $Name $DefaultMinerConfig
+    }
+    else { # Update existing miner config
+        try {
+            # Execute action, e.g force re-download of binary
+            # Should be the first action. If it fails no further update will take place, update will be retried on next loop
+            Update-Binaries -RemoveMinerBenchmarkFiles $Config.AutoReBenchmark
+
+            # Read existing config file, do not use $Config because variables are expanded (e.g. $Wallet)
+            $NewConfig = Get-Content -Path 'Config.txt' | ConvertFrom-Json -InformationAction SilentlyContinue
+
+            # Always update MinerFileVersion -Force to enforce setting
+            $NewConfig.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+
+            # Save config to file
+            Write-Config $NewConfig $Name
+
+            # Apply config, must re-read from file to expand variables
+            $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
+        }
+        catch {}
+
     }
 }
 
