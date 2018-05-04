@@ -63,6 +63,7 @@
     "veltor":  "Veltor",
     "x11":  "X11",
     "x11gost":  "Sib",
+    "x12":  "X12",
     "x11evo":  "X11evo",
     "x16r":  "X16R",
     "x16s":  "X16S",
