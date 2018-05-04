@@ -292,6 +292,29 @@ function Get-CommandPerDeviceSet {
     $CommandPerDeviceSet
 }
 
+function Update-Binaries {
+    [CmdletBinding()]
+    Param(
+        [AllowNull()]
+        [Parameter(Mandatory = $false)]
+        $RemoveMinerBenchmarkFiles = $false
+    )
+
+    if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
+        if ($Uri) {
+            Remove-Item $Path -Force -Confirm:$false -ErrorAction Stop # Remove miner binary to force re-download
+            # Update log
+            Write-Log -Level Info "Requested automatic miner binary update ($Name [$MinerFileVersion]). "
+            if ($RemoveMinerBenchmarkFiles) {Remove-MinerBenchmarkFiles -MinerName $Name}
+        }
+        else {
+            # Update log
+            Write-Log -Level Info "New miner binary is available - manual download from '$ManualUri' and install to '$(Split-Path $Path)' is required ($Name [$MinerFileVersion]). "
+            Write-Log -Level Info "For optimal profitability it is recommended to remove the stat files for this miner. "
+        }
+    }
+}
+
 function Add-MinerConfig {
     [CmdletBinding()]
     Param(
@@ -301,7 +324,7 @@ function Add-MinerConfig {
         [PSCustomObject]$DefaultMinerConfig
     )
 
-    $FileName = ".\Config.txt"
+    $FileName = "Config.txt"
 
     # Read existing config file, do not use $Config from core because variables are expanded (e.g. $Wallet)
     $Config = Get-Content -Path $FileName -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
@@ -312,7 +335,20 @@ function Add-MinerConfig {
     # Apply config, must re-read from file to expand variables
     return Get-ChildItemContent $FileName -ErrorAction Stop | Select-Object -ExpandProperty Content        
 }
-        
+
+function Remove-MinerBenchmarkFiles {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [String]$MinerName,
+        [Parameter(Mandatory = $false)]
+        [String]$Algorithm = "*" # If no algorithm then remove ALL benchmark files
+    )
+
+    if (Test-Path ".\Stats\$($MinerName)_$($Algorithm)_HashRate.txt") {Remove-Item ".\Stats\$($MinerName)_$($Algorithm)_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+    if (Test-Path ".\Stats\$($MinerName)-*_$($Algorithm)_HashRate.txt") {Remove-Item ".\Stats\$($MinerName)-*_$($Algorithm)_HashRate.txt" -Force -Confirm:$false -ErrorAction SilentlyContinue}
+}
+
 function Write-Config {
     [CmdletBinding()]
     Param(
