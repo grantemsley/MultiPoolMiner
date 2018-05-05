@@ -18,7 +18,7 @@ $Port = 4068
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050500" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "Ccminer (x64) 2.2.5 by Tpruvot"
 $MinerBinaryHash = "9156d5fc42daa9c8739d04c3456da8fbf3e9dc91d4894d351334f69a7cee58c5" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/tpruvot/ccminer/releases/download/2.2.5-tpruvot/ccminer-x64-2.2.5-cuda9.7z"
@@ -40,6 +40,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
             "vanilla" = "" #BlakeVanilla
             "c11" = "" #C11
             #"cryptonight" = "" #CryptoNight is ASIC territory
+			"cryptolight" = "" #CryptoLight
             "decred" = "" #Decred
             "equihash" = "" #Equihash
             "groestl" = "" #Groestl
@@ -153,6 +154,9 @@ try {
         Remove-BenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "cryptonight")
         Remove-BenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "myr-gr")
 
+		# 2.5.5 Add cryptolight algo
+		$Config.Miners.$Name.Commands | Add-member cryptolight "" -ErrorAction SilentlyContinue
+		
         # Save config to file
         Write-Config -Config $Config -MinerName $Name -Action "Updated"
     }
