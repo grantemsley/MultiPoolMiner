@@ -20,7 +20,7 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "Ccminer Nanashi v1.7.6 r6 by Nicehash"
-$MinerBinaryHash = "998aebaa80cd6d2b758a5b4798d6ac929745b88d81735587798f616d7e2f3b23" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "998aebaa80cd6d2b758a5b4798d6ac929745b88d81735587798f616d7e2f3b23" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/nicehash/ccminer-nanashi/releases/download/1.7.6-r6/ccminer.zip"
 $ManualUri = ""    
 $WebLink = "https://github.com/nicehash/ccminer-nanashi/releases" # See here for more information about the miner
@@ -111,7 +111,7 @@ try {
         Write-Config -Config $Config -MinerName $Name -Action "Added"
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
-        if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
+        if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }

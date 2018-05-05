@@ -20,7 +20,7 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "CcminerHSR compiled by Nemosminer"
-$MinerBinaryHash = "1075fe6cbd4227aea85188e90fd4432b6d39966af305a2a43247c03da914260c" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "1075fe6cbd4227aea85188e90fd4432b6d39966af305a2a43247c03da914260c" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/nemosminer/ccminer-hcash/releases/download/alexishsr/ccminer-hsr-alexis-x86-cuda8.7z"
 $ManualUri = ""    
 $WebLink = "https://github.com/nemosminer/ccminer-hcash" # See here for more information about the miner
@@ -111,7 +111,7 @@ try {
         Write-Config -Config $Config -MinerName $Name -Action "Added"
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
-        if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
+        if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }

@@ -20,7 +20,7 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "Nevermore v0.2.2"
-$MinerBinaryHash = "1A680F1853F003D8E7D1A957C78B2BE09A47039E2C437A846C71B62CA34BE22E" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "1A680F1853F003D8E7D1A957C78B2BE09A47039E2C437A846C71B62CA34BE22E" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/brian112358/nevermore-miner/releases/download/v0.2.2/nevermore-v0.2.2-win64.zip"
 $ManualUri = ""    
 $WebLink = "https://github.com/nemosminer/ccminernevermore/releases" # See here for more information about the miner
@@ -133,7 +133,7 @@ try {
         Write-Config -Config $Config -MinerName $Name -Action "Added"
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
-        if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
+        if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }

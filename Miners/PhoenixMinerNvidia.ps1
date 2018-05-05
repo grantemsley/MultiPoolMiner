@@ -20,7 +20,7 @@ $DeviceIdOffset = 1 # DeviceIDs start at 1
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "PhoenixMiner 2.9e: fastest Ethereum/Ethash miner with lowest devfee"
-$MinerBinaryHash = "a531b7b0bb925173d3ea2976b72f3d280f64751bdb094d5bb980553dfa85fb07" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "a531b7b0bb925173d3ea2976b72f3d280f64751bdb094d5bb980553dfa85fb07" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = ""
 $ManualUri = "https://mega.nz/#F!2VskDJrI!lsQsz1CdDe8x5cH3L8QaBw"
 $WebLink = "https://bitcointalk.org/index.php?topic=2647654.0" # See here for more information about the miner
@@ -122,7 +122,7 @@ try {
         Write-Config -Config $Config -MinerName $Name -Action "Added"
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
-        if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
+        if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }

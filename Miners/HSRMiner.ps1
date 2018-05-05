@@ -20,7 +20,7 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "HSRMINER Neoscrypt Fork by Justaminer 14.04.2018"
-$MinerBinaryHash = "571b1c7d7a0bb9934aaf3e4106c26b7735a004473e9ecd99d35c4e2664487eff" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "571b1c7d7a0bb9934aaf3e4106c26b7735a004473e9ecd99d35c4e2664487eff" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/justaminer/hsrm-fork/raw/master/hsrminer_neoscrypt_fork_hp.zip"
 $ManualUri = ""    
 $WebLink = "https://bitcointalk.org/index.php?topic=2765610.0" # See here for more information about the miner
@@ -119,7 +119,7 @@ try {
         Write-Config -Config $Config -MinerName $Name -Action "Added"
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
-        if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
+        if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }

@@ -21,7 +21,7 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerBinaryInfo = "EWBF's CUDA Zcash miner Version 0.3.4b (x64)"
-$MinerBinaryHash = "84dd02debbf2b0c5ed7eebf813305543265e34ec98635139787bf8b882e7c7b4" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "84dd02debbf2b0c5ed7eebf813305543265e34ec98635139787bf8b882e7c7b4" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
 $PrerequisiteURI  = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"                
 $Uri = ""
@@ -123,7 +123,7 @@ try {
         Write-Config -Config $Config -MinerName $Name -Action "Added"
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
-        if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
+        if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }

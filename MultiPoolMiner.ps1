@@ -1,4 +1,5 @@
 ﻿using module .\Include.psm1
+using module .\Include-Newpoc.psm1
 
 [CmdletBinding()]
 param(
@@ -58,7 +59,7 @@ param(
     [Parameter(Mandatory = $false)]
     [Double]$SwitchingPrevention = 1, #zero does not prevent miners switching
     [Parameter(Mandatory = $false)]
-    [Switch]$AutoUpdate = $true, #if true do not automatically update MPM
+    [Switch]$NoAutoUpdate, #if true do not automatically update MPM
     [Parameter(Mandatory = $false)]
     [Switch]$MinerInstancePerCardModel, #if true a separate miner instance will be run per hw card model, e.g if you have 3x GeForceGTX1060 and 2x GeForceGTX1070ti installed, then 2 miners would be run 
     [Parameter(Mandatory = $false)]
@@ -102,7 +103,7 @@ if ((Get-Command "Get-MpPreference" -ErrorAction SilentlyContinue) -and (Get-MpC
 }
 
 #Check for software updates
-#if ($AutoUpdate -and (Test-Path .\Updater.ps1)) {$Downloader = Start-Job -InitializationScript ([scriptblock]::Create("Set-Location('$(Get-Location)')")) -ArgumentList ($Version, $PSVersionTable.PSVersion, "") -FilePath .\Updater.ps1}
+if (-not $NoAutoUpdate -and (Test-Path .\Updater.ps1)) {$Downloader = Start-Job -InitializationScript ([scriptblock]::Create("Set-Location('$(Get-Location)')")) -ArgumentList ($Version, $PSVersionTable.PSVersion, "") -FilePath .\Updater.ps1}
 
 #Set donation parameters
 $LastDonated = $Timer.AddDays(-1).AddHours(1)
@@ -451,6 +452,9 @@ while ($true) {
         ($Miner_WatchdogTimers | Measure-Object | Select-Object -ExpandProperty Count) -lt <#stage#>2 -and ($Miner_WatchdogTimers | Where-Object {$Miner.HashRates.PSObject.Properties.Name -contains $_.Algorithm} | Measure-Object | Select-Object -ExpandProperty Count) -lt <#stage#>1
     }
 
+    #Use only use fastest miner per algo and device index. E.g. if there are 2 miners available to mine the same algo, only the faster of the two will ever be used, the slower sill also be hidden in the summary screen
+    if ($Config.UseFastestMinerPerAlgoOnly) {$Miners = ($Miners | Group-Object Index).Group | Sort-Object -Descending {$_.HashRates.PSObject.Properties.Name -join ""} ,{($_ | Where-Object Profit -EQ $null | Measure-Object).Count}, {($_ | Measure-Object Profit_Bias -Sum).Sum}, {($_ | Where-Object Profit -NE 0 | Measure-Object).Count} | Group-Object {$_.HashRates.PSObject.Properties.Name -join ""} | Foreach-Object {$_.Group[0]}}
+
     #Update the active miners
     if ($Miners.Count -eq 0) {
         Write-Log -Level Warn "No miners available. "
@@ -612,7 +616,7 @@ while ($true) {
             $Miner.Algorithm | ForEach-Object {
                 $Miner_Algorithm = $_
                 $WatchdogTimer = $WatchdogTimers | Where-Object {$_.MinerName -eq $Miner_Name -and $_.PoolName -eq $Pools.$Miner_Algorithm.Name -and $_.Algorithm -eq $Miner_Algorithm}
-                if ($WatchdogTimer) {
+                if ($WatchdogTimer ) {
                     if ($WatchdogTimer.Kicked -lt $Timer.AddSeconds( - $WatchdogInterval)) {
                         $Miner.SetStatus("Failed")
                     }
@@ -637,17 +641,19 @@ while ($true) {
                 $Miner_Name = $_.Name
                 $_.Algorithm | ForEach-Object {
                     $Miner_Algorithm = $_
-                    $WatchdogTimer = $WatchdogTimers | Where-Object {$_.MinerName -eq $Miner_Name -and $_.PoolName -eq $Pools.$Miner_Algorithm.Name -and $_.Algorithm -eq $Miner_Algorithm}
-                    if (-not $WatchdogTimer) {
-                        $WatchdogTimers += [PSCustomObject]@{
-                            MinerName = $Miner_Name
-                            PoolName  = $Pools.$Miner_Algorithm.Name
-                            Algorithm = $Miner_Algorithm
-                            Kicked    = $Timer
+                    if ($Miner_Algorithm -notmatch "X16R|X16S") { # temp fix, No watchdog for X16R & X16S
+                        $WatchdogTimer = $WatchdogTimers | Where-Object {$_.MinerName -eq $Miner_Name -and $_.PoolName -eq $Pools.$Miner_Algorithm.Name -and $_.Algorithm -eq $Miner_Algorithm}
+                        if (-not $WatchdogTimer) {
+                            $WatchdogTimers += [PSCustomObject]@{
+                                MinerName = $Miner_Name
+                                PoolName  = $Pools.$Miner_Algorithm.Name
+                                Algorithm = $Miner_Algorithm
+                                Kicked    = $Timer
+                            }
                         }
-                    }
-                    elseif (-not ($WatchdogTimer.Kicked -GT $Timer.AddSeconds( - $WatchdogReset))) {
-                        $WatchdogTimer.Kicked = $Timer
+                        elseif (-not ($WatchdogTimer.Kicked -GT $Timer.AddSeconds( - $WatchdogReset))) {
+                            $WatchdogTimer.Kicked = $Timer
+                        }
                     }
                 }
             }
@@ -657,7 +663,7 @@ while ($true) {
     if ($Config.MinerStatusURL -and $Config.MinerStatusKey) {& .\ReportStatus.ps1 -Key $Config.MinerStatusKey -WorkerName $WorkerName -ActiveMiners $ActiveMiners -MinerStatusURL $Config.MinerStatusURL}
 
     #Display mining information
-    $Miners | Where-Object {$_.Profit -ge 1E-5 -or $_.Profit -eq $null} | Sort-Object -Descending Type, Profit_Bias | Format-Table -GroupBy Type (
+    $Miners | Where-Object {$_.Profit -ge 1E-5 -or $_.Profit -eq $null} | Sort-Object -Descending Type, Device, Profit_Bias | Format-Table -GroupBy Type (
         @{Label = "Miner$(if (-not $Config.IgnoreMinerFees) {' [-Fee]'})"; Expression = {if ($Config.IgnoreMinerFees -or -not $_.Fees) {$_.Name}else {"$($_.Name) [-$(($_.Fees | Foreach-Object {$_.ToString("N2")}) -join '%/-')%]"}}}, 
         @{Label = "Algorithm"; Expression = {$_.HashRates.PSObject.Properties.Name}}, 
         @{Label = "Speed"; Expression = {$_.HashRates.PSObject.Properties.Value | ForEach-Object {if ($_ -ne $null) {"$($_ | ConvertTo-Hash)/s"}else {"Benchmarking"}}}; Align = 'right'}, 
@@ -744,20 +750,25 @@ while ($true) {
         $Miner_Data.Lines | ForEach-Object {Write-Log -Level Verbose "$($Miner.Name): $_"}
 
         if ($Miner.GetStatus() -eq "Running") {
-            $Miner.Speed_Live = $Miner_Data.HashRate.PSObject.Properties.Value
+            if ($Miner_Data) {
+                $Miner.Speed_Live = $Miner_Data.HashRate.PSObject.Properties.Value
 
-            $Miner.Algorithm | Where-Object {$Miner_Data.HashRate.$_} | ForEach-Object {
-                $Stat = Set-Stat -Name "$($Miner.Name)_$($_)_HashRate" -Value $Miner_Data.HashRate.$_ -Duration $StatSpan -FaultDetection $true
+                $Miner.Algorithm | Where-Object {$Miner_Data.HashRate.$_} | ForEach-Object {
+                    $Stat = Set-Stat -Name "$($Miner.Name)_$($_)_HashRate" -Value $Miner_Data.HashRate.$_ -Duration $StatSpan -FaultDetection $true
 
-                #Update watchdog timer
-                $Miner_Name = $Miner.Name
-                $Miner_Algorithm = $_
-                $WatchdogTimer = $WatchdogTimers | Where-Object {$_.MinerName -eq $Miner_Name -and $_.PoolName -eq $Pools.$Miner_Algorithm.Name -and $_.Algorithm -eq $Miner_Algorithm}
-                if ($Stat -and $WatchdogTimer -and $Stat.Updated -gt $WatchdogTimer.Kicked) {
-                    $WatchdogTimer.Kicked = $Stat.Updated
+                    #Update watchdog timer
+                    $Miner_Name = $Miner.Name
+                    $Miner_Algorithm = $_
+                    $WatchdogTimer = $WatchdogTimers | Where-Object {$_.MinerName -eq $Miner_Name -and $_.PoolName -eq $Pools.$Miner_Algorithm.Name -and $_.Algorithm -eq $Miner_Algorithm}
+                    if ($Stat -and $WatchdogTimer -and $Stat.Updated -gt $WatchdogTimer.Kicked) {
+                        $WatchdogTimer.Kicked = $Stat.Updated
+                    }
+
+                    $Miner.New = $false
                 }
-
-                $Miner.New = $false
+            }
+            else { # No data from miner. Dead?
+                $Miner.SetStatus("Failed")
             }
         }
 

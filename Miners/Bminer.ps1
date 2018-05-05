@@ -21,8 +21,8 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 #$MinerBinaryInfo = "BMiner 7.0.0 with experimental support for mining Ethereum (x64)"
 $MinerBinaryInfo = "BMiner 6.1.0 with experimental support for mining Ethereum (x64)"
-#$MinerBinaryHash = "08b4c8ccbb97305a4eaef472aefae97dd7d1472b6b0d86fed19544dc7c1fde70" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
-$MinerBinaryHash = "1472b6b0d86fed19544dc7c1fde70" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+#$HashSHA256 = "08b4c8ccbb97305a4eaef472aefae97dd7d1472b6b0d86fed19544dc7c1fde70" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "1472b6b0d86fed19544dc7c1fde70" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 #$Uri = "https://www.bminercontent.com/releases/bminer-lite-v7.0.0-9c7291b-amd64.zip"
 $Uri = "https://www.bminercontent.com/releases/bminer-v6.1.0-7ea8bbe-amd64.zip"
 $ManualUri = "https://www.bminer.me/releases/"
@@ -135,7 +135,7 @@ try {
         Write-Config -Config $Config -MinerName $Name -Action "Added"
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
-        if ($MinerBinaryHash -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $MinerBinaryHash) {
+        if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
