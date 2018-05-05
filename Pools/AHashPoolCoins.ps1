@@ -61,7 +61,9 @@ if ($Info) {
         },
         [PSCustomObject]@{
             Name        = "PricePenaltyFactor"
+            Required    = $false
             ControlType = "double"
+            Decimals    = 2
             Min         = 0.01
             Max         = 1
             Default     = 1

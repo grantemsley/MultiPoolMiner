@@ -77,7 +77,7 @@ if ($Info) {
             Max         = 100
             Fractions   = 2
             Default     = $Default_PoolFeeInternalWallet
-            Description = "Pool fee (in %) for internal wallet`nSet to 0 to ignore pool fees"
+            Description = "Pool fee (in %) for internal wallet. Set to 0 to ignore pool fees"
             Tooltip     = "$($Name) applies different pool fees for internal and external wallets"
         },
         [PSCustomObject]@{
@@ -88,26 +88,19 @@ if ($Info) {
             Max         = 100
             Fractions   = 2
             Default     = $Default_PoolFeeExternalWallet
-            Description = "Pool fee (in %) for external wallet`nSet to 0 to ignore pool fees"
+            Description = "Pool fee (in %) for external wallet. Set to 0 to ignore pool fees"
             Tooltip     = "$($Name) applies different pool fees for internal and external wallets"
         },
         [PSCustomObject]@{
             Name        = "PricePenaltyFactor"
+            Required    = $false
             ControlType = "double"
+            Decimals    = 2
             Min         = 0.01
             Max         = 1
             Default     = 1
             Description = "This adds a multiplicator on estimations presented by the pool. "
             Tooltip     = "If not set then the default of 1 (no penalty) is used."
-        },
-        [PSCustomObject]@{
-            Name        = "PricePenaltyFactor"
-            ControlType = "int"
-            Min         = 0
-            Max         = 99
-            Default     = 1
-            Description = "This adds a multiplicator on estimations presented by the pool. "
-            Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
         },
         [PSCustomObject]@{
             Name        = "DisabledCurrency"
@@ -122,7 +115,7 @@ if ($Info) {
             Required    = $false
             Default     = @()
             ControlType = "string[,]"
-            Description = "List of currencies this miner wil mine.  All other currencies will be ignored. "
+            Description = "List of currencies this miner wil mine. All other currencies will be ignored. "
             Tooltip     = "Case insensitive, leave empty to mine all currencies"    
         },
         [PSCustomObject]@{

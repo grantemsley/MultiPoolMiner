@@ -93,7 +93,9 @@ if ($Info) {
         },
         [PSCustomObject]@{
             Name        = "PricePenaltyFactor"
+            Required    = $false
             ControlType = "double"
+            Decimals    = 2
             Min         = 0.01
             Max         = 1
             Default     = 1
@@ -102,11 +104,12 @@ if ($Info) {
         },
         [PSCustomObject]@{
             Name        = "MinWorker"
+            Required    = $false
             ControlType = "int"
             Min         = 0
-            Max         = 999
+            Max         = 999999
             Default     = $Config.MinWorker
-            Description = "Minimum number of workers that must be mining an alogrithm.`nLow worker numbers will cause long delays until payout. "
+            Description = "Minimum number of workers that must be mining an alogrithm. Low worker numbers will cause long delays until payout. "
             Tooltip     = "You can also set the the value globally in the general parameter section. The smaller value takes precedence"
         },
         [PSCustomObject]@{

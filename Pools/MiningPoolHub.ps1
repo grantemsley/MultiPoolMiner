@@ -64,21 +64,14 @@ if ($Info) {
         },
         [PSCustomObject]@{
             Name        = "PricePenaltyFactor"
+            Required    = $false
             ControlType = "double"
+            Decimals    = 2
             Min         = 0.01
             Max         = 1
             Default     = 1
             Description = "This adds a multiplicator on estimations presented by the pool. "
             Tooltip     = "If not set then the default of 1 (no penalty) is used."
-        },
-        [PSCustomObject]@{
-            Name        = "PricePenaltyFactor"
-            ControlType = "int"
-            Min         = 0
-            Max         = 99
-            Default     = 1
-            Description = "This adds a multiplicator on estimations presented by the pool. "
-            Tooltip     = "If not set or 0 then the default of 1 (no penalty) is used"
         },
         [PSCustomObject]@{
             Name        = "ExcludeAlgorithm"
