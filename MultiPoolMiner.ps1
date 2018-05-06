@@ -26,7 +26,7 @@ param(
     [Parameter(Mandatory = $false)]
     [Array]$Type = @(), #AMD/NVIDIA/CPU
     [Parameter(Mandatory = $false)]
-    [Array]$Algorithm = @(), #i.e. Ethash,Equihash,CryptoNight etc.
+    [Array]$Algorithm = @(), #i.e. Ethash, Equihash, CryptoNightV7 etc.
     [Parameter(Mandatory = $false)]
     [Alias("Miner")]
     [Array]$MinerName = @(), 
@@ -34,7 +34,7 @@ param(
     [Alias("Pool")]
     [Array]$PoolName = @(), 
     [Parameter(Mandatory = $false)]
-    [Array]$ExcludeAlgorithm = @(), #i.e. Ethash,Equihash,CryptoNight etc.
+    [Array]$ExcludeAlgorithm = @(), #i.e. Ethash, Equihash, CryptoNightV7 etc.
     [Parameter(Mandatory = $false)]
     [Alias("ExcludeMiner")]
     [Array]$ExcludeMinerName = @(), 
@@ -42,7 +42,7 @@ param(
     [Alias("ExcludePool")]
     [Array]$ExcludePoolName = @(), 
     [Parameter(Mandatory = $false)]
-    [Array]$Currency = ("BTC", "USD"), #i.e. GBP,EUR,ZEC,ETH etc.
+    [Array]$Currency = ("BTC", "USD"), #i.e. GBP, EUR, ZEC, ETH etc.
     [Parameter(Mandatory = $false)]
     [Int]$Donate = 24, #Minutes per Day
     [Parameter(Mandatory = $false)]
@@ -51,6 +51,10 @@ param(
     [Int]$Delay = 0, #seconds before opening each miner
     [Parameter(Mandatory = $false)]
     [Switch]$Watchdog = $false,
+    [Parameter(Mandatory = $false)]
+    [Array]$ExcludeWatchdogAlgorithm = @("X16R"), #Do not use watchdog for these algorithms, e.g due to it's nature X16R will always trigger watchdog
+    [Parameter(Mandatory = $false)]
+    [Array]$ExcludeWatchdogMinername = @(), #Do not use watchdog for these miners
     [Parameter(Mandatory = $false)]
     [Alias("Uri", "Url")]
     [String]$MinerStatusUrl = "", #i.e https://multipoolminer.io/monitor/miner.php
@@ -63,7 +67,9 @@ param(
     [Parameter(Mandatory = $false)]
     [Switch]$MinerInstancePerCardModel, #if true a separate miner instance will be run per hw card model, e.g if you have 3x GeForceGTX1060 and 2x GeForceGTX1070ti installed, then 2 miners would be run 
     [Parameter(Mandatory = $false)]
-    [Switch]$ShowMinerWindow #if true all miner windows will be visible (they can steal focus)
+    [Switch]$ShowMinerWindow, #if true all miner windows will be visible (they can steal focus)
+    [Parameter(Mandatory = $false)]
+    [Switch]$UseFastestMinerPerAlgoOnly #Use only use fastest miner per algo and device index. E.g. if there are 2 miners available to mine the same algo, only the faster of the two will ever be used, the slower will also be hidden in the summary screen
 )
 
 $Version = "2.7.2.7"
@@ -124,61 +130,16 @@ $API.Devices = $Devices #Give API access to the device information
 while ($true) {
     #Load the config
     $ConfigBackup = $Config
-    if (Test-Path "Config.txt") {
-        $Config = Get-ChildItemContent "Config.txt" -Parameters @{
-            Wallet              = $Wallet
-            UserName            = $UserName
-            WorkerName          = $WorkerName
-            API_ID              = $API_ID
-            API_Key             = $API_Key
-            Interval            = $Interval
-            Region              = $Region
-            SSL                 = $SSL
-            Type                = $Type
-            Algorithm           = $Algorithm
-            MinerName           = $MinerName
-            PoolName            = $PoolName
-            ExcludeAlgorithm    = $ExcludeAlgorithm
-            ExcludeMinerName    = $ExcludeMinerName
-            ExcludePoolName     = $ExcludePoolName
-            Currency            = $Currency
-            Donate              = $Donate
-            Proxy               = $Proxy
-            Delay               = $Delay
-            Watchdog            = $Watchdog
-            MinerStatusURL      = $MinerStatusURL
-            MinerStatusKey      = $MinerStatusKey
-            SwitchingPrevention = $SwitchingPrevention
-            MinerInstancePerCardModel = $MinerInstancePerCardMode
-            ShowMinerWindow           = $ShowMinerWindow
-        } | Select-Object -ExpandProperty Content
-    }
-    else {
-        $Config = [PSCustomObject]@{
-            Pools               = [PSCustomObject]@{}
-            Miners              = [PSCustomObject]@{}
-            Interval            = $Interval
-            Region              = $Region
-            SSL                 = $SSL
-            Type                = $Type
-            Algorithm           = $Algorithm
-            MinerName           = $MinerName
-            PoolName            = $PoolName
-            ExcludeAlgorithm    = $ExcludeAlgorithm
-            ExcludeMinerName    = $ExcludeMinerName
-            ExcludePoolName     = $ExcludePoolName
-            Currency            = $Currency
-            Donate              = $Donate
-            Proxy               = $Proxy
-            Delay               = $Delay
-            Watchdog            = $Watchdog
-            MinerStatusURL      = $MinerStatusURL
-            MinerStatusKey      = $MinerStatusKey
-            SwitchingPrevention = $SwitchingPrevention
-            MinerInstancePerCardModel = $MinerInstancePerCardModel
-            ShowMinerWindow           = $ShowMinerWindow
+
+    #Read existing config from file
+    $Config = Get-ChildItemContent "Config.txt" | Select-Object -ExpandProperty Content
+
+    #On first run command line parameters take precedence
+#    if ($StatEnd -eq $Timer) {
+        $MyInvocation.MyCommand.Parameters.Keys | ForEach-Object { 
+            if ($Parameters.$_) {$Config | Add-Member $_ $Parameters.$_ -Force}
         }
-    }
+#    }
 
     #Error in Config.txt
     if ($Config -isnot [PSCustomObject]) {
@@ -234,8 +195,8 @@ while ($true) {
     #Give API access to the current running configuration
     $API.Config = $Config
 
-    #Clear pool cache if the configuration has changed
-    if (($ConfigBackup | ConvertTo-Json -Compress) -ne ($Config | ConvertTo-Json -Compress)) {$AllPools = $null}
+    #Clear pool cache if the pool configuration has changed
+    if (($ConfigBackup.Pools | ConvertTo-Json -Compress) -ne ($Config.Pools | ConvertTo-Json -Compress)) {$AllPools = $null}
 
     if ($Config.Proxy) {$PSDefaultParameterValues["*:Proxy"] = $Config.Proxy}
     else {$PSDefaultParameterValues.Remove("*:Proxy")}
@@ -616,7 +577,7 @@ while ($true) {
             $Miner.Algorithm | ForEach-Object {
                 $Miner_Algorithm = $_
                 $WatchdogTimer = $WatchdogTimers | Where-Object {$_.MinerName -eq $Miner_Name -and $_.PoolName -eq $Pools.$Miner_Algorithm.Name -and $_.Algorithm -eq $Miner_Algorithm}
-                if ($WatchdogTimer ) {
+                if ($WatchdogTimer) {
                     if ($WatchdogTimer.Kicked -lt $Timer.AddSeconds( - $WatchdogInterval)) {
                         $Miner.SetStatus("Failed")
                     }
@@ -641,7 +602,7 @@ while ($true) {
                 $Miner_Name = $_.Name
                 $_.Algorithm | ForEach-Object {
                     $Miner_Algorithm = $_
-                    if ($Miner_Algorithm -notmatch "X16R|X16S") { # temp fix, No watchdog for X16R & X16S
+                    if ($Config.ExcludeWatchdogAlgorithm -inotcontains $Miner_Algorithm -and $Config.ExcludeWatchdogMinername -inotcontains $Miner_Name) {
                         $WatchdogTimer = $WatchdogTimers | Where-Object {$_.MinerName -eq $Miner_Name -and $_.PoolName -eq $Pools.$Miner_Algorithm.Name -and $_.Algorithm -eq $Miner_Algorithm}
                         if (-not $WatchdogTimer) {
                             $WatchdogTimers += [PSCustomObject]@{

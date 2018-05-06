@@ -17,7 +17,7 @@ TWITTER: @multipoolminer
 Licensed under the GNU General Public License v3.0
 Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/LICENSE
 
-README.txt - updated on 29/04/2018 (dd/mm/yyyy) - v1.24.03 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
+README.txt - updated on 06/05/2018 (dd/mm/yyyy) - v1.24.04 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
 
 ====================================================================
 
@@ -192,8 +192,8 @@ COMMAND LINE OPTIONS (case-insensitive - except for BTC addresses, see Sample Us
 -switchingprevention
 	Since version 2.6, the delta value (integer) that was used to determine how often MultiPoolMiner is allowed to switch, is now user-configurable on a scale of 1 to infinity on an intensity basis. Default is 1 (Start.bat default is 2). Recommended values are 1-10 where 1 means the most frequent switching and 10 means the least switching. Please note setting this value to zero (0) will not turn this function off! Please see further explanation in MULTIPOOLMINER'S LOGIC section below. 
 
--autoupdate:false
-	By default MPM will perform an automatic update on startup if a newer version is found. Set to 'false' to disable automatic update to latest MPM version. 
+-noautoupdate
+	By default MPM will perform an automatic update on startup if a newer version is found. Set to 'true' to disable automatic update to latest MPM version. 
 
 
 ====================================================================
@@ -283,7 +283,7 @@ There is a section for Pools, Miners and a general section
 
 Advanced config for Pools
 
-Settings for each configured pool are stored in its own subsection.
+Settings for each configured pool are stored in its own subsection. Theses settings are only valid for the named pool.
 
 To change payout currency of a pool
 
@@ -428,6 +428,15 @@ PricePenaltyFactor
 
 When using advanced per pool configuration, it is possible to add a penalty factor for a specific pool. This simply adds a multiplicator on estimations presented by the pool.
 
+The default pool config might look like this:
+
+    "ZpoolCoins": {
+        "Worker": "$WorkerName",
+        "BTC": "$Wallet"
+    }
+
+To limit mining to well defined coins add a line like "PricePenaltyFactor":  [factor from 0.01 to 1]
+
 E.g. You feel like a pool is exaggerating its estimations by 10% - Set PricePenaltyFactor to 0.9:
 
     "ZpoolCoins": {
@@ -441,7 +450,36 @@ If PricePenaltyFactor it not set then the default of 1 (no penalty) is used.
 
 Advanced config for Miners
 
-This is currently not used. For now just leave it as it is.
+Settings for each miner are stored in its own subsection. Theses settings are only valid for the named miner.
+
+DoNotMine
+
+This optional filter prevents the miner from mining configured algorithms on selected pools.
+
+The default pool config might look like this:
+    "CcminerNevermore":  {
+        "MinerFileVersion":  "2018050400",
+        "MinerFeeInPercent":  1,
+        "IgnoreHWModel":  null,
+        "IgnoreDeviceID":  null,
+        "Commands":  {
+             "x16r":  "",
+             "x16s":  ""
+        },
+        "CommonCommands":  "",
+        "DoNotMine":  {
+        
+        }
+    }
+
+To prevent the miner from using a specific algoithm on some pools add a line like '"x16r": ["Pool_Name", "Another_Pool_Name" , "Yet_Another_Pool_Name"]' to the 'DoNotMine' element.
+
+E.g. To not mine the 'x16r' algorithm on 'Zpool' and 'ZpoolCoins' add '"x16r": ["Zpool", "ZpoolCoins"]' to the 'DoNotMine' element:
+
+		"DoNotMine": {
+		    "x16r": ["Zpool", "ZpoolCoins"]
+		}
+
 
 General section
 
