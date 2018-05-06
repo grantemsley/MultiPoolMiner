@@ -8,47 +8,34 @@ function Get-Devices {
     $Devices = [PSCustomObject]@{}
 
     [OpenCl.Platform]::GetPlatformIDs() | ForEach-Object { # Hardware platform
-
-        if ($_.Type -eq "Cpu") {
-            $Type = "CPU"
-        }
-        else {
-            Switch ($_.Vendor) {
-                "Advanced Micro Devices, Inc." {$Type = "AMD"}
-                "Intel(R) Corporation"         {$Type = "INTEL"}
-                "NVIDIA Corporation"           {$Type = "NVIDIA"}
-            }
-        }
-        $Devices | Add-Member $Type @()
-        $DeviceID = 0 # For each platform start counting DeviceIDs from 0
-
         [OpenCl.Device]::GetDeviceIDs($_, [OpenCl.DeviceType]::All) | ForEach-Object {
+
+            if ($_.Type -eq "Cpu") {
+                $Type = "CPU"
+            }
+            else {
+                Switch ($_.Vendor) {
+                    "Advanced Micro Devices, Inc." {$Type = "AMD"}
+                    "Intel(R) Corporation"         {$Type = "INTEL"}
+                    "NVIDIA Corporation"           {$Type = "NVIDIA"}
+                }
+            }
+
+            if (-not $Devices.$Type) {
+                $Devices | Add-Member $Type @()
+                $DeviceID = 0 # For each platform start counting DeviceIDs from 0
+            }
 
             $Name_Norm = (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
 
             if ($Devices.$Type.Name_Norm -inotcontains $Name_Norm) { # New card model
-                $Device = @([PSCustomObject]$_)
+                $Device = $_
                 $Device | Add-Member Name_Norm $Name_Norm
                 $Device | Add-Member DeviceIDs @()
                 $Devices.$Type += $Device
             }
             $Devices.$Type | Where-Object {$_.Name_Norm -eq $Name_Norm} | ForEach-Object {$_.DeviceIDs += $DeviceID++} # Add DeviceID
         }
-    ################################# Begin fake hardware ########################################
-    #    [OpenCl.Device]::GetDeviceIDs($_, [OpenCl.DeviceType]::All) | ForEach-Object {
-    #
-    #        $Name_Norm = (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-    #
-    #        if ($Devices.$Type.Name_Norm -inotcontains $Name_Norm) { # New card model
-    #            $Device = @([PSCustomObject]$_)
-    #            $Device | Add-Member Name_Norm $Name_Norm
-    #            $Device | Add-Member DeviceIDs @()
-    #            $Devices.$Type += $Device
-    #        }
-    #        $Devices.$Type | Where-Object {$_.Name_Norm -eq $Name_Norm} | ForEach-Object {$_.DeviceIDs += $DeviceID++}
-    #    }
-    ################################# End fake hardware #############################################
-
     }
     $Devices
 }
