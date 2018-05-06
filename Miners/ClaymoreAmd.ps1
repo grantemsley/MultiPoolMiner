@@ -197,7 +197,7 @@ try {
 
             if ($DeviceIDs.Count -gt 0) {
 
-                if ($Config.MinerInstancePerCardModel -and (Get-Command "ConvertTo-CommandPerDeviceSet" -ErrorAction SilentlyContinue)) {
+                if ($Config.MinerInstancePerCardModel) {
                     $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
                     $MainAlgorithmCommands = ConvertTo-CommandPerDeviceSet -Command ($Config.Miners.$Name.Commands.$_.Split(";") | Select-Object -Index 0) -DeviceIDs $DeviceIDs -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset # additional command line options for main algorithm
                     $SecondaryAlgorithmCommands = ConvertTo-CommandPerDeviceSet -Command ($Config.Miners.$Name.Commands.$_.Split(";") | Select-Object -Index 1) -DeviceIDs $DeviceIDs -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset # additional command line options for secondary algorithm

@@ -150,7 +150,7 @@ try {
 
                 $Algorithm_Norm = Get-Algorithm $_
 
-                if ($Config.MinerInstancePerCardModel -and (Get-Command "ConvertTo-CommandPerDeviceSet" -ErrorAction SilentlyContinue)) {
+                if ($Config.MinerInstancePerCardModel) {
                     $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
                     $Commands = ConvertTo-CommandPerDeviceSet -Command $Config.Miners.$Name.Commands.$_ -DeviceIDs $DeviceIDs -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset # additional command line options for algorithm
                 }

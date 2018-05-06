@@ -178,7 +178,7 @@ try {
 
             if ($DeviceIDs.Count -gt 0) {
 
-                if ($Config.MinerInstancePerCardModel -and (Get-Command "ConvertTo-CommandPerDeviceSet" -ErrorAction SilentlyContinue)) {
+                if ($Config.MinerInstancePerCardModel) {
                     $Miner_Name = "$Name$($Threads)-$($DeviceTypeModel.Name_Norm)"
                 }
                 else {
