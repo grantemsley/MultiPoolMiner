@@ -2,91 +2,58 @@
 
 function Get-Devices {
     [CmdletBinding()]
-	
-    $Devices  = [PSCustomObject]@{}
-    $DeviceID = 0
-    
-    $OpenGlDevices = @([OpenCl.Platform]::GetPlatformIDs() | ForEach-Object {[OpenCl.Device]::GetDeviceIDs($_, [OpenCl.DeviceType]::All)})
-    $OpenGlDevices | ForEach-Object {
 
-        $Device = @([PSCustomObject]$_)
+    # returns a list of all OpenGL devices found.
 
-        $Name_Norm = (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+    $Devices = [PSCustomObject]@{}
 
-        if ($Device.Type -eq "Cpu") {
+    [OpenCl.Platform]::GetPlatformIDs() | ForEach-Object { # Hardware platform
+
+        if ($_.Type -eq "Cpu") {
             $Type = "CPU"
         }
         else {
-            Switch ($Device.Vendor) {
+            Switch ($_.Vendor) {
                 "Advanced Micro Devices, Inc." {$Type = "AMD"}
                 "Intel(R) Corporation"         {$Type = "INTEL"}
                 "NVIDIA Corporation"           {$Type = "NVIDIA"}
             }
-        }        
-
-        if (-not $Devices.$Type) { # New hardware platform, start counting deviceIDs from 0
-            $DeviceID = 0
-            $Device | Add-Member Name_Norm $Name_Norm
-            $Device | Add-Member DeviceIDs @($DeviceID)
-            $Devices | Add-Member $Type $Device
         }
-        else {
+        $Devices | Add-Member $Type @()
+        $DeviceID = 0 # For each platform start counting DeviceIDs from 0
+
+        [OpenCl.Device]::GetDeviceIDs($_, [OpenCl.DeviceType]::All) | ForEach-Object {
+
+            $Name_Norm = (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+
             if ($Devices.$Type.Name_Norm -inotcontains $Name_Norm) { # New card model
+                $Device = @([PSCustomObject]$_)
                 $Device | Add-Member Name_Norm $Name_Norm
-                $Device | Add-Member DeviceIDs @($DeviceID)
+                $Device | Add-Member DeviceIDs @()
                 $Devices.$Type += $Device
             }
-            else { # Existing card model
-                $Devices.$Type | Where-Object {$_.Name_Norm -eq $Name_Norm} | ForEach-Object {$_.DeviceIDs += $DeviceID}
-            }
+            $Devices.$Type | Where-Object {$_.Name_Norm -eq $Name_Norm} | ForEach-Object {$_.DeviceIDs += $DeviceID++} # Add DeviceID
         }
-        $DeviceID++
+    ################################# Begin fake hardware ########################################
+    #    [OpenCl.Device]::GetDeviceIDs($_, [OpenCl.DeviceType]::All) | ForEach-Object {
+    #
+    #        $Name_Norm = (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
+    #
+    #        if ($Devices.$Type.Name_Norm -inotcontains $Name_Norm) { # New card model
+    #            $Device = @([PSCustomObject]$_)
+    #            $Device | Add-Member Name_Norm $Name_Norm
+    #            $Device | Add-Member DeviceIDs @()
+    #            $Devices.$Type += $Device
+    #        }
+    #        $Devices.$Type | Where-Object {$_.Name_Norm -eq $Name_Norm} | ForEach-Object {$_.DeviceIDs += $DeviceID++}
+    #    }
+    ################################# End fake hardware #############################################
+
     }
-################################# Begin fake hardware ########################################
-#
-#    $OpenGlDevices = @([OpenCl.Platform]::GetPlatformIDs() | ForEach-Object {[OpenCl.Device]::GetDeviceIDs($_, [OpenCl.DeviceType]::All)})
-#    $OpenGlDevices += $OpenGlDevices
-#    $OpenGlDevices | ForEach-Object {
-#
-#        $Device = @([PSCustomObject]$_)
-#
-#        $Name_Norm = "$((Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]")_1"
-#
-#        if ($_.Type -eq "Cpu") {
-#            $Type = "CPU"
-#        }
-#        else {
-#            Switch ($_.Vendor) {
-#                "Advanced Micro Devices, Inc." {$Type = "AMD"}
-#                "Intel(R) Corporation"         {$Type = "INTEL"}
-#                "NVIDIA Corporation"           {$Type = "NVIDIA"}
-#            }
-#        }        
-#
-#        if (-not $Devices.$Type) { # New hardware platform, start counting deviceIDs from 0
-#            $DeviceID = 0
-#            $Device | Add-Member Name_Norm $Name_Norm
-#            $Device | Add-Member DeviceIDs @($DeviceID)
-#            $Devices | Add-Member $Type $Device
-#        }
-#        else {
-#            if ($Devices.$Type.Name_Norm -inotcontains $Name_Norm) { # New card model
-#                $Device | Add-Member Name_Norm $Name_Norm
-#                $Device | Add-Member DeviceIDs @($DeviceID)
-#                $Devices.$Type += $Device
-#            }
-#            else { # Existing card model
-#                $Devices.$Type | Where-Object {$_.Name_Norm -eq $Name_Norm} | ForEach-Object {$_.DeviceIDs += $DeviceID}
-#            }
-#        }
-#        $DeviceID++
-#    }        
-################################# End fake hardware #############################################
-    
     $Devices
 }
 
-function Get-DeviceIDsSet {
+function Get-DeviceIDs {
     # Filters the DeviceIDs and returns only DeviceIDs for active miners
     # $DeviceIdBase: Returened  DeviceID numbers are of base $DeviceIdBase, e.g. HEX (16)
     # $DeviceIdOffset: Change default numbering start from 0 -> $DeviceIdOffset
@@ -107,34 +74,33 @@ function Get-DeviceIDsSet {
         [Int]$DeviceIdOffset
     )
 
-    $DeviceIDsSet  = [PSCustomObject]@{}
-    $DeviceIDsSet | Add-Member "All" @() # array of all devices, ids will be in hex format
-    $DeviceIDsSet | Add-Member "3gb" @() # array of all devices with more than 3MiB VRAM, ids will be in hex format
-    $DeviceIDsSet | Add-Member "4gb" @() # array of all devices with more than 4MiB VRAM, ids will be in hex format
+    $DeviceIDs  = [PSCustomObject]@{}
+    $DeviceIDs | Add-Member "All" @() # array of all devices, ids will be in hex format
+    $DeviceIDs | Add-Member "3gb" @() # array of all devices with more than 3MiB VRAM, ids will be in hex format
+    $DeviceIDs | Add-Member "4gb" @() # array of all devices with more than 4MiB VRAM, ids will be in hex format
 
     # Get DeviceIDs, filter out all disabled hw models and IDs
     if ($Config.MinerInstancePerCardModel) { # separate miner instance per hardware model
         if ($Config.Devices.$Type.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $DeviceTypeModel.Name_Norm) {
             $DeviceTypeModel.DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {
-                $DeviceIDsSet."All" += [Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)
-                if ($DeviceTypeModel.GlobalMemsize -ge 3000000000) {$DeviceIDsSet."3gb" += [Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
-                if ($DeviceTypeModel.GlobalMemsize -ge 4000000000) {$DeviceIDsSet."4gb" += [Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
+                $DeviceIDs."All" += [Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)
+                if ($DeviceTypeModel.GlobalMemsize -ge 3000000000) {$DeviceIDs."3gb" += [Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
+                if ($DeviceTypeModel.GlobalMemsize -ge 4000000000) {$DeviceIDs."4gb" += [Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
             }
         }
     }
     else { # one miner instance per hw type
-        $DeviceIDsSet."All" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
-        $DeviceIDsSet."3gb" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 3000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | Foreach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
-        $DeviceIDsSet."4gb" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 4000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | Foreach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
+        $DeviceIDs."All" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
+        $DeviceIDs."3gb" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 3000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | Foreach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
+        $DeviceIDs."4gb" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 4000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | Foreach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
     }
-    
-    $DeviceIDsSet
+    $DeviceIDs
 }
 
-function Get-CommandPerDeviceSet {
+function ConvertTo-CommandPerDeviceSet {
 
-    # rewrites the command parameters
-    # if a parameter has multiple values, only the values for the available devices are returned
+    # converts the command parameters
+    # if a parameter has multiple values, only the values for the valid devices are returned
     # parameters without values are valid for all devices and are left untouched
 
     # supported parameter syntax:

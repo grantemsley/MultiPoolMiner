@@ -159,7 +159,7 @@ try {
         $DeviceTypeModel = $_
 
         # Get array of IDs of all devices in device set, returned DeviceIDs are of base $DeviceIdBase representation starting from $DeviceIdOffset
-        $DeviceSet = Get-DeviceIDsSet -Config $Config -Devices $Devices -Type $Type -DeviceTypeModel $DeviceTypeModel -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset
+        $DeviceSet = Get-DeviceIDs -Config $Config -Devices $Devices -Type $Type -DeviceTypeModel $DeviceTypeModel -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset
 
         $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$_ -match ".+:[1-9]" -and  $Pools.(Get-Algorithm ($_.Split(":") | Select-Object -Index 0)) -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm ($_.Split(":") | Select-Object -Index 0)).Name} | ForEach-Object {
 
@@ -178,7 +178,7 @@ try {
 
             if ($DeviceIDs.Count -gt 0) {
 
-                if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDeviceSet" -ErrorAction SilentlyContinue)) {
+                if ($Config.MinerInstancePerCardModel -and (Get-Command "ConvertTo-CommandPerDeviceSet" -ErrorAction SilentlyContinue)) {
                     $Miner_Name = "$Name$($Threads)-$($DeviceTypeModel.Name_Norm)"
                 }
                 else {

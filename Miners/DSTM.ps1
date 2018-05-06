@@ -141,7 +141,7 @@ try {
         $DeviceTypeModel = $_
 
         # Get array of IDs of all devices in device set, returned DeviceIDs are of base $DeviceIdBase representation starting from $DeviceIdOffset
-        $DeviceIDs = (Get-DeviceIDsSet -Config $Config -Devices $Devices -Type $Type -DeviceTypeModel $DeviceTypeModel -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset)."All"
+        $DeviceIDs = (Get-DeviceIDs -Config $Config -Devices $Devices -Type $Type -DeviceTypeModel $DeviceTypeModel -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset)."All"
 
         if ($DeviceIDs.Count -gt 0) {
 
@@ -149,9 +149,9 @@ try {
 
                 $Algorithm_Norm = Get-Algorithm $_
 
-                if ($Config.MinerInstancePerCardModel -and (Get-Command "Get-CommandPerDeviceSet" -ErrorAction SilentlyContinue)) {
+                if ($Config.MinerInstancePerCardModel -and (Get-Command "ConvertTo-CommandPerDeviceSet" -ErrorAction SilentlyContinue)) {
                     $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
-                    $Commands = Get-CommandPerDeviceSet -Command $Config.Miners.$Name.Commands.$_ -DeviceIDs $DeviceIDs -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset # additional command line options for algorithm
+                    $Commands = ConvertTo-CommandPerDeviceSet -Command $Config.Miners.$Name.Commands.$_ -DeviceIDs $DeviceIDs -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset # additional command line options for algorithm
                 }
                 else {
                     $Miner_Name = $Name

@@ -146,7 +146,7 @@ try {
         $DeviceTypeModel = $_
 
         # Get list of active devices, returned deviceIDs are in hex format starting from 0
-        $DeviceIDs = (Get-DeviceIDsSet -Config $Config -Devices $Devices -Type $Type -DeviceTypeModel $DeviceTypeModel -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset)."All"
+        $DeviceIDs = (Get-DeviceIDs -Config $Config -Devices $Devices -Type $Type -DeviceTypeModel $DeviceTypeModel -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset)."All"
 
         if ($DeviceIDs.Count -gt 0) {
 
