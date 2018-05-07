@@ -25,7 +25,7 @@ param(
     [Parameter(Mandatory = $false)]
     [Array]$Type = @(), #AMD/NVIDIA/CPU
     [Parameter(Mandatory = $false)]
-    [Array]$Algorithm = @(), #i.e. Ethash,Equihash,CryptoNight etc.
+    [Array]$Algorithm = @(), #i.e. Ethash,Equihash,CryptoNightV7 etc.
     [Parameter(Mandatory = $false)]
     [Alias("Miner")]
     [Array]$MinerName = @(), 
@@ -33,7 +33,7 @@ param(
     [Alias("Pool")]
     [Array]$PoolName = @(), 
     [Parameter(Mandatory = $false)]
-    [Array]$ExcludeAlgorithm = @(), #i.e. Ethash,Equihash,CryptoNight etc.
+    [Array]$ExcludeAlgorithm = @(), #i.e. Ethash,Equihash,CryptoNightV7 etc.
     [Parameter(Mandatory = $false)]
     [Alias("ExcludeMiner")]
     [Array]$ExcludeMinerName = @(), 
@@ -58,11 +58,11 @@ param(
     [Parameter(Mandatory = $false)]
     [Double]$SwitchingPrevention = 1, #zero does not prevent miners switching
     [Parameter(Mandatory = $false)]
-    [Switch]$AutoUpdate = $true
+    [Switch]$DisableAutoUpdate = $true
 )
 write-log -level warn "$(Get-Date) Main script A memory usage: $((Get-Process -ID $PID | Select-Object -ExpandProperty WorkingSet)/1MB) MB"
-$VerbosePreference = 'Continue'
-$DebugPreference = 'Continue'
+#$VerbosePreference = 'Continue'
+#$DebugPreference = 'Continue'
 $InformationPreference = 'Continue'
 
 
@@ -106,7 +106,7 @@ if ((Get-Command "Get-MpPreference" -ErrorAction SilentlyContinue -Verbose:$fals
 }
 
 #Check for software updates
-#if ($AutoUpdate -and (Test-Path .\Updater.ps1)) {$Downloader = Start-Job -InitializationScript ([scriptblock]::Create("Set-Location('$(Get-Location)')")) -ArgumentList ($Version, $PSVersionTable.PSVersion, "") -FilePath .\Updater.ps1}
+if (-not $DisableAutoUpdate -and (Test-Path .\Updater.ps1)) {$Downloader = Start-Job -InitializationScript ([scriptblock]::Create("Set-Location('$(Get-Location)')")) -ArgumentList ($Version, $PSVersionTable.PSVersion, "") -FilePath .\Updater.ps1}
 
 #Set donation parameters
 $LastDonated = $Timer.AddDays(-1).AddHours(1)
@@ -227,8 +227,8 @@ while ($true) {
     #Give API access to the current running configuration
     $API.Config = $Config
 
-    #Clear pool cache if the configuration has changed
-    if (($ConfigBackup | ConvertTo-Json -Compress) -ne ($Config | ConvertTo-Json -Compress)) {$AllPools = $null}
+    #Clear pool cache if the pool configuration has changed
+    if (($ConfigBackup.Pools | ConvertTo-Json -Compress) -ne ($Config.Pools | ConvertTo-Json -Compress)) {$AllPools = $null}
 
     if ($Config.Proxy) {$PSDefaultParameterValues["*:Proxy"] = $Config.Proxy}
     else {$PSDefaultParameterValues.Remove("*:Proxy")}
