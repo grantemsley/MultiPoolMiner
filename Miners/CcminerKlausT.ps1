@@ -18,7 +18,7 @@ $Port = 4068
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050800" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "Ccminer (x64) 8.21 by KlausT"
 $HashSHA256 = "ebf91e27f54de29f158a4f5ebecedb7e7e03eb9010331b2e949335bf1144a886" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/KlausT/ccminer/releases/download/8.21/ccminer-821-cuda91-x64.zip"
@@ -33,9 +33,26 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         IgnoreDeviceID   = @()
         CommonCommands   = ""
         Commands         = [PSCustomObject]@{
+            #GPU - profitable 20/04/2018
+            "c11" = "" #C11
+            "deep" = "" #deep
+            "dmd-gr" = "" #dmd-gr
+            "fresh" = "" #fresh
+            "fugue256" = "" #Fugue256
             "groestl" = "" #Groestl
-            #"myr-gr" = "" #MyriadGroestl is ASIC territory
+            "jackpot" = "" #Jackpot
+            "keccak" = "" #Keccak
+            "luffa" = "" #Luffa
+            "lyra2v2" = "" #Lyra2RE2
             "neoscrypt" = "" #NeoScrypt
+            "penta" = "" #Pentablake
+            "skein" = "" #Skein
+            "s3" = "" #S3
+            "tribus" = "" #Tribus
+            "veltor" = "" #Veltor
+            #"whirlpool" = "" #Whirlpool
+            #"whirlpoolx" = "" #whirlpoolx
+            "X17" = "" #X17 Verge
         }
         DoNotMine        = [PSCustomObject]@{
             # Syntax: "Algorithm" = @("Poolname", "Another_Poolname"), e.g. "equihash" = @("Zpool", "ZpoolCoins")
