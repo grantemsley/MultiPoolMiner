@@ -18,7 +18,7 @@ $Port = 4068
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050600" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050800" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "Ccminer 1.5.81(sp-MOD) by _SP (x86)"
 $HashSHA256 = "82477387c860517c5face8758bcb7aac890505280bf713aca9f86d7b306ac711" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/sp-hash/ccminer/releases/download/1.5.81/release81.7z"
@@ -33,9 +33,32 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         IgnoreDeviceID = @()
         CommonCommands = ""
         Commands       = [PSCustomObject]@{
+            #GPU - profitable 20/04/2018
+            "bastion" = "" #bastion
             "c11" = "" #C11
-            "skein" = "" #Skein
-            "x17" = "" #X17
+            "credit" = "" #Credit
+            "deep" = "" #deep
+            "dmd-gr" = "" #dmd-gr
+            "fresh" = "" #fresh
+            "fugue256" = "" #Fugue256
+            "groestl" = "" #Groestl
+            "heavy" = "" #heavy
+            "jackpot" = "" #JackPot
+            "keccak" = "" #Keccak
+            "luffa" = "" #Luffa
+            "lyra2" = "" #lyra2h
+            #"lyra2v2" = "" #Lyra2RE2
+            "mjollnir" = "" #Mjollnir
+            #"neoscrypt" = "" #NeoScrypt
+            "pentablake" = "" #pentablake
+            "scryptjane:nf" = "" #scryptjane:nf
+            #"skein" = "" #Skein
+            "s3" = "" #S3
+            "spread" = "" #Spread
+            #"whirlpool" = "" #Whirlpool
+            #"whirlpoolx" = "" #whirlpoolx
+            "x17" = "" #x17
+            "yescrypt" = "" #Yescrypt
         }
         DoNotMine      = [PSCustomObject]@{
             # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
