@@ -10,7 +10,6 @@ param(
 # Compatibility check with old MPM builds
 if (-not $Config.Miners) {$Config | Add-Member Miners @() -ErrorAction SilentlyContinue} 
 
-$Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\NVIDIA-Alexis78hsr\ccminer-alexis.exe"
 $Type = "NVIDIA"
 $API  = "Ccminer"
@@ -18,10 +17,11 @@ $Port = 4068
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050800" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "CcminerHSR compiled by Nemosminer"
 $HashSHA256 = "1075fe6cbd4227aea85188e90fd4432b6d39966af305a2a43247c03da914260c" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/nemosminer/ccminer-hcash/releases/download/alexishsr/ccminer-hsr-alexis-x86-cuda8.7z"
+$Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $ManualUri = ""    
 $WebLink = "https://github.com/nemosminer/ccminer-hcash" # See here for more information about the miner
         
@@ -33,7 +33,21 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         IgnoreDeviceID   = @()
         CommonCommands   = ""
         Commands         = [PSCustomObject]@{
-            "hsr" = "" #HSR
+            #GPU - profitable 20/04/2018
+            "c11" = "" #c11
+            "hsr" = "" #HSR, HShare
+            "keccak" = "" #Keccak
+            "lyra2" = "" #Lyra2
+            "lyra2v2" = "" #lyra2v2
+            #"neoscrypt" = "" #NeoScrypt
+            #"skein" = "" #Skein
+            "skein2" = "" #skein2
+            "veltor" = "" #Veltor
+            #"whirlcoin" = "" #WhirlCoin
+            #"whirlpool" = "" #Whirlpool
+            #"whirlpoolx" = "" #whirlpoolx
+            "x11evo" = "" #X11evo
+            "x17" = "" #x17
         }
         DoNotMine        = [PSCustomObject]@{
             # Syntax: "Algorithm" = @("Poolname", "Another_Poolname"), e.g. "equihash" = @("Zpool", "ZpoolCoins")
