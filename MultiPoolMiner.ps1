@@ -63,7 +63,7 @@ param(
     [Parameter(Mandatory = $false)]
     [Double]$SwitchingPrevention = 1, #zero does not prevent miners switching
     [Parameter(Mandatory = $false)]
-    [Switch]$NoAutoUpdate, #if true do not automatically update MPM
+    [Switch]$DisableAutoUpdate, #if true do not automatically update MPM
     [Parameter(Mandatory = $false)]
     [Switch]$MinerInstancePerCardModel, #if true a separate miner instance will be run per hw card model, e.g if you have 3x GeForceGTX1060 and 2x GeForceGTX1070ti installed, then 2 miners would be run 
     [Parameter(Mandatory = $false)]
@@ -109,7 +109,7 @@ if ((Get-Command "Get-MpPreference" -ErrorAction SilentlyContinue) -and (Get-MpC
 }
 
 #Check for software updates
-if (-not $NoAutoUpdate -and (Test-Path .\Updater.ps1)) {$Downloader = Start-Job -InitializationScript ([scriptblock]::Create("Set-Location('$(Get-Location)')")) -ArgumentList ($Version, $PSVersionTable.PSVersion, "") -FilePath .\Updater.ps1}
+if (-not $DisableAutoUpdate -and (Test-Path .\Updater.ps1)) {$Downloader = Start-Job -InitializationScript ([scriptblock]::Create("Set-Location('$(Get-Location)')")) -ArgumentList ($Version, $PSVersionTable.PSVersion, "") -FilePath .\Updater.ps1}
 
 #Set donation parameters
 $LastDonated = $Timer.AddDays(-1).AddHours(1)
