@@ -18,10 +18,10 @@ $Port = 4068
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050800" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "Ccminer Nanashi-Meiyo-Meijin v2.2-mod-r2"
 $HashSHA256 = "1974bab01a30826497a76b79e227f3eb1c9eb9ffa6756c801fcd630122bdb5c7" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
-$Uri = "https://github.com/Nanashi-Meiyo-Meijin/ccminer_v2.2_mod_r2/releases/download/v2.2-mod-r2/2.2-mod-r2-CUDA9.binary.zip"
+$Uri = "https://github.com/Nanashi-Meiyo-Meijin/ccminer/releases/download/v2.2-mod-r2/2.2-mod-r2-CUDA9.binary.zip"
 $ManualUri = ""    
 $WebLink = "https://github.com/Nanashi-Meiyo-Meijin/ccminer_v2.2_mod_r2" # See here for more information about the miner
 
@@ -33,10 +33,43 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         IgnoreDeviceID   = @()
         CommonCommands   = ""
         Commands         = [PSCustomObject]@{
+            #GPU - profitable 20/04/2018
+            "bastion" = "" #bastion
+            "bitcore" = "" #Bitcore
+            "bmw" = "" #bmw
+            #"c11" = "" #C11
+            "deep" = "" #deep
+            "dmd-gr" = "" #dmd-gr
+            "equihash" = "" #Equihash
+            "fresh" = "" #fresh
+            "fugue256" = "" #Fugue256
+            "groestl" = "" #Groestl
+            "heavy" = "" #heavy
+            "hmq1725" = "" #HMQ1725
             "jha" = "" #JHA
-            "lyra2v2" = "" #Lyra2RE2
-            "lyra2z" = "" #Lyra2z
+            "keccak" = "" #Keccak
+            "keccakc" = "" #keccakc
+            "luffa" = "" #Luffa
+            "lyra2" = "" #lyra2re
+            #"lyra2v2" = "" #Lyra2RE2
+            "lyra2z" = "" #Lyra2z, ZCoin
+            "mjollnir" = "" #Mjollnir
             "neoscrypt" = "" #NeoScrypt
+            "penta" = "" #Pentablake
+            "scryptjane:nf" = "" #scryptjane:nf
+            "sha256t" = "" #sha256t
+            #"skein" = "" #Skein
+            "skein2" = "" #skein2
+            "skunk" = "" #Skunk
+            "s3" = "" #S3
+            "timetravel" = "" #Timetravel
+            "tribus" = "" #Tribus
+            "veltor" = "" #Veltor
+            #"whirlpool" = "" #Whirlpool
+            "wildkeccak" = "" #wildkeccak
+            "x11evo" = "" #X11evo
+            "x17" = "" #x17
+            "zr5" = "" #zr5
         }
         DoNotMine       = [PSCustomObject]@{
             # Syntax: "Algorithm" = @("Poolname", "Another_Poolname"), e.g. "equihash" = @("Zpool", "ZpoolCoins")
