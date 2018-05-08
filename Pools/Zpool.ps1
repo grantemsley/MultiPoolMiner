@@ -181,6 +181,7 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
     $Divisor = 1000000
 
     switch ($Algorithm_Norm) {
+        # values in mBTC/MH/day, per PH for sha256 & GH for scrypt, blake, decred, x11, quark, qubit, kS for equihash
         "blake2s"   {$Divisor *= 1000}
         "blakecoin" {$Divisor *= 1000}
         "decred"    {$Divisor *= 1000}
@@ -190,6 +191,8 @@ $APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-O
         "quark"     {$Divisor *= 1000}
         "qubit"     {$Divisor *= 1000}
         "scrypt"    {$Divisor *= 1000}
+        "sha"       {$Divisor *= 1000000}
+        "sha256t"   {$Divisor *= 1000000}
         "x11"       {$Divisor *= 1000}
     }
 
