@@ -15,7 +15,7 @@ $Path = ".\Bin\CPU-TPruvot\cpuminer-gw64-avx2.exe"
 $Type = "CPU"
 $API  = "Ccminer"
 $Port = 4048
-$MinerFileVersion = "2018050600" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerFileVersion = "2018050800" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "cpuminer-multi v1.3.1 windows by Tpruvot (x64)"
 $HashSHA256 = "1F7ACE389009B0CB13D048BEDBBECCCDD3DDD723892FD2E2F6F3032D999224DC"
 $Uri = "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.1-multi/cpuminer-multi-rel1.3.1-x64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
@@ -28,25 +28,14 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         CPUThread        = ($Devices.$Type.MaxComputeUnits | Measure-Object -sum).sum * 2
         CommonCommands   = ""
         Commands         = [PSCustomObject]@{
-            "blake2s" = "" #Blake2s
-            "blakecoin" = "" #Blakecoin
-            "vanilla" = "" #BlakeVanilla
-            "c11" = "" #C11
-            #"cryptonight" = "" #CryptoNight is ASIC territory
-            "decred" = "" #Decred
-            "groestl" = "" #Groestl
-            "keccak" = "" #Keccak
-            "lyra2rev2" = "" #Lyra2RE2
-            #"myr-gr" = "" #MyriadGroestl is ASIC territory
-            "neoscrypt" = "" #NeoScrypt
-            #"nist5" = "" #Nist5 is ASIC territory
-            "sib" = "" #Sib
-            "skein" = "" #Skein
-            "timetravel" = "" #Timetravel
-            "x11evo" = "" #X11evo
-            "x17" = "" #X17
-            "xevan" = "" #Xevan
+            # CPU Only algos 3/27/2018
             "yescrypt" = "" #Yescrypt
+            #"axiom" = "" #axiom
+            
+            # CPU & GPU - still profitable 27/03/2018
+            "cryptonight" = "" #CryptoNight
+            "hmq1725" = "" #HMQ1725
+            "shavite3" = "" #shavite3
         }
         DoNotMine        = [PSCustomObject]@{
             # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
