@@ -19,8 +19,8 @@ $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-#$MinerBinaryInfo = "BMiner 7.0.0 with experimental support for mining Ethereum (x64)"
-$MinerBinaryInfo = "BMiner 6.1.0 with experimental support for mining Ethereum (x64)"
+#$MinerInfo = "BMiner 7.0.0 with experimental support for mining Ethereum (x64)"
+$MinerInfo = "BMiner 6.1.0 with experimental support for mining Ethereum (x64)"
 #$HashSHA256 = "08b4c8ccbb97305a4eaef472aefae97dd7d1472b6b0d86fed19544dc7c1fde70" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $HashSHA256 = "1472b6b0d86fed19544dc7c1fde70" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 #$Uri = "https://www.bminercontent.com/releases/bminer-lite-v7.0.0-9c7291b-amd64.zip"
@@ -35,26 +35,24 @@ $MinerFeeInPercentEthash3gb = 0.65 # Fixed at 0.65%
 if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
-        "MinerFileVersion" = $MinerFileVersion
-        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-        "IgnoreHWModel" = @()
-        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-        "IgnoreDeviceID" = @()
-        "Commands" = [PSCustomObject]@{
+        MinerFileVersion = $MinerFileVersion
+        IgnoreHWModel  = @()
+        IgnoreDeviceID = @()
+        CommonCommands = " -watchdog=false -no-runtime-info"
+        Commands       = [PSCustomObject]@{
             "equihash" = "" #Equihash
 #            "ethash" = "" #Ethash
 #            "ethash2gb" = "" #Ethash2GB
 #            "ethash3gb" = "" #Ethash3GB
         }
-        "CommonCommands" = " -watchdog=false -no-runtime-info"
-        "Stratum" = [PSCustomObject]@{ # Bminer uses different stratum types to select algo
-            "equihash" = "stratum" #Stratum for Equihash
-            "ethash" = "ethstratum" #Stratum for Ethereum
+        Stratum        = [PSCustomObject]@{ # Bminer uses different stratum types to select algo
+            "equihash"  = "stratum" #Stratum for Equihash
+            "ethash"    = "ethstratum" #Stratum for Ethereum
             "ethash2gb" = "ethstratum" #Stratum for Ethash2GB
             "ethash3gb" = "ethstratum" #Stratum for Ethash3GB
         }
-        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
-            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        DoNotMine      = [PSCustomObject]@{
+            # Syntax: "Algorithm" = @("Poolname", "Another_Poolname"), e.g. "equihash" = @("Zpool", "ZpoolCoins")
         }
     }
 
@@ -63,7 +61,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion  = $MinerFileVersion
-            MinerBinaryInfo   = $MinerBinaryInfo
+            MinerInfo         = $MinerInfo
             Uri               = $Uri
             ManualUri         = $ManualUri
             Type              = $Type
@@ -127,12 +125,8 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
 }
 
 try {
-    # Keep miner config up to date
-    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, add default miner config
-        # Add default miner config
-        $Config.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
-        # Save config to file
-        Write-Config -Config $Config -MinerName $Name -Action "Added"
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # New miner, add default miner config
+        $Config = Add-MinerConfig -ConfigFile "Config.txt" -MinerName $Name -Config $DefaultMinerConfig
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
@@ -140,11 +134,14 @@ try {
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
+        # Read config from file to not expand any variables
+        $TempConfig = Get-Content "Config.txt" | ConvertFrom-Json
+
         # Always update MinerFileVersion -Force to enforce setting
-        $Config.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+        $TempConfig.Miners.$Name | Add-Member MinerFileVersion $MinerFileVersion -Force
 
         # Save config to file
-        Write-Config -Config $Config -MinerName $Name -Action "Updated"
+        $Config = Set-Config -ConfigFile "Config.txt" -Config $TempConfig -MinerName $Name -Action "Updated"
     }
 
     # Create miner objects

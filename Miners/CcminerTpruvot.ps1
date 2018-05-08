@@ -18,8 +18,8 @@ $Port = 4068
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050500" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Ccminer (x64) 2.2.5 by Tpruvot"
+$MinerFileVersion = "2018050501" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerInfo = "Ccminer (x64) 2.2.5 by Tpruvot"
 $HashSHA256 = "9156d5fc42daa9c8739d04c3456da8fbf3e9dc91d4894d351334f69a7cee58c5" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/tpruvot/ccminer/releases/download/2.2.5-tpruvot/ccminer-x64-2.2.5-cuda9.7z"
 $ManualUri = ""
@@ -28,12 +28,11 @@ $WebLink = "https://bitcointalk.org/?topic=770064" # See here for more informati
 if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
-        "MinerFileVersion" = $MinerFileVersion
-        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-        "IgnoreHWModel" = @()
-        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-        "IgnoreDeviceID" = @()
-        "Commands" = [PSCustomObject]@{
+        MinerFileVersion = $MinerFileVersion
+        IgnoreHWModel  = @()
+        IgnoreDeviceID = @()
+        CommonCommands = " --submit-stale"
+        Commands       = [PSCustomObject]@{
             "bitcore" = "" #Bitcore
             "blake2s" = "" #Blake2s
             "blakecoin" = "" #Blakecoin
@@ -63,9 +62,8 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
             "x16r" = "" #Raven
             "x17" = "" #X17
         }
-        "CommonCommands" = " --submit-stale"
-        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
-            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        DoNotMine      = [PSCustomObject]@{
+            # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
         }
     }
 
@@ -73,15 +71,15 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         # Just return info about the miner for use in setup
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
-            MinerFileVersion  = $MinerFileVersion
-            MinerBinaryInfo   = $MinerBinaryInfo
-            Uri               = $Uri
-            ManualUri         = $ManualUri
-            Type              = $Type
-            Path              = $Path
-            Port              = $Port
-            WebLink           = $WebLink
-            Settings          = @(
+            MinerFileVersion = $MinerFileVersion
+            MinerInfo        = $MinerInfo
+            Uri              = $Uri
+            ManualUri        = $ManualUri
+            Type             = $Type
+            Path             = $Path
+            Port             = $Port
+            WebLink          = $WebLink
+            Settings         = @(
                 [PSCustomObject]@{
                     Name        = "IgnoreHWModel"
                     Required    = $false
@@ -130,12 +128,8 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
 }
 
 try {
-    # Keep miner config up to date
-    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, add default miner config
-        # Add default miner config
-        $Config.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
-        # Save config to file
-        Write-Config -Config $Config -MinerName $Name -Action "Added"
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # New miner, add default miner config
+        $Config = Add-MinerConfig -ConfigFile "Config.txt" -MinerName $Name -Config $DefaultMinerConfig
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
@@ -143,22 +137,25 @@ try {
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
+        # Read config from file to not expand any variables
+        $TempConfig = Get-Content "Config.txt" | ConvertFrom-Json
+
         # Always update MinerFileVersion -Force to enforce setting
-        $Config.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+        $TempConfig.Miners.$Name | Add-Member MinerFileVersion $MinerFileVersion -Force
 
         # Remove config item if in existing config file
-        $Config.Miners.$Name.Commands.PSObject.Properties.Remove("myr-gr")
-        $Config.Miners.$Name.Commands.PSObject.Properties.Remove("cryptonight")
+        $TempConfig.Miners.$Name.Commands.PSObject.Properties.Remove("myr-gr")
+        $TempConfig.Miners.$Name.Commands.PSObject.Properties.Remove("cryptonight")
                     
         # Remove miner benchmark files, these are no longer needed
         Remove-BenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "cryptonight")
         Remove-BenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "myr-gr")
 
-		# 2.5.5 Add cryptolight algo
-		$Config.Miners.$Name.Commands | Add-member cryptolight "" -ErrorAction SilentlyContinue
+		# 2.2.5 Add cryptolight algo
+		$TempConfig.Miners.$Name.Commands | Add-Member cryptolight "" -ErrorAction SilentlyContinue
 		
-        # Save config to file
-        Write-Config -Config $Config -MinerName $Name -Action "Updated"
+        # Save config to file and apply
+        $Config = Set-Config -ConfigFile "Config.txt" -Config $TempConfig -MinerName $Name -Action "Updated"
     }
 
     # Create miner objects

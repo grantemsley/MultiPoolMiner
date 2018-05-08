@@ -19,7 +19,7 @@ $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "CcminerHSR compiled by Nemosminer"
+$MinerInfo = "CcminerHSR compiled by Nemosminer"
 $HashSHA256 = "1075fe6cbd4227aea85188e90fd4432b6d39966af305a2a43247c03da914260c" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/nemosminer/ccminer-hcash/releases/download/alexishsr/ccminer-hsr-alexis-x86-cuda8.7z"
 $ManualUri = ""    
@@ -28,17 +28,15 @@ $WebLink = "https://github.com/nemosminer/ccminer-hcash" # See here for more inf
 if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
-        "MinerFileVersion" = $MinerFileVersion
-        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-        "IgnoreHWModel" = @()
-        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-        "IgnoreDeviceID" = @()
-        "Commands" = [PSCustomObject]@{
+        MinerFileVersion = $MinerFileVersion
+        IgnoreHWModel    = @()
+        IgnoreDeviceID   = @()
+        CommonCommands   = ""
+        Commands         = [PSCustomObject]@{
             "hsr" = "" #HSR
         }
-        "CommonCommands" = ""
-        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = @("Poolname", "Another_Poolname") 
-            #e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        DoNotMine        = [PSCustomObject]@{
+            # Syntax: "Algorithm" = @("Poolname", "Another_Poolname"), e.g. "equihash" = @("Zpool", "ZpoolCoins")
         }
     }
 
@@ -47,7 +45,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion  = $MinerFileVersion
-            MinerBinaryInfo   = $MinerBinaryInfo
+            MinerInfo         = $MinerInfo
             Uri               = $Uri
             ManualUri         = $ManualUri
             Type              = $Type
@@ -103,12 +101,8 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
 }
 
 try {
-    # Keep miner config up to date
-    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, add default miner config
-        # Add default miner config
-        $Config.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
-        # Save config to file
-        Write-Config -Config $Config -MinerName $Name -Action "Added"
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # New miner, add default miner config
+        $Config = Add-MinerConfig -ConfigFile "Config.txt" -MinerName $Name -Config $DefaultMinerConfig
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
@@ -116,11 +110,14 @@ try {
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
+        # Read config from file to not expand any variables
+        $TempConfig = Get-Content "Config.txt" | ConvertFrom-Json
+
         # Always update MinerFileVersion -Force to enforce setting
-        $Config.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+        $TempConfig.Miners.$Name | Add-Member MinerFileVersion $MinerFileVersion -Force
 
         # Save config to file
-        Write-Config -Config $Config -MinerName $Name -Action "Updated"
+        $Config = Set-Config -ConfigFile "Config.txt" -Config $TempConfig -MinerName $Name -Action "Updated"
     }
 
     # Create miner objects

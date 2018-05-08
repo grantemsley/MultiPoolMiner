@@ -1,3 +1,4 @@
+using module ..\Include.psm1
 param(
     [PSCustomObject]$Pools,
     [PSCustomObject]$Stats,
@@ -16,28 +17,27 @@ $Port = 3335
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "2018050400" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerBinaryInfo = "Monero (XMR) NVIDIA miner v2.6.1 (x64)"
+$MinerFileVersion = "2018050600" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerInfo = "Monero (XMR) NVIDIA miner v2.6.1 (x64)"
 $HashSHA256 = "" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
 $Uri = "https://github.com/xmrig/xmrig-nvidia/releases/download/v2.6.1/xmrig-nvidia-2.6.1-cuda9-win64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-$ManualUri = "https://github.com/xmrig/xmrig-nvidia"    
+$ManualUri = $Uri
 $WebLink = "https://github.com/xmrig/xmrig-nvidia" # See here for more information about the miner
 $MinerFeeInPercent = 1 # Miner default is 5 minute per 100 minutes, can be reduced to 1% via command line option --donate-level
 
 if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config, required for setup
     $DefaultMinerConfig = [PSCustomObject]@{
-        "MinerFileVersion" = $MinerFileVersion
-        #"IgnoreHWModel" = @("GPU Model Name", "Another GPU Model Name", e.g "GeforceGTX1070") # Available model names are in $Devices.$Type.Name_Norm, Strings here must match GPU model name reformatted with (Get-Culture).TextInfo.ToTitleCase(($_.Name)) -replace "[^A-Z0-9]"
-        "IgnoreHWModel" = @()
-        #"IgnoreDeviceID" = @(0, 1) # Available deviceIDs are in $Devices.$Type.DeviceIDs
-        "IgnoreDeviceID" = @()
-        "MinerFeeInPercent" = $MinerFeeInPercent
-        "Commands" = [PSCustomObject]@{
+        MinerFileVersion  = $MinerFileVersion
+        IgnoreHWModel     = @()
+        IgnoreDeviceID    = @()
+        MinerFeeInPercent = $MinerFeeInPercent
+        CommonCommands    = " --keepalive --nicehash --cuda-bfactor 8"
+        Commands          = [PSCustomObject]@{
             "cryptonightV7" = "" #Cryptonight
         }
-        "CommonCommands" = " --keepalive --nicehash"
-        "DoNotMine" = [PSCustomObject]@{ # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        DoNotMine         = [PSCustomObject]@{
+            # Syntax: "Algorithm" = @("Poolname", "Another_Poolname"), e.g. "equihash" = @("Zpool", "ZpoolCoins")
         }
     }
 
@@ -46,13 +46,14 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
         # attributes without a curresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion  = $MinerFileVersion
-            MinerBinaryInfo   = $MinerBinaryInfo
+            MinerInfo         = $MinerInfo
             Uri               = $Uri
             ManualUri         = $ManualUri
             Type              = $Type
             Path              = $Path
             Port              = $Port
             WebLink           = $WebLink
+            MinerFeeInPercent = $MinerFeeInPercent
             Settings          = @(
                 [PSCustomObject]@{
                     Name        = "$MinerFeeInPercent"
@@ -119,12 +120,8 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
 }
 
 try {
-    # Keep miner config up to date
-    if (-not $Config.Miners.$Name.MinerFileVersion) { # new miner, add default miner config
-        # Add default miner config
-        $Config.Miners | Add-Member $Name $DefaultMinerConfig -Force -ErrorAction Stop
-        # Save config to file
-        Write-Config -Config $Config -MinerName $Name -Action "Added"
+    if (-not $Config.Miners.$Name.MinerFileVersion) { # New miner, add default miner config
+        $Config = Add-MinerConfig -ConfigFile "Config.txt" -MinerName $Name -Config $DefaultMinerConfig
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
@@ -132,11 +129,14 @@ try {
             Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
+        # Read config from file to not expand any variables
+        $TempConfig = Get-Content "Config.txt" | ConvertFrom-Json
+
         # Always update MinerFileVersion -Force to enforce setting
-        $Config.Miners.$Name | Add-member MinerFileVersion $MinerFileVersion -Force
+        $TempConfig.Miners.$Name | Add-Member MinerFileVersion $MinerFileVersion -Force
 
         # Save config to file
-        Write-Config -Config $Config -MinerName $Name -Action "Updated"
+        $Config = Set-Config -ConfigFile "Config.txt" -Config $TempConfig -MinerName $Name -Action "Updated"
     }
 
     # Create miner objects
