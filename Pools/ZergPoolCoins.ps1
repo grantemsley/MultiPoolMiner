@@ -221,7 +221,7 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
         $FeeFactor = 1
     }
 
-    $PricePenaltyFactor = $Config.Pools.$Name.$PricePenaltyFactor
+    $PricePenaltyFactor = $Config.Pools.$Name.PricePenaltyFactor
     if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {
         $PricePenaltyFactor = 1
     }
