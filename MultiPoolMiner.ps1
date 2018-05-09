@@ -743,6 +743,10 @@ while ($true) {
 
         $MinerComparisons | Out-Host
     }
+    $BenchmarksNeeded = ($miners | Where {$_.HashRates.PSObject.Properties.Value -eq $null}).Count
+    if($BenchmarksNeeded -gt 0) {
+        Write-Host -BackgroundColor Red "Benchmarking: $($BenchmarksNeeded) miners left to benchmark."
+    }
 
     write-log -level warn "$(Get-Date) Main script ZA memory usage: $((Get-Process -ID $PID | Select-Object -ExpandProperty WorkingSet)/1MB) MB"
     #Give API access to WatchdogTimers information
