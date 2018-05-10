@@ -62,7 +62,7 @@ param(
     [Parameter(Mandatory = $false)]
     [Double]$SwitchingPrevention = 1, #zero does not prevent miners switching
     [Parameter(Mandatory = $false)]
-    [Switch]$DisableAutoUpdate = $true
+    [Switch]$DisableAutoUpdate = $true,
     [Parameter(Mandatory = $false)]
     [Switch]$ShowMinerWindow = $false #if true all miner windows will be visible (they can steal focus)
 )
