@@ -1,17 +1,5 @@
 {
   "Pools": {
-    "AHashPool": {
-      "BTC": "$Wallet",
-      "Worker": "$WorkerName"
-    },
-    "Blockmunch": {
-      "BTC": "$Wallet",
-      "Worker": "$WorkerName"
-    },
-    "Hashrefinery": {
-      "BTC": "$Wallet",
-      "Worker": "$WorkerName"
-    },
     "MiningPoolHub": {
       "User": "$UserName",
       "Worker": "$WorkerName",
@@ -25,10 +13,6 @@
       "API_Key": "$API_Key"
     },
     "NiceHash": {
-      "BTC": "$Wallet",
-      "Worker": "$WorkerName"
-    },
-    "ZergPool": {
       "BTC": "$Wallet",
       "Worker": "$WorkerName"
     },

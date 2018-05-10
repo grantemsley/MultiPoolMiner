@@ -132,6 +132,17 @@ write-log -level warn "$(Get-Date) Main script C memory usage: $((Get-Process -I
 
 $API.Devices = $Devices #Give API access to the device information  
 
+# Create config.txt if it is missing
+if (!Test-Path "Config.txt") {
+    if(Test-Path "Config.default.txt") {
+        Copy-Item -Path "Config.default.txt" -Destination "Config.txt"
+    } else {
+        Write-Log -Level Error "Config.txt and Config.default.txt are missing. Cannot continue. "
+        Start-Sleep 10
+        Exit
+    }
+}
+
 while ($true) {
     write-log -level warn "$(Get-Date) Main script D memory usage: $((Get-Process -ID $PID | Select-Object -ExpandProperty WorkingSet)/1MB) MB"
     #Load the config
@@ -166,42 +177,13 @@ while ($true) {
             ShowMinerWindow          = $ShowMinerWindow
         } | Select-Object -ExpandProperty Content
     }
-    else {
-        $Config = [PSCustomObject]@{
-            Pools                    = [PSCustomObject]@{}
-            Miners                   = [PSCustomObject]@{}
-            Interval                 = $Interval
-            Region                   = $Region
-            SSL                      = $SSL
-            Type                     = $Type
-            Algorithm                = $Algorithm
-            MinerName                = $MinerName
-            PoolName                 = $PoolName
-            ExcludeAlgorithm         = $ExcludeAlgorithm
-            ExcludeMinerName         = $ExcludeMinerName
-            ExcludePoolName          = $ExcludePoolName
-            Currency                 = $Currency
-            Donate                   = $Donate
-            Proxy                    = $Proxy
-            Delay                    = $Delay
-            Watchdog                 = $Watchdog
-            WatchdogExcludeAlgorithm = $WatchdogExcludeAlgorithm
-            WatchdogExcludeMinerName = $WatchdogExcludeMinerName
-            MinerStatusURL           = $MinerStatusURL
-            MinerStatusKey           = $MinerStatusKey
-            SwitchingPrevention      = $SwitchingPrevention
-            ShowMinerWindow          = $ShowMinerWindow
-        }
-    }
 
     #Only use configured types that are present in system
     $Config.Type = $Config.Type | Where-Object {$Devices.$_}
 
     #Error in Config.txt
     if ($Config -isnot [PSCustomObject]) {
-        Write-Log -Level Error "*********************************************************** "
-        Write-Log -Level Error "Critical error: Config.txt is invalid. MPM cannot continue. "
-        Write-Log -Level Error "*********************************************************** "
+        Write-Log -Level Error "Config.txt is invalid. Cannot continue. "
         Start-Sleep 10
         Exit
     }
