@@ -63,6 +63,8 @@ param(
     [Double]$SwitchingPrevention = 1, #zero does not prevent miners switching
     [Parameter(Mandatory = $false)]
     [Switch]$DisableAutoUpdate = $true
+    [Parameter(Mandatory = $false)]
+    [Switch]$ShowMinerWindow = $false #if true all miner windows will be visible (they can steal focus)
 )
 write-log -level warn "$(Get-Date) Main script A memory usage: $((Get-Process -ID $PID | Select-Object -ExpandProperty WorkingSet)/1MB) MB"
 #$VerbosePreference = 'Continue'
@@ -121,7 +123,6 @@ $WalletDonate = @("1BLXARB3GbKyEg8NTY56me5VXFsX2cixFB","1Q24z7gHPDbedkaWDTFqhMF8
 $UserNameDonate = @("grantemsley","aaronsace", "fonyo")[[Math]::Floor((Get-Random -Minimum 1 -Maximum 11) / 10)]
 $WorkerNameDonate = "multipoolminer"
 
-
 #Initialize the API
 Import-Module .\API.psm1
 Start-APIServer
@@ -162,6 +163,7 @@ while ($true) {
             MinerStatusURL           = $MinerStatusURL
             MinerStatusKey           = $MinerStatusKey
             SwitchingPrevention      = $SwitchingPrevention
+            ShowMinerWindow          = $ShowMinerWindow
         } | Select-Object -ExpandProperty Content
     }
     else {
@@ -188,6 +190,7 @@ while ($true) {
             MinerStatusURL           = $MinerStatusURL
             MinerStatusKey           = $MinerStatusKey
             SwitchingPrevention      = $SwitchingPrevention
+            ShowMinerWindow          = $ShowMinerWindow
         }
     }
 
@@ -544,6 +547,7 @@ while ($true) {
                 New                  = $false
                 Benchmarked          = 0
                 Pool                 = $Miner.Pools.PSObject.Properties.Value.Name
+                ShowMinerWindow      = $Config.ShowMinerWindow
             }
         }
     }
