@@ -7,12 +7,14 @@ param(
     [PSCustomObject]$Devices
 )
 
+$Type = "NVIDIA"
+if (-not $Devices.$Type) {return} # No NVIDIA mining device present in system
+
 # Compatibility check with old MPM builds
 if (-not $Config.Miners) {$Config | Add-Member Miners @() -ErrorAction SilentlyContinue} 
 
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\NVIDIA-Zealot\z-enemy.exe"
-$Type = "NVIDIA"
 $API  = "Ccminer"
 $Port = 4068
 $DeviceIdBase = 16 # DeviceIDs are in hex
@@ -20,10 +22,10 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "zealot/enemy-1.08, 1% devfee"
-$HashSHA256 = "59e413741711e2984a1911db003fee807941f9a9f838cb96ff050194bc74bfce" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "15F401E8AF15884440C5A8940C9E91934A3A7AF484DA3ACAB9237087D010F42A"
 $Uri = ""
 $ManualUri = "https://mega.nz/#!5WACFRTT!tV1vUsFdBIDqCzBrcMoXVR2G9YHD6xqct5QB2nBiuzM"
-$WebLink = "https://bitcointalk.org/index.php?topic=3378390.0;all"
+$Uri = "https://github.com/MultiPoolMiner/miner-binaries/releases/download/zenemy109/z-enemy.109a-release.zip"
 $MinerFeeInPercent = 1 # Fixed at 1%. Dev fee will start randomly when miner is first started. After 1% of time mined then automatically switches back to user pool 
 
 if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
@@ -35,47 +37,16 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         CommonCommands = ""
         Commands       = [PSCustomObject]@{
             "bitcore" = "" #Bitcore
-            #"blake2s" = "" #Blake2s - Not Supported
-            #"blakecoin" = "" #Blakecoin - Not Supported
-            #"c11" = "" #C11 - Not Supported
-            #"cryptonight" = "" #CryptoNight - Not Supported; ASIC territory
-            "decred" = "" #Decred - NOT TESTED
-            #"equihash" = "" #Equihash - Not Supported
-            #"ethash" = "" #Ethash - Not Supported
-            #"groestl" = "" #Groestl - Not Supported
-            #"hmq1725" = "" #HMQ1725 - Not Supported
-            #"hsr" = "" #HSR - Not Supported
             "jha" = "" #JHA - NOT TESTED
-            #"keccak" = "" #Keccak - Not Supported
-            #"keccakc" = "" #Keccakc - Not Supported
-            #"lbry" = "" #Lbry - Not Supported
-            #"lyra2v2" = "" #Lyra2RE2 - Not Supported
-            #"lyra2z" = "" #Lyra2z - Not Supported
-            #"myr-gr" = "" #MyriadGroestl - Not Supported
-            #"neoscrypt" = "" #NeoScrypt - Not Supported
-            #"nist5" = "" #Nist5 is ASIC territory
-            #"pascal" = "" #Pascal - Not Supported
             "phi" = "" #PHI
             "poly" = "" #Polytmos - NOT TESTED
-            #"qubit" = "" #qubit - Not Supported
-            #"quark" = "" #Quark - Not Supported
-            #"sib" = "" #Sib - Not Supported
-            #"skein" = "" #Skein - Not Supported
-            #"skunk" = "" #Skunk - Not Supported
-            #"timetravel" = "" #Timetravel - Not Supported
-            #"tribus" = "" #Tribus - Not Supported
-            "vanilla" = "" #BlakeVanilla - NOT TESTED
             "veltor" = "" #Veltor - NOT TESTED
-            #"x11" = "" #X11 - Not Supported
-            #"x11evo" = "" #X11evo - Not Supported
             "x12" = "" #X12 - NOT TESTED
-            #"x13" = "" #X13 - Not Supported
             "x14" = "" #X14 - NOT TESTED
-            "x16r" = "" #Rave
+            "x16r" = "" #Raven
             "x16s" = "" #Pigeon
-            #"x17" = "" #X17 - Not Supported
-            #"xevan" = "" #Xevan - Not Supported
-            #"yescrypt" = "" #Yescrypt - Not Supported
+            "xevan"   = "" #Xevan, new in 1.09a
+            "vit"     = "" #Vitality, new in 1.09a
         }
         DoNotMine      = [PSCustomObject]@{
             # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
@@ -92,6 +63,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
             ManualUri         = $ManualUri
             Type              = $Type
             Path              = $Path
+            HashSHA256        = $HashSHA256
             Port              = $Port
             WebLink           = $WebLink
             MinerFeeInPercent = $MinerFeeInPercent
@@ -154,7 +126,7 @@ try {
     # Keep miner config up to date
     if (-not $Config.Miners.$Name.MinerFileVersion) { 
         # New miner, add default miner config
-        $Config = Add-MinerConfig -ConfigFile "Config.txt" -MinerName $Name -Config $DefaultMinerConfig
+        $Config = Add-MinerConfig -ConfigFile $ConfigFile -MinerName $Name -Config $DefaultMinerConfig -Message "Added miner config ($MinerName [$MinerFileVersion]) to $(Split-Path $ConfigFile -leaf). "
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
@@ -179,7 +151,7 @@ try {
         Remove-BenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "myr-gr")
 
         # Save config to file and apply
-        $Config = Set-Config -ConfigFile "Config.txt" -Config $TempConfig -MinerName $Name -Action "Updated"
+        $Config = Set-Config -ConfigFile $ConfigFile -Config $TempConfig -MinerName $Name -Message "Updated miner config ($MinerName [$MinerFileVersion]) in $(Split-Path $ConfigFile -leaf). "
     }
 
     # Create miner objects

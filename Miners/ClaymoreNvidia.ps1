@@ -7,12 +7,14 @@ param(
     [PSCustomObject]$Devices
 )
 
+$Type = "NVIDIA"
+if (-not $Devices.$Type) {return} # No NVIDIA present in system
+
 # Compatibility check with old MPM builds
 if (-not $Config.Miners) {$Config | Add-Member Miners @() -ErrorAction SilentlyContinue} 
 
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\Ethash-Claymore\EthDcrMiner64.exe"
-$Type = "NVIDIA"
 $API  = "Claymore"
 $Port = 23333
 $DeviceIdBase = 16 # DeviceIDs are in hex
@@ -20,8 +22,8 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.7"
-$HashSHA256 = "11743a7b0f8627ceb088745f950557e303c7350f8e4241814c39904278204580" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
-$Uri = ""
+$HashSHA256 = "11743A7B0F8627CEB088745F950557E303C7350F8E4241814C39904278204580" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$URI = "https://github.com/MultiPoolMiner/miner-binaries/releases/download/ethdcrminer64/Claymore.s.Dual.Ethereum.Decred_Siacoin_Lbry_Pascal_Blake2s_Keccak.AMD.NVIDIA.GPU.Miner.v11.7.-.Catalyst.15.12-18.x.-.CUDA.8.0_9.1_7.5_6.5.zip"
 $ManualUri = "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w"
 $WebLink = "https://bitcointalk.org/index.php?topic=1433925.0" # See here for more information about the miner
 $MinerFeeInPercentSingleMode = 1.0 # Fixed
@@ -84,6 +86,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
             ManualUri                   = $ManualUri
             Type                        = $Type
             Path                        = $Path
+            HashSHA256                  = $HashSHA256
             Port                        = $Port
             WebLink                     = $WebLink
             MinerFeeInPercentSingleMode = $MinerFeeInPercentSingleMode
@@ -143,7 +146,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
 
 try {
     if (-not $Config.Miners.$Name.MinerFileVersion) { # New miner, add default miner config
-        $Config = Add-MinerConfig -ConfigFile "Config.txt" -MinerName $Name -Config $DefaultMinerConfig
+        $Config = Add-MinerConfig -ConfigFile $ConfigFile -MinerName $Name -Config $DefaultMinerConfig -Message "Added miner config ($MinerName [$MinerFileVersion]) to $(Split-Path $ConfigFile -leaf). "
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         # Execute action, e.g force re-download of binary
@@ -167,7 +170,7 @@ try {
 #        $TempConfig.Miners.$Name.Commands | Add-Member "ethash2gb;pascal:80" "" -ErrorAction SilentlyContinue
 
         # Save config to file
-        $Config = Set-Config -ConfigFile "Config.txt" -Config $TempConfig -MinerName $Name -Action "Updated"
+        $Config = Set-Config -ConfigFile $ConfigFile -Config $TempConfig -MinerName $Name -Message "Updated miner config ($MinerName [$MinerFileVersion]) in $(Split-Path $ConfigFile -leaf). "
     }
 
     # Generate miner objects
@@ -222,12 +225,13 @@ try {
                         Name             = $Miner_Name
                         Type             = $Type
                         Path             = $Path
+                        HashSHA256       = $HashSHA256
                         Arguments        = ("-mode 1 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm_Norm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand$($CommonCommands | Select-Object -Index 0) -esm $EthereumStratumMode -allpools 1 -allcoins 1 -platform 2 -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
                         HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm}
                         API              = $Api
                         Port             = $Port
                         URI              = $Uri
-                        Fees             = @($Fees)
+                        Fees             = $Fees
                         Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                         ShowMinerWindow  = $Config.ShowMinerWindow
                     }
@@ -253,34 +257,22 @@ try {
 
                     if ($Pools.$SecondaryAlgorithm_Norm -and $SecondaryAlgorithmIntensity -gt 0) { # must have a valid pool to mine and positive intensity
                         # Dual mining mode
+                        if ($SecondaryAlgorithm_Norm -eq "Sia" -or $SecondaryAlgorithm_Norm -eq "Decred") {
+                            $SecondaryAlgorithm_Norm = "$($SecondaryAlgorithm_Norm)NiceHash"
+                        }
                         [PSCustomObject]@{
                             Name             = $Miner_Name
                             Type             = $Type
                             Path             = $Path
-                            Arguments        = ("-mode 0 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand$($Config.Miners.$Name.CommonCommands | Select-Object -Index 0) -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand$($Config.Miners.$Name.CommonCommands | Select-Object -Index 0) -platform 2 -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
+                            HashSHA256       = $HashSHA256
+                            Arguments        = ("-mode 0 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand$($Config.Miners.$Name.CommonCommands | Select-Object -Index 0) -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand$($Config.Miners.$Name.CommonCommandss | Select-Object -Index 1) -platform 2 -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
                             HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm; "$SecondaryAlgorithm_Norm" = $HashRateSecondaryAlgorithm}
                             API              = $Api
                             Port             = $Port
                             URI              = $Uri
-                            Fees             = @($Fees)
+                            Fees             = $Fees
                             Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                             ShowMinerWindow  = $Config.ShowMinerWindow
-                        }
-                        if ($SecondaryAlgorithm_Norm -eq "Sia" -or $SecondaryAlgorithm_Norm -eq "Decred") {
-                            $SecondaryAlgorithm_Norm = "$($SecondaryAlgorithm_Norm)NiceHash"
-                            [PSCustomObject]@{
-                                Name             = $Miner_Name
-                                Type             = $Type
-                                Path             = $Path
-                                Arguments        = ("-mode 0 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand$($Config.Miners.$Name.CommonCommands | Select-Object -Index 0) -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand$($Config.Miners.$Name.CommonCommandss | Select-Object -Index 1) -platform 2 -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
-                                HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm; "$SecondaryAlgorithm_Norm" = $HashRateSecondaryAlgorithm}
-                                API              = $Api
-                                Port             = $Port
-                                URI              = $Uri
-                                Fees             = @($Fees)
-                                Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
-                                ShowMinerWindow  = $Config.ShowMinerWindow
-                            }
                         }
                     }
                 }

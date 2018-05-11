@@ -6,13 +6,14 @@ param(
     [PSCustomObject]$Config,
     [PSCustomObject]$Devices
 )
+$Type = "CPU"
+if (-not $Devices.$Type) {return} # No CPU mining device present in system
 
 # Compatibility check with old MPM builds
 if (-not $Config.Miners) {$Config | Add-Member Miners @() -ErrorAction SilentlyContinue} 
 
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\CPU-TPruvot\cpuminer-gw64-avx2.exe"
-$Type = "CPU"
 $API  = "Ccminer"
 $Port = 4048
 $MinerFileVersion = "2018050800" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
@@ -52,6 +53,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
             ManualUri         = $ManualUri
             Type              = $Type
             Path              = $Path
+            HashSHA256        = $HashSHA256
             Port              = $Port
             WebLink           = $WebLink
             Settings          = @(
@@ -96,7 +98,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
 
 try {
     if (-not $Config.Miners.$Name.MinerFileVersion) { # New miner, add default miner config
-        $Config = Add-MinerConfig -ConfigFile "Config.txt" -MinerName $Name -Config $DefaultMinerConfig
+        $Config = Add-MinerConfig -ConfigFile $ConfigFile -MinerName $Name -Config $DefaultMinerConfig -Message "Added miner config ($MinerName [$MinerFileVersion]) to $(Split-Path $ConfigFile -leaf). "
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
@@ -111,7 +113,7 @@ try {
         $TempConfig.Miners.$Name | Add-Member MinerFileVersion $MinerFileVersion -Force
 
         # Save config to file
-        $Config = Set-Config -ConfigFile "Config.txt" -Config $TempConfig -MinerName $Name -Action "Updated"
+        $Config = Set-Config -ConfigFile $ConfigFile -Config $TempConfig -MinerName $Name -Message "Updated miner config ($MinerName [$MinerFileVersion]) in $(Split-Path $ConfigFile -leaf). "
     }
 
     # Threads, miner setting will take precedence over global setting
@@ -127,6 +129,7 @@ try {
             Name             = $Name
             Type             = $Type
             Path             = $Path
+            HashSHA256       = $HashSHA256
             Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port)$Threads" -replace "\s+", " ").trim()
             HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
             API              = $Api

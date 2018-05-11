@@ -7,8 +7,11 @@ param(
     [PSCustomObject]$Devices
 )
 
+$Type = "NVIDIA"
+if (-not $Devices.$Type) {return} # No NVIDIA mining device present in system
+
 # Compatibility check with old MPM builds
-#if (-not $Config.Miners) {return}
+if (-not $Config.Miners) {$Config | Add-Member Miners @() -ErrorAction SilentlyContinue} 
 
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\NVIDIA-Hsrminer\hsrminer_neoscrypt_fork_hp.exe"
@@ -51,6 +54,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
             ManualUri         = $ManualUri
             Type              = $Type
             Path              = $Path
+            HashSHA256        = $HashSHA256
             Port              = $Port
             WebLink           = $WebLink
             MinerFeeInPercent = $MinerFeeInPercent
@@ -111,7 +115,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
 
 try {
     if (-not $Config.Miners.$Name.MinerFileVersion) { # New miner, add default miner config
-        $Config = Add-MinerConfig -ConfigFile "Config.txt" -MinerName $Name -Config $DefaultMinerConfig
+        $Config = Add-MinerConfig -ConfigFile $ConfigFile -MinerName $Name -Config $DefaultMinerConfig -Message "Added miner config ($MinerName [$MinerFileVersion]) to $(Split-Path $ConfigFile -leaf). "
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
@@ -126,7 +130,7 @@ try {
         $TempConfig.Miners.$Name | Add-Member MinerFileVersion $MinerFileVersion -Force
 
         # Save config to file
-        $Config = Set-Config -ConfigFile "Config.txt" -Config $TempConfig -MinerName $Name -Action "Updated"
+        $Config = Set-Config -ConfigFile $ConfigFile -Config $TempConfig -MinerName $Name -Message "Updated miner config ($MinerName [$MinerFileVersion]) in $(Split-Path $ConfigFile -leaf). "
     }
 
     # Create miner objects
@@ -167,6 +171,7 @@ try {
                     Name             = $Miner_Name
                     Type             = $Type
                     Path             = $Path
+                    HashSHA256       = $HashSHA256
                     Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
                     HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
                     API              = $Api

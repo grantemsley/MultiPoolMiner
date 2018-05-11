@@ -17,7 +17,7 @@ TWITTER: @multipoolminer
 Licensed under the GNU General Public License v3.0
 Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/LICENSE
 
-README.txt - updated on 06/05/2018 (dd/mm/yyyy) - v1.24.04 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
+README.txt - updated on 09/05/2018 (dd/mm/yyyy) - v1.24.05 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
 
 ====================================================================
 
@@ -121,9 +121,9 @@ COMMAND LINE OPTIONS (case-insensitive - except for BTC addresses, see Sample Us
       Payout in BTC (Bitcoin address must be provided using the -wallet command, see below), or any currency available in API (Advanced configuration via Config.txt required, see below)
       Pool allows mining selected coins only, e.g mine only ZClassic (Advanced configuration via Config.txt required, see below)
 
-  
-	IMPORTANT: The specified pool here will be used as default (preferred) but this does not rule out other pools to be included. Selecting multiple pools is allowed and will be used on a failover basis OR if first specified pool does not support that algorithm/coin. See the -algorithm command below for further details and example.
-	
+      IMPORTANT: For the list of default configured pools consult 'start.bat.' This does not rule out other pools to be included. Selecting multiple pools is allowed and will be used on a failover basis OR if first specified pool does not support that algorithm/coin. See the -algorithm command below for further details and example.*
+
+
 -ExcludePoolName
 	Same as the -poolname command but it is used to exclude unwanted mining pools (please see above).
 
@@ -145,7 +145,9 @@ COMMAND LINE OPTIONS (case-insensitive - except for BTC addresses, see Sample Us
 -algorithm
     Supported algorithms sorted by pool can be found at https://multipoolminer.io/algorithms
 	The following algorithms are currently supported: 
-	Bitcore, Blakecoin, Blake2s, BlakeVanilla, C11, CryptoNight, Ethash, X11, Decred, Equihash, Groestl, HMQ1725, HSR, JHA, Keccak, Lbry, Lyra2RE2, Lyra2z, MyriadGroestl, NeoScrypt, Nist5, Pascal, Phi, Polytimos, Quark, Qubit, Scrypt, SHA256, Sib, Skunk, Skein, Timetravel, Tribus, BlakeVanilla, Veltor, X11, X11evo, X17, Yescrypt
+	   Bitcore, Blakecoin, Blake2s, BlakeVanilla, C11, CryptoNightV7, Ethash, X11, Decred, Equihash, Groestl, HMQ1725, HSR, JHA, Keccak, Lbry, Lyra2RE2, Lyra2z, MyriadGroestl, NeoScrypt, Pascal, Phi, Polytimos, Quark, Qubit, Scrypt, SHA256, Sib, Skunk, Skein, Timetravel, Tribus, Veltor, X11, X11evo, X16R, X16S, X17, Yescrypt
+	Note that the list of supported algorithms can change depending on the capabilities of the supported miner binaries. Some algos are now being mined with ASICs and are no longer profitable when mined with CPU/GPU and will get removed from MPM.
+
 	Special parameters: 
 	ethash2gb - can be profitable for older GPUs that have 2GB or less GDDR memory. It includes ethash coins that have a DAG file size of less than 2GB (and will be mined when most profitable). Ethereum and a few other coins have surpassed this size therefore cannot be mined with older cards.
 	decrednicehash - if you want to include non-dual, non-Claymore Decred mining on Nicehash. NH created their own implementation of Decred mining protocol.
@@ -160,7 +162,7 @@ COMMAND LINE OPTIONS (case-insensitive - except for BTC addresses, see Sample Us
 -ExcludeMinerName
 	Exclude certain miners you don't want to use. It is useful if a miner is causing issues with your machine. A full list of available miners and parameters used can be found here: https://multipoolminer.io/miners
 	
--currency [BTC,USD,EUR,GBP,ETH ...]
+-currency [BTC, USD, EUR, GBP, ETH ...]
 	Choose the default currency or currencies your profit stats will be shown in.
 
 -interval
@@ -202,9 +204,12 @@ COMMAND LINE OPTIONS (case-insensitive - except for BTC addresses, see Sample Us
 	By default MPM will perform an automatic update on startup if a newer version is found. Set to 'true' to disable automatic update to latest MPM version. 
 
 
-## SAMPLE USAGE
-###### (check "start.bat" file in root folder)
+====================================================================
 
+
+SAMPLE USAGE (check "start.bat" file in root folder):
+
+############ START OF CONTENT OF START.BAT ############
 @cd /d %~dp0
 
 @if not "%GPU_FORCE_64BIT_PTR%"=="1" (setx GPU_FORCE_64BIT_PTR 1) > nul
@@ -557,6 +562,18 @@ A new install of MultiPoolMiner has no historical information on which to build 
 ====================================================================
 
 
+MULTIPOOLMINER API:
+
+
+MultiPoolMiner allows basic monitoring through its built in API.
+API data is available at http://localhost:3999/<resource>
+
+For a list of supported API commands open APIDocs.html with your web browser.
+
+
+====================================================================
+
+
 KNOWN ISSUES:
 
 There are known issues with the following miners not submitting shares or show higher hashrate than what they actually do:
@@ -610,7 +627,7 @@ Q13. MultiPoolMiner does not close miners properly (2 or more instances of the s
 A13. This is due to miner failure most likely caused by too much OVERCLOCKING. When miner fails it tries to recover which usually means restarting itself in the same window. This causes issues with the API connection to the miner and MultiPoolMiner thinks miner quit and launches another instance as a result. Due to default API port still being used by the first launched but failed miner, MPM can launch many instances of the same miner over time. This behaviour will be improved upon in the future but can only be completely solved by the user by lowering overclock to keep miners and the system stable.  
 
 Q14. Is it possible to change the payout currency from BTC to something else when mining on yiimp-based pools such as Zpool, Hash Refinery, etc?
-A14. Yes, advanced users can edit the currency settings in each pool file by amending the password field (c=BTC), however, this is not recommended as your payout will become uncertain as all other payout currencies are internally exchanged therefore you may end up losing your earnings due to pool never having enough coins to pay you!
+A14. Yes, see 'Advanced Configuration / To change payout currency of a pool'. However, this is not recommended as your payout will become uncertain as all other payout currencies are internally exchanged therefore you may end up losing your earnings due to pool never having enough coins to pay you!
 
 Q15. How do I customise miners to better work with my cards?
 A15. Some cards may require special parameters to be used in order to make them (more) stable, such as setting intensity for specific miners/algos/GPUs. This can be done by heading to the /Miners folder and editing the relevant miner files. For example, for CcminerTpruvot.ps1 you can replace
@@ -652,9 +669,10 @@ A23. Some miners binaries cannot be downloaded automatically by MPM (e.g. there 
 
 ====================================================================
 
+
 REPORTING AND MONITORING TERMS AND CONDITIONS & PRIVACY POLICY:
 
-By enabling the Monitoring Service by setting the -MinerStatusURL to point to https://multipoolminer.io/monitor/miner.php as described in the Command Line Options section, you agree that the https://multipoolminer.io website can store relevant information about your mining rig(s) in its database that is directly accessible by anyone accessing the https://multipoolminer.io/monitor webpage with the corresponding wallet address (your BTC address set with the -wallet parameter, alternatively you can use -minerstatuskey parameter). The following data is stored for each mining machine (rig) and overwritten in the database in each script-cycle determined by the *-interval* parameter:
+By enabling the Monitoring Service by setting the -MinerStatusURL to point to https://multipoolminer.io/monitor/miner.php as described in the Command Line Options section, you agree that the https://multipoolminer.io website can store relevant information about your mining rig(s) in its database that is directly accessible by anyone accessing the https://multipoolminer.io/monitor webpage with the corresponding wallet address (your BTC address set with the -wallet command). The following data is stored for each mining machine (rig) and overwritten in the database in each script-cycle determined by the -interval command:
 
 BTC address: all data is stored under and identified by the Bitcoin address set with the -wallet command
 WorkerName: the name of the worker you set using the -workername command, also used for sorting
@@ -670,4 +688,3 @@ PID: process ID of the miner application being used
 BTC/day: Estimated Bitcoin earnings per day
 
 The monitoring service can change, evolve, be unavailable any time without prior notice. The contents of the database will NOT be shared with any third-parties but we reserve the right to create metrics out of it and use its contents to improve or promote our services and MultiPoolMiner. Credits to @grantemsley for the codebase.
-

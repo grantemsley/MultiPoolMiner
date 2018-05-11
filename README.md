@@ -7,7 +7,7 @@
 
 ###### Licensed under the GNU General Public License v3.0 - Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/LICENSE
 
-README.md is based on README.txt - updated on 08/05/2018 - v1.24.04 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
+README.md is based on README.txt - updated on 09/05/2018 - v1.24.05 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
 
 
 
@@ -59,7 +59,7 @@ Done. You are all set to mine the most profitable coins and maximise your profit
 **-region [Europe/US/Asia]**
 Choose your region or the region closest to you.
 
-**-poolname [ahashpool, ahshpoolcoins, blazepool, blockmasters, blockmasterscoins, hashrefinery, miningpoolhub, miningpoolhubcoins, nicehash, yiimp, zergpool, zergpoolcoins, zpool, zpoolcoins]**
+**-poolname [ahashpool, ahashpoolcoins, blazepool, blockmasters, blockmasterscoins, hashrefinery, miningpoolhub, miningpoolhubcoins, nicehash, yiimp, zergpool, zergpoolcoins, zpool, zpoolcoins]**
 The following pools are currently supported (in alphabetical order):
 
 - AHashPool / AHashPoolCoins https://www.ahashpool.com/
@@ -136,7 +136,7 @@ Supported algorithms sorted by pool can be found at https://multipoolminer.io/al
 
 The following algorithms are currently supported: 
 
-    Bitcore, Blakecoin, Blake2s, BlakeVanilla, C11, CryptoNight, Ethash, X11, Decred, Equihash, Groestl, HMQ1725, HSR, JHA, Keccak, Lbry, Lyra2RE2, Lyra2z, MyriadGroestl, NeoScrypt, Pascal, Phi, Polytimos, Quark, Qubit, Scrypt, SHA256, Sib, Skunk, Skein, Timetravel, Tribus, Veltor, X11, X12, X11evo, X16R, X17S, X17, Yescrypt
+    Bitcore, Blakecoin, Blake2s, BlakeVanilla, C11, CryptoNightV7, Ethash, X11, Decred, Equihash, Groestl, HMQ1725, HSR, JHA, Keccak, Lbry, Lyra2RE2, Lyra2z, MyriadGroestl, NeoScrypt, Pascal, Phi, Polytimos, Quark, Qubit, Scrypt, SHA256, Sib, Skunk, Skein, Timetravel, Tribus, Veltor, X11, X12, X11evo, X16R, X16S, X17, Yescrypt
 * Note that the list of supported algorithms can change depending on the capabilities of the supported miner binaries. Some algos are now being mined with ASICs and are no longer profitable when mined with CPU/GPU and will get removed from MPM.
 
 #### Special parameters: 
@@ -154,7 +154,7 @@ Specify to only include (restrict to) certain miner applications. A full list of
 **-ExcludeMinerName**
 Exclude certain miners you don't want to use. It is useful if a miner is causing issues with your machine. A full list of available miners and parameters used can be found here: https://multipoolminer.io/miners
 	
-**-currency [BTC,USD,EUR,GBP,ETH ...]**
+**-currency [BTC, USD, EUR, GBP, ETH ...]**
 Choose the default currency or currencies your profit stats will be shown in.
 
 **-interval**
@@ -199,7 +199,7 @@ By default MPM will perform an automatic update on startup if a newer version is
 
 
 ## SAMPLE USAGE
-###### (check "start.bat" file in root folder)
+#####(check "start.bat" file in root folder)
 
 @cd /d %~dp0
 
@@ -558,6 +558,16 @@ In practice, this explains why when you first launch MPM it may pick a pool/algo
 
 
 
+MULTIPOOLMINER API
+
+## MultiPoolMiner allows basic monitoring through its built in API.
+
+API data is available at http://localhost:3999/<resource>
+
+For a list of supported API commands open APIDocs.html with your web browser.
+
+
+
 ## KNOWN ISSUES
 
 There are known issues with the following miners not submitting shares or show higher hashrate than what they actually do:
@@ -580,7 +590,7 @@ This is not a fault of MultiPoolMiner and nothing can be done on our end. Please
 ###### A3. You most likely have NVIDIA cards in your rig. Open the start.bat in a text editor and look for '-type amd,nvidia,cpu' and change it to '-type nvidia,cpu'. This will disable the AMD exclusive miners and save you plenty of time when benchmarking. You can also exclude the cpu option if you don't want to mine with your processor.
 
 ###### Q4. I only want to mine certain algorithms even if they are not the most profitable. I want to exclude algorithms. How do I do that?
-###### A4. Open the start.bat in a text editor and look for '-algorithm cryptonight,ethash,equihash,groestl,lyra2z,neoscrypt,pascal'. Delete the algorithms you don't want to mine. This can save you some time when benchmarking. You can include any of these or even all of them if you please but bear in mind this can result your earnings to be spread across many pools! 
+###### A4. Open the start.bat in a text editor and look for '-algorithm cryptonightv7,ethash,equihash,groestl,lyra2z,neoscrypt,pascal'. Delete the algorithms you don't want to mine. This can save you some time when benchmarking. You can include any of these or even all of them if you please but bear in mind this can result your earnings to be spread across many pools! 
 
 ###### Q5. MultiPoolMiner is XX% more profitable. What does this mean?
 ###### A5. It is showing you the stat for MultiPoolMiner vs the one miner. It means that the calculated earnings of MultiPoolMiner switching to different algorithms would be that much more profitable than if it had just mined that one particular algorithm the whole time. The number is still only an estimate of your earnings on the pool and may not directly reflect what you actually get paid. On MiningPoolHub and other multiple algorithm pools, coins have fluctuating values and MultiPoolMiner switches to the one that is the most profitable at that time. Because each pool has different delays in exchange and payout, the amount you actually earn my be very different. If there is a significant difference in percentage, you might want to reset the profitability stats by running the ResetProfit.bat file. Your actual (but still estimated) earning is shown in the second row.
@@ -610,7 +620,7 @@ This is not a fault of MultiPoolMiner and nothing can be done on our end. Please
 ###### A13. This is due to miner failure most likely caused by too much OVERCLOCKING. When miner fails it tries to recover which usually means restarting itself in the same window. This causes issues with the API connection to the miner and MultiPoolMiner thinks miner quit and launches another instance as a result. Due to default API port still being used by the first launched but failed miner, MPM can launch many instances of the same miner over time. This behaviour will be improved upon in the future but can only be completely solved by the user by lowering overclock to keep miners and the system stable.  
 
 ###### Q14. Is it possible to change the payout currency from BTC to something else when mining on yiimp-based pools such as Zpool, Hash Refinery, etc?
-###### A14. Yes, advanced users can edit the currency settings in each pool file by amending the password field (c=BTC), however, this is not recommended as your payout will become uncertain as all other payout currencies are internally exchanged therefore you may end up losing your earnings due to pool never having enough coins to pay you!
+###### A14. Yes, see https://github.com/MultiPoolMiner/MultiPoolMiner#to-change-payout-currency-of-a-pool. However this is not recommended as your payout will become uncertain as all other payout currencies are internally exchanged therefore you may end up losing your earnings due to pool never having enough coins to pay you!
 
 ###### Q15. How do I customise miners to better work with my cards?
 ###### A15. Some cards may require special parameters to be used in order to make them (more) stable, such as setting intensity for specific miners/algos/GPUs. This can be done by heading to the /Miners folder and editing the relevant miner files. For example, for CcminerTpruvot.ps1 you can replace (mind the spaces!)
@@ -660,7 +670,7 @@ This is not a fault of MultiPoolMiner and nothing can be done on our end. Please
 ## REPORTING AND MONITORING
 ##### TERMS AND CONDITIONS & PRIVACY POLICY
 
-###### By enabling the Monitoring Service by setting the *-MinerStatusURL* to point to *https://multipoolminer.io/monitor/miner.php* as described in the **Command Line Options** section, you agree that the https://multipoolminer.io website can store relevant information about your mining rig(s) in its database that is directly accessible by anyone accessing the https://multipoolminer.io/monitor webpage with the corresponding wallet address (your BTC address set with the *-wallet* parameter, alternatively you can use *-minerstatuskey* parameter). The following data is stored for each mining machine (rig) and overwritten in the database in each script-cycle determined by the *-interval* parameter:
+###### By enabling the Monitoring Service by setting the *-MinerStatusURL* to point to *https://multipoolminer.io/monitor/miner.php* as described in the **Command Line Options** section, you agree that the https://multipoolminer.io website can store relevant information about your mining rig(s) in its database that is directly accessible by anyone accessing the https://multipoolminer.io/monitor webpage with the corresponding wallet address (your BTC address set with the *-wallet* parameter, alternatively you can use *-minerstatuskey* parameter). The following data is stored for each mining machine (rig) and overwritten in the database in each script-cycle determined by the *-interval* parameter.
 
 ###### **BTC address:** all data is stored under and identified by the Bitcoin address set with the -wallet command
 ###### **WorkerName:** the name of the worker you set using the -workername command, also used for sorting
