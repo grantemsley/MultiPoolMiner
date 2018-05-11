@@ -71,6 +71,11 @@ write-log -level warn "$(Get-Date) Main script A memory usage: $((Get-Process -I
 #$DebugPreference = 'Continue'
 $InformationPreference = 'Continue'
 
+#Limit CPU mining to 1/2 of available processors
+$TotalThreads = ((Get-CimInstance win32_processor).NumberOfLogicalProcessors | Measure-Object -Sum).Sum
+$MaxThreads = [int]($TotalThreads /2)
+If($MaxThreads -lt 1) { $MaxThreads = 1 }
+Write-Log -Level Warn "CPU Mining limited to $MaxThreads/$TotalThreads of logical processors"
 
 $Version = "2.7.2.7"
 $Strikes = 3
@@ -226,6 +231,9 @@ while ($true) {
         }
         $Config | Add-Member ExcludePoolName @() -Force
     }
+    
+    # Add MaxThreads to $Config
+    $Config | Add-Member MaxThreads $MaxThreads -Force
 
     #Give API access to the current running configuration
     $API.Config = $Config
