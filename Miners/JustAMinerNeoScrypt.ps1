@@ -14,71 +14,33 @@ if (-not $Devices.$Type) {return} # No NVIDIA mining device present in system
 if (-not $Config.Miners) {$Config | Add-Member Miners @() -ErrorAction SilentlyContinue} 
 
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
-$Path = ".\Bin\NVIDIA-TPruvot\ccminer-x64.exe"
+$Path = ".\Bin\NVIDIA-Hsrminer\hsrminer_neoscrypt_fork_hp.exe"
+$Type = "NVIDIA"
 $API  = "Ccminer"
 $Port = 4068
 $DeviceIdBase = 16 # DeviceIDs are in hex
 $DeviceIdOffset = 0 # DeviceIDs start at 0
 
-$MinerFileVersion = "20180500800" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
-$MinerInfo = "Ccminer (x64) 2.2.5 by Tpruvot"
-$HashSHA256 = "9156d5fc42daa9c8739d04c3456da8fbf3e9dc91d4894d351334f69a7cee58c5" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
-$URI = "https://github.com/tpruvot/ccminer/releases/download/2.2.5-tpruvot/ccminer-x64-2.2.5-cuda9.7z"
-$ManualURI = ""
-$WebLink = "https://bitcointalk.org/?topic=770064" # See here for more information about the miner
+$MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
+$MinerInfo = "HSRMINER Neoscrypt Fork by Justaminer 14.04.2018"
+$HashSHA256 = "571b1c7d7a0bb9934aaf3e4106c26b7735a004473e9ecd99d35c4e2664487eff" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
+$URI = "https://github.com/justaminer/hsrm-fork/raw/master/hsrminer_neoscrypt_fork_hp.zip"
+$ManualURI = ""    
+$WebLink = "https://bitcointalk.org/index.php?topic=2765610.0" # See here for more information about the miner
+$MinerFeeInPercent = 1/60*100 # 1 minute per hour, fixed
 
 if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion = $MinerFileVersion
-        IgnoreHWModel  = @()
-        IgnoreDeviceID = @()
-        CommonCommands = " --submit-stale"
-        Commands       = [PSCustomObject]@{
-            #GPU - profitable 20/04/2018
-            "bastion" = "" #bastion
-            "bitcore" = "" #Bitcore
-            "bmw" = "" #bmw
-            #"c11" = "" #C11
-            "deep" = "" #deep
-            "dmd-gr" = "" #dmd-gr
-            "equihash" = "" #Equihash
-            "fresh" = "" #fresh
-            "fugue256" = "" #Fugue256
-            "groestl" = "" #Groestl
-            "hmq1725" = "" #HMQ1725
-            "jackpot" = "" #JackPot
-            "keccak" = "" #Keccak
-            "keccakc" = "" #keccakc
-            "luffa" = "" #Luffa
-            "lyra2" = "" #lyra2re
-            "lyra2v2" = "" #Lyra2RE2
-            "lyra2z" = "" #Lyra2z, ZCoin
+        IgnoreHWModel    = @()
+        IgnoreDeviceID   = @()
+        CommonCommands   = " -log 0"
+        Commands         = [PSCustomObject]@{
             "neoscrypt" = "" #NeoScrypt
-            "penta" = "" #Pentablake
-            "phi" = "" #PHI
-            "polytimos" = "" #Polytimos
-            "scryptjane:nf" = "" #scryptjane:nf
-            "sha256t" = "" #sha256t
-            #"skein" = "" #Skein
-            "skein2" = "" #skein2
-            #"skunk" = "" #Skunk
-            "s3" = "" #S3
-            "timetravel" = "" #Timetravel
-            "tribus" = "" #Tribus
-            "veltor" = "" #Veltor
-            #"whirlpool" = "" #Whirlpool
-            #"whirlpoolx" = "" #whirlpoolx
-            "wildkeccak" = "" #wildkeccak
-            "x11evo" = "" #X11evo
-            "x12" = "" #X12
-            "x16r" = "" #X16r
-            #"X16s" = "" #X16s
-            #"x17" = "" #x17
-            "zr5" = "" #zr5
         }
-        DoNotMine      = [PSCustomObject]@{
-            # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
+        DoNotMine        = [PSCustomObject]@{
+            # Syntax: "Algorithm" = @("Poolname", "Another_Poolname"), e.g. "equihash" = @("Zpool", "ZpoolCoins")
         }
     }
 
@@ -86,16 +48,24 @@ if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
         # Just return info about the miner for use in setup
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
-            MinerFileVersion = $MinerFileVersion
-            MinerInfo        = $MinerInfo
-            URI              = $URI
-            ManualURI        = $ManualUri
-            Type             = $Type
-            Path             = $Path
-            HashSHA256       = $HashSHA256
-            Port             = $Port
-            WebLink          = $WebLink
-            Settings         = @(
+            MinerFileVersion  = $MinerFileVersion
+            MinerInfo         = $MinerInfo
+            URI               = $URI
+            ManualURI         = $ManualUri
+            Type              = $Type
+            Path              = $Path
+            HashSHA256        = $HashSHA256
+            Port              = $Port
+            WebLink           = $WebLink
+            MinerFeeInPercent = $MinerFeeInPercent
+            Settings          = @(
+                [PSCustomObject]@{
+                    Name        = "IgnoreMinerFee"
+                    ControlType = "switch"
+                    Default     = $false
+                    Description = "Miner contains dev fee $($MinerFeeInPercent)%. Tick to ignore miner fees in internal calculations. "
+                    Tooltip     = "Miner does not allow to disable miner dev fee"
+                },
                 [PSCustomObject]@{
                     Name        = "IgnoreHWModel"
                     Required    = $false
@@ -159,23 +129,61 @@ try {
         # Always update MinerFileVersion -Force to enforce setting
         $TempConfig.Miners.$Name | Add-Member MinerFileVersion $MinerFileVersion -Force
 
-        # Remove config item if in existing config file
-        $TempConfig.Miners.$Name.Commands.PSObject.Properties.Remove("myr-gr")
-        $TempConfig.Miners.$Name.Commands.PSObject.Properties.Remove("cryptonight")
-                    
-        # Remove miner benchmark files, these are no longer needed
-        Remove-BenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "cryptonight")
-        Remove-BenchmarkFiles -MinerName $Name -Algorithm (Get-Algorithm "myr-gr")
-
-		# 2.2.5 Add cryptolight algo
-		$TempConfig.Miners.$Name.Commands | Add-Member cryptolight "" -ErrorAction SilentlyContinue
-		
-        # Save config to file and apply
+        # Save config to file
         $Config = Set-Config -ConfigFile $ConfigFile -Config $TempConfig -MinerName $Name -Message "Updated miner config ($MinerName [$MinerFileVersion]) in $(Split-Path $ConfigFile -leaf). "
     }
 
     # Create miner objects
-    . .\Create-MinerObjects.ps1
-    New-CcMinerObjects
+    $Devices.$Type | ForEach-Object {
+
+        if ($DeviceTypeModel -and -not $Config.MinerInstancePerCardModel) {return} # after first loop $DeviceTypeModel is present; generate only one miner
+        $DeviceTypeModel = $_
+
+        # Get array of IDs of all devices in device set, returned DeviceIDs are of base $DeviceIdBase representation starting from $DeviceIdOffset
+        $DeviceIDs = (Get-DeviceIDs -Config $Config -Devices $Devices -Type $Type -DeviceTypeModel $DeviceTypeModel -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset)."All"
+
+        if ($DeviceIDs.Count -gt 0) {
+
+            $Config.Miners.$Name.Commands | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Pools.(Get-Algorithm $_).Protocol -eq "stratum+tcp" -and $Config.Miners.$Name.DoNotMine.$_ -inotcontains $Pools.(Get-Algorithm $_).Name} | ForEach-Object {
+
+                $Algorithm_Norm = Get-Algorithm $_
+
+                if ($Config.MinerInstancePerCardModel) {
+                    $Miner_Name = "$Name-$($DeviceTypeModel.Name_Norm)"
+                    $Commands = ConvertTo-CommandPerDeviceSet -Command $Config.Miners.$Name.Commands.$_ -DeviceIDs $DeviceIDs -DeviceIdBase $DeviceIdBase -DeviceIdOffset $DeviceIdOffset # additional command line options for algorithm
+                }
+                else {
+                    $Miner_Name = $Name
+                    $Commands = $Config.Miners.$Name.Commands.$_.Split(";") | Select-Object -Index 0 # additional command line options for algorithm
+                }
+                
+                $HashRate = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week
+
+                if ($Config.IgnoreMinerFee -or $Config.Miners.$Name.IgnoreMinerFee) {
+                    $Fees = @($null)
+                }
+                else {
+                    $HashRate = $HashRate * (1 - $MinerFeeInPercent / 100)
+                    $Fees = @($MinerFeeInPercent)
+                }
+
+                [PSCustomObject]@{
+                    Name             = $Miner_Name
+                    Type             = $Type
+                    Path             = $Path
+                    HashSHA256       = $HashSHA256
+                    Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -b 127.0.0.1:$($Port) -d $($DeviceIDs -join ',')" -replace "\s+", " ").trim()
+                    HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
+                    API              = $API
+                    Port             = $Port
+                    URI              = $URI
+                    Fees             = $Fees
+                    Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
+                    ShowMinerWindow  = $Config.ShowMinerWindow
+                }
+            }
+        }
+    }
+    $Port++ # next higher port for next device
 }    
 catch {}

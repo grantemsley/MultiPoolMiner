@@ -23,15 +23,15 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "EWBF's CUDA Zcash miner Version 0.3.4b (x64)"
-$HashSHA256 = "84dd02debbf2b0c5ed7eebf813305543265e34ec98635139787bf8b882e7c7b4" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "84dd02debbf2b0c5ed7eebf813305543265e34ec98635139787bf8b882e7c7b4" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
 $PrerequisiteURI  = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"                
-$Uri = ""
-$ManualUri = "https://mega.nz/#F!usQh2bTa!3qp_PaiO-dw3F0mpvLXynA"
+$URI = ""
+$ManualURI = "https://mega.nz/#F!usQh2bTa!3qp_PaiO-dw3F0mpvLXynA"
 $WebLink = "https://bitcointalk.org/index.php?topic=1707546.0" # See here for more information about the miner
 $MinerFeeInPercent = 2.0 # Fixed at 2%
 
-if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
+if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion = $MinerFileVersion
@@ -46,14 +46,14 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         }
     }
 
-    if ($Info) {
+    if ($Config.InfoOnly) {
         # Just return info about the miner for use in setup
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion  = $MinerFileVersion
             MinerInfo         = $MinerInfo
-            Uri               = $Uri
-            ManualUri         = $ManualUri
+            URI               = $URI
+            ManualURI         = $ManualUri
             Type              = $Type
             Path              = $Path
             HashSHA256        = $HashSHA256
@@ -123,7 +123,7 @@ try {
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
+            Update-Binaries -Path $Path -URI $URI -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
         # Read config from file to not expand any variables
@@ -174,12 +174,12 @@ try {
                     Type             = $Type
                     Path             = $Path
                     HashSHA256       = $HashSHA256
-                    Arguments        = ("--server $($Pools.$Algorithm_Norm.Host) --port $($Pools.$Algorithm_Norm.Port) --user $($Pools.$Algorithm_Norm.User) --pass $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) --api 0.0.0.0:$($Port) --cuda_devices $($DeviceIDs -join ' ')$($DisableMinerFee)" -replace "\s+", " ").trim()
+                    Arguments        = ("--server $($Pools.$Algorithm_Norm.Host) --port $($Pools.$Algorithm_Norm.Port) --user $($Pools.$Algorithm_Norm.User) --pass $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) --API 0.0.0.0:$($Port) --cuda_devices $($DeviceIDs -join ' ')$($DisableMinerFee)" -replace "\s+", " ").trim()
                     HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
-                    API              = $Api
+                    API              = $API
                     Port             = $Port
-                    URI              = $Uri
-                    Fees             = @($Fees)
+                    URI              = $URI
+                    Fees             = $Fees
                     Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                     PrerequisitePath = $PrerequisitePath
                     PrerequisiteURI  = $PrerequisiteURI               

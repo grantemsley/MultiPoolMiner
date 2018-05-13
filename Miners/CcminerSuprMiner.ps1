@@ -22,12 +22,12 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "suprminer 1.5.7 (April 2018) optimized x16r algo without any dev fee"
-$HashSHA256 = "6de5dc4f109951ae1591d083f5c2a6494c9b59470c15ef6fbe5d38c50625304b" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
-$Uri = "https://github.com/ocminer/suprminer/releases/download/1.5/suprminer-1.5.7z"
-$ManualUri = ""    
+$HashSHA256 = "6de5dc4f109951ae1591d083f5c2a6494c9b59470c15ef6fbe5d38c50625304b" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
+$URI = "https://github.com/ocminer/suprminer/releases/download/1.5/suprminer-1.5.7z"
+$ManualURI = ""    
 $WebLink = "https://github.com/ocminer/suprminer" # See here for more information about the miner
 
-if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
+if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion = $MinerFileVersion
@@ -43,14 +43,14 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         }
     }
 
-    if ($Info) {
+    if ($Config.InfoOnly) {
         # Just return info about the miner for use in setup
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion = $MinerFileVersion
             MinerInfo        = $MinerInfo
-            Uri              = $Uri
-            ManualUri        = $ManualUri
+            URI              = $URI
+            ManualURI        = $ManualUri
             Type             = $Type
             Path             = $Path
             HashSHA256       = $HashSHA256
@@ -112,7 +112,7 @@ try {
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
+            Update-Binaries -Path $Path -URI $URI -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
         # Read config from file to not expand any variables
@@ -127,6 +127,6 @@ try {
 
     # Create miner objects
     . .\Create-MinerObjects.ps1
-    Create-CcMinerObjects
+    New-CcMinerObjects
 }    
 catch {}

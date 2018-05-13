@@ -22,12 +22,12 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "Ccminer 2.2-mod-r1 for Skunk by scaras"
-$HashSHA256 = "b0517639b174e2a7776a5567f566e1c0905a7fe439049d33d44a7502de581f7b" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
-$Uri = "https://github.com/scaras/ccminer-2.2-mod-r1/releases/download/2.2-r1/2.2-mod-r1.zip"
-$ManualUri = ""    
+$HashSHA256 = "b0517639b174e2a7776a5567f566e1c0905a7fe439049d33d44a7502de581f7b" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
+$URI = "https://github.com/scaras/ccminer-2.2-mod-r1/releases/download/2.2-r1/2.2-mod-r1.zip"
+$ManualURI = ""    
 $WebLink = "https://github.com/scaras/ccminer-2.2-mod-r1" # See here for more information about the miner
 
-if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
+if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion = $MinerFileVersion
@@ -42,14 +42,14 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         }
     }
 
-    if ($Info) {
+    if ($Config.InfoOnly) {
         # Just return info about the miner for use in setup
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion = $MinerFileVersion
             MinerInfo        = $MinerInfo
-            Uri              = $Uri
-            ManualUri        = $ManualUri
+            URI              = $URI
+            ManualURI        = $ManualUri
             Type             = $Type
             Path             = $Path
             HashSHA256       = $HashSHA256
@@ -110,7 +110,7 @@ try {
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
+            Update-Binaries -Path $Path -URI $URI -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
         # Read config from file to not expand any variables
@@ -125,6 +125,6 @@ try {
 
     # Create miner objects
     . .\Create-MinerObjects.ps1
-    Create-CcMinerObjects
+    New-CcMinerObjects
 }    
 catch {}

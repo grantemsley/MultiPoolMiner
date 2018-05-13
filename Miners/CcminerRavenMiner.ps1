@@ -28,7 +28,7 @@ $ManualURI = ""
 $WebLink = "https://github.com/Ravencoin-Miner/Ravencoin/releases" # See here for more information about the miner
 
 
-if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
+if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion = $MinerFileVersion
@@ -43,7 +43,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
 		}
     }
 
-    if ($Info) {
+    if ($Config.InfoOnly) {
         # Just return info about the miner for use in setup
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
@@ -126,6 +126,6 @@ try {
 
     # Create miner objects
     . .\Create-MinerObjects.ps1
-    Create-CcMinerObjects
+    New-CcMinerObjects
 }    
 catch {}

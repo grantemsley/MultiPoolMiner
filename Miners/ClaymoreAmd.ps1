@@ -22,14 +22,14 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "Claymore Dual Ethereum AMD/NVIDIA GPU Miner v11.7"
-$HashSHA256 = "11743A7B0F8627CEB088745F950557E303C7350F8E4241814C39904278204580" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "11743A7B0F8627CEB088745F950557E303C7350F8E4241814C39904278204580" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
 $URI = "https://github.com/MultiPoolMiner/miner-binaries/releases/download/ethdcrminer64/Claymore.s.Dual.Ethereum.Decred_Siacoin_Lbry_Pascal_Blake2s_Keccak.AMD.NVIDIA.GPU.Miner.v11.7.-.Catalyst.15.12-18.x.-.CUDA.8.0_9.1_7.5_6.5.zip"
-$ManualUri = "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w"
+$ManualURI = "https://mega.nz/#F!O4YA2JgD!n2b4iSHQDruEsYUvTQP5_w"
 $WebLink = "https://bitcointalk.org/index.php?topic=1433925.0" # See here for more information about the miner
 $MinerFeeInPercentSingleMode = 1.0 # Fixed
 $MinerFeeInPercentDualMode = 1.5 # Fixed
 
-if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
+if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion = $MinerFileVersion
@@ -76,14 +76,14 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         }
     }
 
-    if ($Info) {
+    if ($Config.InfoOnly) {
         # Just return info about the miner for use in setup
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion            = $MinerFileVersion
             MinerInfo                   = $MinerInfo
-            Uri                         = $Uri
-            ManualUri                   = $ManualUri
+            URI                         = $URI
+            ManualURI                   = $ManualUri
             Type                        = $Type
             Path                        = $Path
             HashSHA256                  = $HashSHA256
@@ -154,7 +154,7 @@ try {
         # Execute action, e.g force re-download of binary
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
+            Update-Binaries -Path $Path -URI $URI -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
         # Read config from file to not expand any variables
@@ -230,9 +230,9 @@ try {
                         HashSHA256       = $HashSHA256
                         Arguments        = ("-mode 1 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm_Norm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand$($CommonCommands | Select-Object -Index 0) -esm $EthereumStratumMode -allpools 1 -allcoins 1 -platform 1 -y 1 -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
                         HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm}
-                        API              = $Api
+                        API              = $API
                         Port             = $Port
-                        URI              = $Uri
+                        URI              = $URI
                         Fees             = $Fees
                         Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                         ShowMinerWindow  = $Config.ShowMinerWindow
@@ -269,9 +269,9 @@ try {
                             HashSHA256       = $HashSHA256
                             Arguments        = ("-mode 0 -mport -$Port -epool $($Pools.$MainAlgorithm_Norm.Host):$($Pools.$MainAlgorithm.Port) -ewal $($Pools.$MainAlgorithm_Norm.User) -epsw $($Pools.$MainAlgorithm_Norm.Pass)$MainAlgorithmCommand$($Config.Miners.$Name.CommonCommands | Select-Object -Index 0) -esm $EthereumStratumMode -allpools 1 -allcoins exp -dcoin $SecondaryAlgorithm -dcri $SecondaryAlgorithmIntensity -dpool $($Pools.$SecondaryAlgorithm_Norm.Host):$($Pools.$SecondaryAlgorithm_Norm.Port) -dwal $($Pools.$SecondaryAlgorithm_Norm.User) -dpsw $($Pools.$SecondaryAlgorithm_Norm.Pass)$SecondaryAlgorithmCommand$($Config.Miners.$Name.CommonCommandss | Select-Object -Index 1) -platform 2 -di $($DeviceIDs -join '')" -replace "\s+", " ").trim()
                             HashRates        = [PSCustomObject]@{"$MainAlgorithm_Norm" = $HashRateMainAlgorithm; "$SecondaryAlgorithm_Norm" = $HashRateSecondaryAlgorithm}
-                            API              = $Api
+                            API              = $API
                             Port             = $Port
-                            URI              = $Uri
+                            URI              = $URI
                             Fees             = $Fees
                             Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                             ShowMinerWindow  = $Config.ShowMinerWindow

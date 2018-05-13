@@ -22,14 +22,14 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050404" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "NiceHash Excavator 1.4.4 alpha (x64)"
-$HashSHA256 = "4cc2ff8c07f17e940a1965b8d0f7dd8508096a4e4928704912fa96c442346642" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
+$HashSHA256 = "4cc2ff8c07f17e940a1965b8d0f7dd8508096a4e4928704912fa96c442346642" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
 $PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
 $PrerequisiteURI = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"
-$Uri = "https://github.com/nicehash/excavator/releases/download/v1.4.4a/excavator_v1.4.4a_NVIDIA_Win64.zip"
-$ManualUri = "" # Link for manual miner download
+$URI = "https://github.com/nicehash/excavator/releases/download/v1.4.4a/excavator_v1.4.4a_NVIDIA_Win64.zip"
+$ManualURI = "" # Link for manual miner download
 $WebLink = "https://github.com/nicehash/excavator" # See here for more information about the miner
 
-if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
+if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion = $MinerFileVersion
@@ -63,14 +63,14 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         }
     }
 
-    if ($Info) {
+    if ($Config.InfoOnly) {
         # Just return info about the miner for use in setup
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion = $MinerFileVersion
             MinerInfo        = $MinerInfo
-            Uri              = $Uri
-            ManualUri        = $ManualUri
+            URI              = $URI
+            ManualURI        = $ManualUri
             Type             = $Type
             Path             = $Path
             HashSHA256       = $HashSHA256
@@ -139,7 +139,7 @@ try {
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
+            Update-Binaries -Path $Path -URI $URI -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
         # Read config from file to not expand any variables
@@ -194,9 +194,9 @@ try {
                             HashSHA256       = $HashSHA256
                             Arguments        = @([PSCustomObject]@{id = 1; method = "algorithm.add"; params = @("$Algorithm", "$([Net.DNS]::Resolve($Pools.$Algorithm_Norm.Host).AddressList.IPAddressToString | Select-Object -First 1):$($Pools.$Algorithm_Norm.Port)", "$($Pools.$Algorithm_Norm.User):$($Pools.$Algorithm_Norm.Pass)")}) + @([PSCustomObject]@{id = 1; method = "workers.add"; params = @(@($DeviceIDs | ForEach-Object {@("alg-0", "$_", $(if ($Commands) {($Commands | Select-Object -Index $_) -Join ", "}))} | Select-Object) * $Threads)})
                             HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
-                            API              = $Api
+                            API              = $API
                             Port             = $Port
-                            URI              = $Uri
+                            URI              = $URI
                             PrerequisitePath = $PrerequisitePath
                             PrerequisiteURI  = $PrerequisiteURI
                             Fees             = @($null)
@@ -213,9 +213,9 @@ try {
                                 HashSHA256       = $HashSHA256
                                 Arguments        = @([PSCustomObject]@{id = 1; method = "algorithm.add"; params = @("$Algorithm", "$([Net.DNS]::Resolve($Pools."$($Algorithm_Norm)NiceHash".Host).AddressList.IPAddressToString | Select-Object -First 1):$($Pools."$($Algorithm_Norm)NiceHash".Port)", "$($Pools."$($Algorithm_Norm)NiceHash".User):$($Pools."$($Algorithm_Norm)NiceHash".Pass)")}) + @([PSCustomObject]@{id = 1; method = "workers.add"; params = @(@($DeviceIDs | ForEach-Object {@("alg-0", "$_", $(if ($Commands) {($Commands | Select-Object -Index $_) -Join ", "}))} | Select-Object) * $Threads)})
                                 HashRates        = [PSCustomObject]@{"$($Algorithm_Norm)Nicehash" = $Stats."$($Miner_Name)_$($Algorithm_Norm)NiceHash_HashRate".Week}
-                                API              = $Api
+                                API              = $API
                                 Port             = $Port
-                                URI              = $Uri
+                                URI              = $URI
                                 PrerequisitePath = $PrerequisitePath
                                 PrerequisiteURI  = $PrerequisiteURI
                                 Fees             = @($null)

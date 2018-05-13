@@ -22,12 +22,12 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050800" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "Ccminer 1.5.81(sp-MOD) by _SP (x86)"
-$HashSHA256 = "82477387c860517c5face8758bcb7aac890505280bf713aca9f86d7b306ac711" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
-$Uri = "https://github.com/sp-hash/ccminer/releases/download/1.5.81/release81.7z"
-$ManualUri = $Uri   
+$HashSHA256 = "82477387c860517c5face8758bcb7aac890505280bf713aca9f86d7b306ac711" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
+$URI = "https://github.com/sp-hash/ccminer/releases/download/1.5.81/release81.7z"
+$ManualURI = $URI   
 $WebLink = "https://github.com/sp-hash/ccminer" # See here for more information about the miner
 
-if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
+if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion = $MinerFileVersion
@@ -37,6 +37,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         Commands       = [PSCustomObject]@{
             #GPU - profitable 20/04/2018
             "bastion" = "" #bastion
+            "blakecoin" = "" #Blakecoin - Beaten by ccminerHsr
             "c11" = "" #C11
             "credit" = "" #Credit
             "deep" = "" #deep
@@ -46,35 +47,39 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
             "groestl" = "" #Groestl
             "heavy" = "" #heavy
             "jackpot" = "" #JackPot
+            "jha" = "" #JHA - NOT TESTED
             "keccak" = "" #Keccak
             "luffa" = "" #Luffa
             "lyra2" = "" #lyra2h
-            #"lyra2v2" = "" #Lyra2RE2
+            "lyra2v2" = "" #Lyra2RE2 - Beaten by ccminerPaliginXevan
             "mjollnir" = "" #Mjollnir
-            #"neoscrypt" = "" #NeoScrypt
+            "neoscrypt" = "" #NeoScrypt - Beaten by ccminerKlaust
             "pentablake" = "" #pentablake
+            "poly" = "" #Polytmos - NOT TESTED
             "scryptjane:nf" = "" #scryptjane:nf
             #"skein" = "" #Skein
             "s3" = "" #S3
+            "skein" = "" #Skein - Beaten by ccminerKlaust
             "spread" = "" #Spread
+            "vanilla" = "" #BlakeVanilla - NOT TESTED
+            "veltor" = "" #Veltor - NOT TESTED
             #"whirlpool" = "" #Whirlpool
             #"whirlpoolx" = "" #whirlpoolx
             "x17" = "" #x17
-            "yescrypt" = "" #Yescrypt
         }
         DoNotMine      = [PSCustomObject]@{
             # Syntax: "Algorithm" = "Poolname", e.g. "equihash" = @("Zpool", "ZpoolCoins")
         }
     }
 
-    if ($Info) {
+    if ($Config.InfoOnly) {
         # Just return info about the miner for use in setup
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion = $MinerFileVersion
             MinerInfo        = $MinerInfo
-            Uri              = $Uri
-            ManualUri        = $ManualUri
+            URI              = $URI
+            ManualURI        = $ManualUri
             Type             = $Type
             Path             = $Path
             HashSHA256       = $HashSHA256
@@ -135,7 +140,7 @@ try {
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
+            Update-Binaries -Path $Path -URI $URI -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
         # Read config from file to not expand any variables
@@ -150,6 +155,6 @@ try {
 
     # Create miner objects
     . .\Create-MinerObjects.ps1
-    Create-CcMinerObjects
+    New-CcMinerObjects
 }    
 catch {}

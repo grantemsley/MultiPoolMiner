@@ -21,14 +21,14 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 
 $MinerFileVersion = "2018050600" #Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 $MinerInfo = "Monero (XMR) NVIDIA miner v2.6.1 (x64)"
-$HashSHA256 = "" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
-$Uri = "https://github.com/xmrig/xmrig-nvidia/releases/download/v2.6.1/xmrig-nvidia-2.6.1-cuda9-win64.zip" # if new MinerFileVersion and new Uri MPM will download and update new binaries
-$ManualUri = $Uri
+$HashSHA256 = "" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
+$URI = "https://github.com/xmrig/xmrig-nvidia/releases/download/v2.6.1/xmrig-nvidia-2.6.1-cuda9-win64.zip" # if new MinerFileVersion and new URI MPM will download and update new binaries
+$ManualURI = $URI
 $WebLink = "https://github.com/xmrig/xmrig-nvidia" # See here for more information about the miner
 $MinerFeeInPercent = 1 # Miner default is 5 minute per 100 minutes, can be reduced to 1% via command line option --donate-level
 
-if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
-    # Create default miner config, required for setup
+if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
+    # Create default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion  = $MinerFileVersion
         IgnoreHWModel     = @()
@@ -43,17 +43,16 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
         }
     }
 
-    if ($Info) {
+    if ($Config.InfoOnly) {
         # Just return info about the miner for use in setup
         # attributes without a curresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion  = $MinerFileVersion
             MinerInfo         = $MinerInfo
-            Uri               = $Uri
-            ManualUri         = $ManualUri
+            URI               = $URI
+            ManualURI         = $ManualUri
             Type              = $Type
             Path              = $Path
-			HashSHA256        = $HashSHA256
             Port              = $Port
             WebLink           = $WebLink
             MinerFeeInPercent = $MinerFeeInPercent
@@ -123,13 +122,14 @@ if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) {
 }
 
 try {
+    # Keep miner config up to date
     if (-not $Config.Miners.$Name.MinerFileVersion) { # New miner, add default miner config
         $Config = Add-MinerConfig -ConfigFile $ConfigFile -MinerName $Name -Config $DefaultMinerConfig -Message "Added miner config ($MinerName [$MinerFileVersion]) to $(Split-Path $ConfigFile -leaf). "
     }
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
+            Update-Binaries -Path $Path -URI $URI -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
         # Read config from file to not expand any variables
@@ -141,6 +141,7 @@ try {
         # Save config to file
         $Config = Set-Config -ConfigFile $ConfigFile -Config $TempConfig -MinerName $Name -Message "Updated miner config ($MinerName [$MinerFileVersion]) in $(Split-Path $ConfigFile -leaf). "
     }
+
 
     # Create miner objects
     $Devices.$Type | ForEach-Object {
@@ -179,13 +180,12 @@ try {
                     Name             = $Miner_Name
                     Type             = $Type
                     Path             = $Path
-                    HashSHA256       = $HashSHA256
-                    Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) --api-port=$($Port) --donate-level=$([Int]$Config.Miners.$Name.MinerFeeInPercent) --cuda-devices=$($DeviceIDs -join ',')" -replace "\s+", " ").trim()
+                    Arguments        = ("-a $_ -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) --API-port=$($Port) --donate-level=$([Int]$Config.Miners.$Name.MinerFeeInPercent) --cuda-devices=$($DeviceIDs -join ',')" -replace "\s+", " ").trim()
                     HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Hashrate}
-                    API              = $Api
+                    API              = $API
                     Port             = $Port
-                    URI              = $Uri
-                    Fees             = @($Fees)
+                    URI              = $URI
+                    Fees             = $Fees
                     Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                     ShowMinerWindow  = $Config.ShowMinerWindow
                 }

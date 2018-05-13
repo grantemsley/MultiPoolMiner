@@ -23,18 +23,18 @@ $DeviceIdOffset = 0 # DeviceIDs start at 0
 $MinerFileVersion = "2018050400" # Format: YYYYMMDD[TwoDigitCounter], higher value will trigger config file update
 #$MinerInfo = "BMiner 7.0.0 with experimental support for mining Ethereum (x64)"
 $MinerInfo = "BMiner 6.1.0 with experimental support for mining Ethereum (x64)"
-#$HashSHA256 = "08b4c8ccbb97305a4eaef472aefae97dd7d1472b6b0d86fed19544dc7c1fde70" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
-$HashSHA256 = "1472b6b0d86fed19544dc7c1fde70" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if Uri is present)
-#$Uri = "https://www.bminercontent.com/releases/bminer-lite-v7.0.0-9c7291b-amd64.zip"
-$Uri = "https://www.bminercontent.com/releases/bminer-v6.1.0-7ea8bbe-amd64.zip"
-$ManualUri = "https://www.bminer.me/releases/"
+#$HashSHA256 = "08b4c8ccbb97305a4eaef472aefae97dd7d1472b6b0d86fed19544dc7c1fde70" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
+$HashSHA256 = "1472b6b0d86fed19544dc7c1fde70" # If newer MinerFileVersion and hash does not math MPM will trigger an automatick binary update (if URI is present)
+#$URI = "https://www.bminercontent.com/releases/bminer-lite-v7.0.0-9c7291b-amd64.zip"
+$URI = "https://www.bminercontent.com/releases/bminer-v6.1.0-7ea8bbe-amd64.zip"
+$ManualURI = "https://www.bminer.me/releases/"
 $WebLink = "https://www.bminer.me/releases/" # See here for more information about the miner
 $MinerFeeInPercentEquihash = 2.0 # Fixed at 2%
 $MinerFeeInPercentEthash = 0.65 # Fixed at 0.65%
 $MinerFeeInPercentEthash2gb = 0.65 # Fixed at 0.65%
 $MinerFeeInPercentEthash3gb = 0.65 # Fixed at 0.65%
 
-if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
+if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Define default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion = $MinerFileVersion
@@ -58,14 +58,14 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         }
     }
 
-    if ($Info) {
+    if ($Config.InfoOnly) {
         # Just return info about the miner for use in setup
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
             MinerFileVersion  = $MinerFileVersion
             MinerInfo         = $MinerInfo
-            Uri               = $Uri
-            ManualUri         = $ManualUri
+            URI               = $URI
+            ManualURI         = $ManualUri
             Type              = $Type
             Path              = $Path
             HashSHA256        = $HashSHA256
@@ -134,7 +134,7 @@ try {
     if ($MinerFileVersion -gt $Config.Miners.$Name.MinerFileVersion) { # Update existing miner config
         if ($HashSHA256 -and (Test-Path $Path) -and (Get-FileHash $Path).Hash -ne $HashSHA256) {
             # Should be the first action. If it fails no further update will take place, update will be retried on next loop
-            Update-Binaries -Path $Path -Uri $Uri -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
+            Update-Binaries -Path $Path -URI $URI -Name $Name -MinerFileVersion $MinerFileVersion -RemoveBenchmarkFiles $Config.AutoReBenchmark
         }
 
         # Read config from file to not expand any variables
@@ -200,12 +200,13 @@ try {
                         Name             = $Miner_Name
                         Type             = $Type
                         Path             = $Path
-                        Arguments        = "-api 127.0.0.1:1880 -uri $($Config.Miners.$Name.Stratum.$Algorithm)$(if ($Pools.$Algorithm_Norm.SSL) {'+ssl'})://$([System.Web.HttpUtility]::UrlEncode($Pools.$Algorithm_Norm.User)):$([System.Web.HttpUtility]::UrlEncode($Pools.$Algorithm_Norm.Pass) -split "," | Select-Object -Index 0)@$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port)$Commmands$($Config.Miners.$Name.CommonCommands)$DisableMinerFee -devices $DeviceIDs"
+                        HashSHA256       = $HashSHA256
+                        Arguments        = "-API 127.0.0.1:$Port -uri $($Config.Miners.$Name.Stratum.$Algorithm)$(if ($Pools.$Algorithm_Norm.SSL) {'+ssl'})://$([System.Web.HttpUtility]::UrlEncode($Pools.$Algorithm_Norm.User)):$([System.Web.HttpUtility]::UrlEncode($Pools.$Algorithm_Norm.Pass) -split "," | Select-Object -Index 0)@$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port)$Commmands$($Config.Miners.$Name.CommonCommands)$DisableMinerFee -devices $DeviceIDs"
                         HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
-                        API              = $Api
+                        API              = $API
                         Port             = $Port
-                        URI              = $Uri
-                        Fees             = @($Fees)
+                        URI              = $URI
+                        Fees             = $Fees
                         Index            = $DeviceTypeModel.DeviceIDs -join ';' # Always list all devices
                         ShowMinerWindow  = $Config.ShowMinerWindow
                     }

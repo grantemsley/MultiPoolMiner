@@ -15,6 +15,7 @@ if (-not $Config.Miners) {$Config | Add-Member Miners @() -ErrorAction SilentlyC
 
 $Name = "$(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName)"
 $Path = ".\Bin\PhoenixMiner\PhoenixMiner.exe"
+$Type = "NVIDIA"
 $API  = "Claymore"
 $Port = 23334
 $DeviceIdBase = 10 # DeviceIDs are in decimal format
@@ -28,7 +29,7 @@ $ManualUri = "https://mega.nz/#F!2VskDJrI!lsQsz1CdDe8x5cH3L8QaBw"
 $WebLink = "https://bitcointalk.org/index.php?topic=2647654.0" # See here for more information about the miner
 $MinerFeeInPercent = 1/90*35/60*100 # Fixed, fee of 0.65% (35 seconds defvee mining per each 90 minutes)
 
-if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
+if ($Config.InfoOnly -or -not $Config.Miners.$Name.MinerFileVersion) {
     # Create default miner config
     $DefaultMinerConfig = [PSCustomObject]@{
         MinerFileVersion = $MinerFileVersion
@@ -45,7 +46,7 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
         }
     }
 
-    if ($Info) {
+    if ($Config.InfoOnly) {
         # Define default miner config
         # attributes without a corresponding settings entry are read-only by the GUI, to determine variable type use .GetType().FullName
         return [PSCustomObject]@{
@@ -55,7 +56,6 @@ if ($Info -or -not $Config.Miners.$Name.MinerFileVersion) {
             ManualUri         = $ManualUri
             Type              = $Type
             Path              = $Path
-            HashSHA256        = $HashSHA256
             Port              = $Port
             WebLink           = $WebLink
             MinerFeeInPercent = $MinerFeeInPercent
@@ -180,7 +180,6 @@ try {
                     Name             = $Miner_Name
                     Type             = $Type
                     Path             = $Path
-                    HashSHA256       = $HashSHA256
                     Arguments        = ("-rmode 0 -cdmport 23334 -cdm 1 -pool $($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -wal $($Pools.$Algorithm_Norm.User) -pass $($Pools.$Algorithm_Norm.Pass)$Commands$($Config.Miners.$Name.CommonCommands) -proto 4 -coin auto -nvidia -gpus $($GPUs)" -replace "\s+", " ").trim()
                     HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
                     API              = $Api
