@@ -201,7 +201,7 @@ try {
                         Type             = $Type
                         Path             = $Path
                         Arguments        = "-api 127.0.0.1:1880 -uri $($Config.Miners.$Name.Stratum.$Algorithm)$(if ($Pools.$Algorithm_Norm.SSL) {'+ssl'})://$([System.Web.HttpUtility]::UrlEncode($Pools.$Algorithm_Norm.User)):$([System.Web.HttpUtility]::UrlEncode($Pools.$Algorithm_Norm.Pass) -split "," | Select-Object -Index 0)@$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port)$Commmands$($Config.Miners.$Name.CommonCommands)$DisableMinerFee -devices $DeviceIDs"
-                        HashRates        = [PSCustomObject]@{$Algorithm_Norm = $Stats."$($Miner_Name)_$($Algorithm_Norm)_HashRate".Week}
+                        HashRates        = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
                         API              = $Api
                         Port             = $Port
                         URI              = $Uri
