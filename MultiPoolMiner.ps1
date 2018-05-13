@@ -231,11 +231,9 @@ while ($true) {
     write-log -level warn "$(Get-Date) Main script G memory usage: $((Get-Process -ID $PID | Select-Object -ExpandProperty WorkingSet)/1MB) MB"
     #Load the stats
     Write-Log "Loading saved statistics. "
+
     $Stats = [PSCustomObject]@{}
-    if (Test-Path "Stats") {Get-ChildItemContent "Stats" | ForEach-Object {$Stats | Add-Member $_.Name $_.Content}}
-
-    write-log -level warn "$(Get-Date) Main script H memory usage: $((Get-Process -ID $PID | Select-Object -ExpandProperty WorkingSet)/1MB) MB"
-
+    $Stats = Get-Stats
     #Give API access to the current stats
     $API.Stats = $Stats
 
