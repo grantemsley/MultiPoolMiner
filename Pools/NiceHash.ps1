@@ -1,16 +1,12 @@
 ﻿using module ..\Include.psm1
 
 param(
-    [alias("Wallet")]
-    [String]$BTC, 
-    [alias("WorkerName")]
-    [String]$Worker, 
-    [TimeSpan]$StatSpan,
-    [bool]$Info = $false,
-    [PSCustomObject]$Config
+    [PSCustomObject]$Config,
+    [TimeSpan]$StatSpan
 )
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
+$Regions = "eu", "usa", "hk", "jp", "in", "br"
 
 # Default pool config values, these need to be present for pool logic
 $Default_PoolFeeInternalWallet = 1.0
@@ -25,18 +21,19 @@ $Pool_APIUrl = "http://api.nicehash.com/api?method=simplemultialgo.info"
 #Pool allows payout in BTC only
 $Payout_Currencies = @("BTC")
 
-if ($Info) {
+try {
+    $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+}
+catch {
+    Write-Log -Level Warn "Pool API ($Name) has failed. "
+}
+
+if ($Config.InfoOnly) {
     # Just return info about the pool for use in setup
     $Description  = "Pool allows payout in BTC only"
     $WebSite      = "http://www.nicehash.com"
     $Note         = "To receive payouts specify a valid BTC wallet" # Note is shown beside each pool in setup
 
-    try {
-        $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-    }
-    catch {
-        Write-Log -Level Warn "Pool API ($Name) has failed. "
-    }
 
     if ($APIRequest.result.simplemultialgo.count -le 1) {
         Write-Warning  "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
@@ -48,23 +45,23 @@ if ($Info) {
         [PSCustomObject]@{
             Name        = "Worker"
             Required    = $true
-            Default     = $Worker
-            ControlType = "string"
+            Default     = $Config.Worker
+            ControlType = "String"
             Description = "Worker name to report to pool "
             Tooltip     = ""    
         },
         [PSCustomObject]@{
             Name        = "BTC"
             Required    = $true
-            Default     = "$($Config.Wallet)"
-            ControlType = "string"
+            Default     = $Config.Wallets.BTC
+            ControlType = "String"
             Description = "Bitcoin payout address "
             Tooltip     = "Enter Bitcoin wallet address to receive payouts in BTC"    
         },
         [PSCustomObject]@{
             Name        = "IsInternalWallet"
             Required    = $false
-            ControlType = "switch"
+            ControlType = "Bool"
             Default     = $Default_IsInternalWallet
             Description = "Tick to if BTC address is $($Name) internal wallet"
             Tooltip     = "$($Name) applies different pool fees for internal and external wallets"
@@ -138,22 +135,17 @@ if ($Info) {
     }
 }
 
-$Payout_Currencies | Foreach-Object {
-    try {
-        $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop # required for fees
-    }
-    catch {
-        Write-Log -Level Warn "Pool API ($Name) has failed. "
-        return
-    }
+if (-not $APIRequest) {return}
+
+$Payout_Currencies | Where-Object {$Config.Pools.$Name.Wallets.$_} | ForEach-Object {
 
     if ($APIRequest.result.simplemultialgo.count -le 1) {
         Write-Log -Level Warn "Pool API ($Name) returned nothing. "
         return
     }
 
-    $Regions = "eu", "usa", "hk", "jp", "in", "br"
-
+    $Payout_Currency = $_
+    
     $APIRequest.result.simplemultialgo | Where-Object {$DisabledAlgorithms -inotcontains (Get-Algorithm $_.name)} | ForEach-Object {
         $Pool_Host      = "nicehash.com"
         $Port           = $_.port
@@ -171,17 +163,10 @@ $Payout_Currencies | Foreach-Object {
             }
         }
         
-        if ($FeeInPercent) {
-            $FeeFactor = 1 - $FeeInPercent / 100
-        }
-        else {
-            $FeeFactor = 1
-        }
+        if ($FeeInPercent) {$FeeFactor = 1 - $FeeInPercent / 100} else {$FeeFactor = 1}
 
         $PricePenaltyFactor = $Config.Pools.$Name.PricePenaltyFactor
-        if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {
-            $PricePenaltyFactor = 1
-        }
+        if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {$PricePenaltyFactor = 1}
 
         if ($Algorithm_Norm -eq "Sia") {$Algorithm_Norm = "SiaNiceHash"} #temp fix
         if ($Algorithm_Norm -eq "Decred") {$Algorithm_Norm = "DecredNiceHash"} #temp fix
@@ -203,7 +188,7 @@ $Payout_Currencies | Foreach-Object {
                 Protocol      = "stratum+tcp"
                 Host          = "$Algorithm.$Region.$Pool_Host"
                 Port          = $Port
-                User          = "$BTC.$Worker"
+                User          = "$($Config.Pools.$Name.Wallets.$Payout_Currency).$($Worker)"
                 Pass          = "x"
                 Region        = $Region_Norm
                 SSL           = $false
@@ -221,7 +206,7 @@ $Payout_Currencies | Foreach-Object {
                     Protocol      = "stratum+ssl"
                     Host          = "$Algorithm.$Region.$Pool_Host"
                     Port          = $Port + 30000
-                    User          = "$BTC.$Worker"
+                    User          = "$($Config.Pools.$Name.Wallets.$Payout_Currency).$($Worker)"
                     Pass          = "x"
                     Region        = $Region_Norm
                     SSL           = $true

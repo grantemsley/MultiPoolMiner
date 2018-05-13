@@ -1,150 +1,49 @@
 ﻿using module ..\Include.psm1
 
 param(
-    [alias("Wallet")]
-    [String]$BTC, 
-    [alias("WorkerName")]
-    [String]$Worker, 
-    [TimeSpan]$StatSpan,
-    [bool]$Info = $false,
-    [PSCustomObject]$Config
+    [PSCustomObject]$Config,
+    [TimeSpan]$StatSpan
 )
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
+$Regions = "us"
 
-$Pool_APIUrl           = "http://www.ahashpool.com/api/status"
+$Pool_APIUrl = "http://www.ahashpool.com/api/status"
 $Pool_CurrenciesAPIUrl = "http://www.ahashpool.com/api/currencies"
+$WebSite = "http://www.ahashpool.com"
 
-if ($Info) {
-    # Just return info about the pool for use in setup
-    $Description  = "Pool allows payout in BTC only"
-    $WebSite      = "http://www.ahashpool.com"
-    $Note         = "To receive payouts specify a valid BTC wallet" # Note is shown beside each pool in setup
-
-    try {
-        $APICurrenciesRequest = Invoke-RestMethod $Pool_CurrenciesAPIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-    }
-    catch {
-        Write-Log -Level Warn "Pool API ($Name) has failed. "
-    }
-
-    if (($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
-        Write-Warning  "Unable to load supported algorithms and currencies for ($Name) - may not be able to configure all pool settings"
-    }
-
-    # Define the settings this pool uses.
-    $SupportedAlgorithms = @($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {Get-Algorithm $APICurrenciesRequest.$_.algo} | Select-Object -Unique | Sort-Object)
-    $Settings = @(
-        [PSCustomObject]@{
-            Name        = "Worker"
-            Required    = $true
-            Default     = $Worker
-            ControlType = "string"
-            Description = "Worker name to report to pool "
-            Tooltip     = ""    
-        },
-        [PSCustomObject]@{
-            Name        = "BTC"
-            Required    = $true
-            Default     = $Config.Wallet
-            ControlType = "string"
-            Description = "Enter a valid Bitcoin payout address, otherwise payouts will fail "
-            Tooltip     = "Enter Bitcoin wallet address to receive payouts in BTC"    
-        },
-        [PSCustomObject]@{
-            Name        = "IgnorePoolFee"
-            Required    = $false
-            ControlType = "switch"
-            Default     = $false
-            Description = "Tick to disable pool fee calculation for this pool"
-            Tooltip     = "If ticked MPM will NOT take pool fees into account"
-        },
-        [PSCustomObject]@{
-            Name        = "PricePenaltyFactor"
-            Required    = $false
-            ControlType = "double"
-            Decimals    = 2
-            Min         = 0.01
-            Max         = 1
-            Default     = 1
-            Description = "This adds a multiplicator on estimations presented by the pool. "
-            Tooltip     = "If not set then the default of 1 (no penalty) is used."
-        },
-        [PSCustomObject]@{
-            Name        = "ExcludeCurrency"
-            Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of excluded currencies for this miner. "
-            Tooltip     = "Case insensitive, leave empty to mine all currencies"    
-        },
-        [PSCustomObject]@{
-            Name        = "ExcludeCoin"
-            Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of excluded coins for this miner. "
-            Tooltip     = "Case insensitive, leave empty to mine all coins"    
-        },
-        [PSCustomObject]@{
-            Name        = "Currency"
-            Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of currencies this miner wil mine.  All other currencies will be ignored. "
-            Tooltip     = "Case insensitive, leave empty to mine all currencies"    
-        },
-        [PSCustomObject]@{
-            Name        = "Coin"
-            Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of coins this miner will mine. All other coins will be ignored. "
-            Tooltip     = "Case insensitive, leave empty to mine all coins"    
-        },
-        [PSCustomObject]@{
-            Name        = "ExcludeAlgorithm"
-            Required    = $false
-            Default     = @()
-            ControlType = "string[,]"
-            Description = "List of excluded algorithms for this miner. "
-            Tooltip     = "Case insensitive, leave empty to mine all algorithms"
-        }
-    )
-
-    return [PSCustomObject]@{
-        Name        = $Name
-        WebSite     = $WebSite
-        Description = $Description
-        Algorithms  = $SupportedAlgorithms
-        Note        = $Note
-        Settings    = $Settings
-    }
-}
+# Guaranteed payout currencies
+$Payout_Currencies = @("BTC")
+$Description = "Pool allows payout in BTC only"
+$Note = "To receive payouts specify a valid wallet" # Note is shown beside each pool in setup
 
 try {
-    $APIRequest           = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop # required for fees
     $APICurrenciesRequest = Invoke-RestMethod $Pool_CurrenciesAPIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
 }
 catch {
-    Write-Log -Level Warn "Pool API ($Name) has failed. "
-    return
+    Write-Log -Level Warn "Pool API ($Name) [Currencies] has failed. "
 }
 
-if (($APIRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1 -or ($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
+# Just return info about the pool for use in setup
+if ($Config.InfoOnly) {return Get-PoolConfigTemplate}
+
+try {
+    $APIRequest = Invoke-RestMethod $Pool_APIUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+}
+catch {
+    Write-Log -Level Warn "Pool API ($Name) [Status] has failed. "
+}
+
+# Just return info about the pool for use in setup
+if (-not $APICurrenciesRequest) {return}
+
+if (($APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
     Write-Log -Level Warn "Pool API ($Name) returned nothing. "
     return
 }
 
-$Regions = "us"
-
-# Some currencies are suffixed with algo name (e.g. AUR-myr-gr), these have the currency in property symbol. Need to add symbol to all the others
-$APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Foreach-Object {
-    if (-not $APICurrenciesRequest.$_.symbol) {$APICurrenciesRequest.$_ | Add-Member symbol $_}
-}
-
-#Pool allows payout in BTC
-$Payout_Currencies = @("BTC")
+# Add BTC as currency if no other currency is defined in config
+if (-not $Config.Pools.$Name.Wallets.BTC) {$Config.Pools.$Name.Wallets | Add-Member BTC $Config.Wallet}
 
 $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name |  
     # do not mine if there is no one else is mining (undesired quasi-solo-mining)
@@ -179,18 +78,10 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
     
     # leave fee empty if IgnorePoolFee
     if (-not $Config.IgnorePoolFee -and -not $Config.Pools.$Name.IgnorePoolFee) {$FeeInPercent = $APIRequest.$Algorithm.Fees}
-    
-    if ($FeeInPercent) {
-        $FeeFactor = 1 - $FeeInPercent / 100
-    }
-    else {
-        $FeeFactor = 1
-    }
+    if ($FeeInPercent) {$FeeFactor = 1 - $FeeInPercent / 100} else {$FeeFactor = 1}
 
     $PricePenaltyFactor = $Config.Pools.$Name.PricePenaltyFactor
-    if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {
-        $PricePenaltyFactor = 1
-    }
+    if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {$PricePenaltyFactor = 1}
 
     $Divisor = 1000000000
 
@@ -211,7 +102,7 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
         $Region = $_
         $Region_Norm = Get-Region $Region
 
-        $Payout_Currencies | ForEach-Object {
+        $Payout_Currencies | Where-Object {$Config.Pools.$Name.Wallets.$_} | ForEach-Object {
             [PSCustomObject]@{
                 Algorithm     = $Algorithm_Norm
                 Info          = $CoinName
@@ -221,7 +112,7 @@ $APICurrenciesRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore 
                 Protocol      = "stratum+tcp"
                 Host          = "$Algorithm.$Pool_Host"
                 Port          = $Port
-                User          = $Config.Pools.$Name.$_
+                User          = $Config.Pools.$Name.Wallet.$_
                 Pass          = "$Worker,c=$_"
                 Region        = $Region_Norm
                 SSL           = $false

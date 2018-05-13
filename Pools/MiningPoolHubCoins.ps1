@@ -1,16 +1,12 @@
 ﻿using module ..\Include.psm1
 
 param(
-    [alias("UserName")]
-    [String]$User, 
-    [alias("WorkerName")]
-    [String]$Worker, 
-    [TimeSpan]$StatSpan,
-    [bool]$Info = $false,
-    [PSCustomObject]$Config
+    [PSCustomObject]$Config,
+    [TimeSpan]$StatSpan
 )
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
+$Regions = "europe", "us-east", "asia"
 
 # Default pool config values, these need to be present for pool logic
 $Default_PoolFee = 0.9
@@ -18,7 +14,7 @@ $Config.Pools.$Name | Add-Member PoolFee $Default_PoolFee -ErrorAction SilentlyC
 
 $Pool_APIUrl = "http://miningpoolhub.com/index.php?page=api&action=getminingandprofitsstatistics&$(Get-Date -Format "yyyy-MM-dd_HH-mm")"
 
-if ($Info) {
+if ($Config.InfoOnly) {
     # Just return info about the pool for use in setup
     $Description  = "This version lets MultiPoolMiner determine which coin to mine. The regular MiningPoolHub pool may work better, since it lets the pool avoid switching early and losing shares."
     $WebSite      = "https://miningpoolhub.com"
@@ -43,7 +39,7 @@ if ($Info) {
             Name        = "Worker"
             Required    = $true
             Default     = $Worker
-            ControlType = "string"
+            ControlType = "String"
             Description = "Worker name to report to pool "
             Tooltip     = ""    
         },
@@ -51,7 +47,7 @@ if ($Info) {
             Name        = "Username"
             Required    = $true
             Default     = $User
-            ControlType = "string"
+            ControlType = "String"
             Description = "$($Name) username"
             Tooltip     = "Registration at pool required"    
         },
@@ -59,14 +55,14 @@ if ($Info) {
             Name        = "API_Key"
             Required    = $false
             Default     = $Worker
-            ControlType = "string"
+            ControlType = "String"
             Description = "Used to retrieve balances"
             Tooltip     = "API key can be found on the web page"    
         },
         [PSCustomObject]@{
             Name        = "IgnorePoolFee"
             Required    = $false
-            ControlType = "switch"
+            ControlType = "Bool"
             Default     = $false
             Description = "Tick to disable pool fee calculation for this pool"
             Tooltip     = "If ticked MPM will NOT take pool fees into account"
@@ -132,8 +128,6 @@ if ($User) {
         return
     }
 
-    $Regions = "europe", "us-east", "asia"
-
     $APIRequest.return | ForEach-Object { # Add well formatted coin name, remove algorithm part
         $_ | Add-Member name ((Get-Culture).TextInfo.ToTitleCase(($_.coin_name -replace "-", " " -replace "_", " ")) -replace " ")
     }
@@ -157,21 +151,11 @@ if ($User) {
         $CoinName       = $_.name
 
         # leave fee empty if IgnorePoolFee
-        if (-not $Config.IgnorePoolFee -and $Config.Pools.$Name.PoolFee -gt 0) {
-            $FeeInPercent = $Config.Pools.$Name.PoolFee
-        }
-
-        if ($FeeInPercent) {
-            $FeeFactor = 1 - $FeeInPercent / 100
-        }
-        else {
-            $FeeFactor = 1
-        }
+        if (-not $Config.IgnorePoolFee -and -not $Config.Pools.$Name.IgnorePoolFee) {$FeeInPercent = $APIRequest.$Algorithm.Fees}
+        if ($FeeInPercent) {$FeeFactor = 1 - $FeeInPercent / 100} else {$FeeFactor = 1}
 
         $PricePenaltyFactor = $Config.Pools.$Name.PricePenaltyFactor
-        if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {
-            $PricePenaltyFactor = 1
-        }
+        if ($PricePenaltyFactor -le 0 -or $PricePenaltyFactor -gt 1) {$PricePenaltyFactor = 1}
 
         if ($Algorithm_Norm -eq "Sia") {$Algorithm_Norm = "SiaClaymore"} #temp fix
 
@@ -193,7 +177,7 @@ if ($User) {
                     Protocol      = "stratum+tcp"
                     Host          = "$($Region).cryptonight-$($Poolhost)"
                     Port          = $Port
-                    User          = "$User.$Worker"
+                    User          = "$($Config.User).$($Config.Worker)"
                     Pass          = "x"
                     Region        = $Region_Norm
                     SSL           = $false
@@ -209,7 +193,7 @@ if ($User) {
                     Protocol      = "stratum+ssl"
                     Host          = "$($Region).cryptonight-$($Poolhost)"
                     Port          = $Port
-                    User          = "$User.$Worker"
+                    User          = "$($Config.User).$($Config.Worker)"
                     Pass          = "x"
                     Region        = $Region_Norm
                     SSL           = $true
@@ -227,7 +211,7 @@ if ($User) {
                     Protocol      = "stratum+tcp"
                     Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
                     Port          = $Port
-                    User          = "$User.$Worker"
+                    User          = "$($Config.User).$($Config.Worker)"
                     Pass          = "x"
                     Region        = $Region_Norm
                     SSL           = $false
@@ -245,7 +229,7 @@ if ($User) {
                         Protocol      = "stratum+ssl"
                         Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
                         Port          = $Port
-                        User          = "$User.$Worker"
+                        User          = "$($Config.User).$($Config.Worker)"
                         Pass          = "x"
                         Region        = $Region_Norm
                         SSL           = $true
@@ -264,7 +248,7 @@ if ($User) {
                         Protocol      = "stratum+tcp"
                         Host          = $Hosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
                         Port          = $Port
-                        User          = "$User.$Worker"
+                        User          = "$($Config.User).$($Config.Worker)"
                         Pass          = "x"
                         Region        = $Region_Norm
                         SSL           = $false
