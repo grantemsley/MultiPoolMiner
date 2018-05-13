@@ -522,7 +522,7 @@ function Expand-WebRequest {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [String]$Uri, 
+        [String]$URI, 
         [Parameter(Mandatory = $false)]
         [String]$Path = ""
     )
@@ -530,19 +530,19 @@ function Expand-WebRequest {
     # Set current path used by .net methods to the same as the script's path
     [Environment]::CurrentDirectory = $ExecutionContext.SessionState.Path.CurrentFileSystemLocation
 
-    if (-not $Path) {$Path = Join-Path ".\Downloads" ([IO.FileInfo](Split-Path $Uri -Leaf)).BaseName}
+    if (-not $Path) {$Path = Join-Path ".\Downloads" ([IO.FileInfo](Split-Path $URI -Leaf)).BaseName}
     if (-not (Test-Path ".\Downloads")) {New-Item "Downloads" -ItemType "directory" | Out-Null}
-    $FileName = Join-Path ".\Downloads" (Split-Path $Uri -Leaf)
+    $FileName = Join-Path ".\Downloads" (Split-Path $URI -Leaf)
 
     if (Test-Path $FileName) {Remove-Item $FileName}
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    Invoke-WebRequest $Uri -OutFile $FileName -UseBasicParsing
+    Invoke-WebRequest $URI -OutFile $FileName -UseBasicParsing
 
-    if (".msi", ".exe" -contains ([IO.FileInfo](Split-Path $Uri -Leaf)).Extension) {
+    if (".msi", ".exe" -contains ([IO.FileInfo](Split-Path $URI -Leaf)).Extension) {
         Start-Process $FileName "-qb" -Wait
     }
     else {
-        $Path_Old = (Join-Path (Split-Path $Path) ([IO.FileInfo](Split-Path $Uri -Leaf)).BaseName)
+        $Path_Old = (Join-Path (Split-Path $Path) ([IO.FileInfo](Split-Path $URI -Leaf)).BaseName)
         $Path_New = (Join-Path (Split-Path $Path) (Split-Path $Path -Leaf))
 
         if (Test-Path $Path_Old) {Remove-Item $Path_Old -Recurse -Force}
@@ -601,11 +601,13 @@ function Get-Algorithm {
         [String]$Algorithm = ""
     )
 
-    $Algorithms = Get-Content "Algorithms.txt" | ConvertFrom-Json
+    if(-not (Test-Path Variable:Script:Algorithms)) {
+        $Algorithms = Get-Content "Algorithms.txt" | ConvertFrom-Json
+    }
 
     $Algorithm = (Get-Culture).TextInfo.ToTitleCase(($Algorithm -replace "-", " " -replace "_", " ")) -replace " "
 
-    if ($Algorithms.$Algorithm) {$Algorithms.$Algorithm}
+    if ($Script:Algorithms.$Algorithm) {$Script:Algorithms.$Algorithm}
     else {$Algorithm}
 }
 
@@ -616,8 +618,10 @@ function Get-Region {
         [String]$Region = ""
     )
 
-    $Regions = Get-Content "Regions.txt" | ConvertFrom-Json
-
+    if(-not (Test-Path Variable:Script:Regions)) {
+        $Regions = Get-Content "Regions.txt" | ConvertFrom-Json
+    }
+    
     $Region = (Get-Culture).TextInfo.ToTitleCase(($Region -replace "-", " " -replace "_", " ")) -replace " "
 
     if ($Regions.$Region) {$Regions.$Region}
@@ -667,7 +671,6 @@ class Miner {
 
     hidden StartMining() {
         $this.Status = [MinerStatus]::Failed
-
         $this.New = $true
         $this.Activated++
 
