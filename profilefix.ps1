@@ -253,11 +253,21 @@ while ($true) {
     }
 
  
-    time1 "start loading stats"
+    time1 "start stats block"
     #Load the stats
     #Write-Log "Loading saved statistics. "
     $Stats = [PSCustomObject]@{}
     if (Test-Path "Stats") {Get-ChildItemContent "Stats" | ForEach-Object {$Stats | Add-Member $_.Name $_.Content}}
+    
+    time1 "parallel stats"
+    $Stats = [PSCustomObject]@{}
+    if (Test-Path "Stats") {Get-ChildItemContentParallel "Stats" | ForEach-Object {$Stats | Add-Member $_.Name $_.Content}}
+    time1 "done stats"
+    
+    
+    
+    
+    
     #Give API access to the current stats
     $API.Stats = $Stats
 
@@ -341,7 +351,7 @@ while ($true) {
             Where-Object {$Config.MinerName.Count -eq 0 -or (Compare-Object $Config.MinerName $_.Name -IncludeEqual -ExcludeDifferent | Measure-Object).Count -gt 0} | 
             Where-Object {$Config.ExcludeMinerName.Count -eq 0 -or (Compare-Object $Config.ExcludeMinerName $_.Name -IncludeEqual -ExcludeDifferent | Measure-Object).Count -eq 0}
     }
-    time1 "get-childitemcontentparallel done" $AllMiners.Count
+    time1 "get-childitemcontentparallel2" $AllMiners.Count
 
     exit
     
