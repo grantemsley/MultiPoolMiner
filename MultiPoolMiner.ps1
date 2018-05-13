@@ -709,9 +709,11 @@ while ($true) {
 
         $MinerComparisons | Out-Host
     }
-    $BenchmarksNeeded = ($miners | Where {$_.HashRates.PSObject.Properties.Value -eq $null}).Count
-    if($BenchmarksNeeded -gt 0) {
-        Write-Host -BackgroundColor Red "Benchmarking: $($BenchmarksNeeded) miners left to benchmark."
+
+    #Display benchmarking progress
+    $BenchmarksNeeded = ($Miners | Where-Object {$_.HashRates.PSObject.Properties.Value -eq $null}).Count
+    if ($BenchmarksNeeded -gt 0) {
+        Write-Log -Level Warn "Benchmarking in progress: $($BenchmarksNeeded) miners left to benchmark."
     }
 
     #Give API access to WatchdogTimers information
