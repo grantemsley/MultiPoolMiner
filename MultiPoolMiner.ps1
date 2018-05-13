@@ -231,7 +231,7 @@ while ($true) {
     write-log -level warn "$(Get-Date) Main script G memory usage: $((Get-Process -ID $PID | Select-Object -ExpandProperty WorkingSet)/1MB) MB"
     #Load the stats
     Write-Log "Loading saved statistics. "
-    $Stats = Get-Stats
+    $Stats = Get-Stat
     #Give API access to the current stats
     $API.Stats = $Stats
 
@@ -721,7 +721,7 @@ while ($true) {
         #Benchmark timeout
         if ($Miner.Benchmarked -ge ($Strikes * $Strikes) -or ($Miner.Benchmarked -ge $Strikes -and $Miner.GetActivateCount() -ge $Strikes)) {
             $Miner.Algorithm | Where-Object {-not $Miner_HashRate.$_} | ForEach-Object {
-                if ((Get-Stat "$($Miner.Name)_$($_)_HashRate") -eq $null) {
+                if ((Get-Stat -Name "$($Miner.Name)_$($_)_HashRate") -eq $null) {
                     $Stat = Set-Stat -Name "$($Miner.Name)_$($_)_HashRate" -Value 0 -Duration $StatSpan
                 }
             }
