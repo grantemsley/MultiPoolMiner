@@ -462,24 +462,26 @@ function Set-Stat {
 function Get-Stat {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [String]$Name
     )
 
     if (-not (Test-Path "Stats")) {New-Item "Stats" -ItemType "directory" | Out-Null}
-    Get-ChildItem "Stats" -File | Where-Object Extension -NE ".ps1" | Where-Object BaseName -EQ $Name | Get-Content | ConvertFrom-Json
-}
 
-function Get-Stats {
-    $Stats = [PSCustomObject]@{}
-    if (-not (Test-Path "Stats")) {New-Item "Stats" -ItemType "directory" | Out-Null}
-    Get-ChildItem "Stats" | Foreach-Object {
-        $Name = $_.BaseName
-        $_ | Get-Content | ConvertFrom-Json | ForEach-Object {
-            $Stats | Add-Member $Name $_
+    if ($Name) {
+        # Return single requested stat
+        Get-ChildItem "Stats" -File | Where-Object BaseName -EQ $Name | Get-Content | ConvertFrom-Json
+    } else {
+        # Return all stats
+        $Stats = [PSCustomObject]@{}
+        Get-ChildItem "Stats" | ForEach-Object {
+            $BaseName = $_.BaseName
+            $_ | Get-Content | ConvertFrom-Json | ForEach-Object {
+                $Stats | Add-Member $BaseName $_
+            }
         }
+        Return $Stats
     }
-    Return $Stats
 }
 
 function Get-ChildItemContent {
