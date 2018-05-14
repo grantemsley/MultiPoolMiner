@@ -127,7 +127,7 @@ If($miners.count -gt 0) {
     }
 
     Write-Host "Updating binaries..."
-    .\Get-Binaries.ps1 -Overwrite
+    .\Get-Binaries.ps1 -Overwrite -SkipAMD -SkipNVIDIA
 }
 
 Write-Host -Foregroundcolor Green "Update complete!"
