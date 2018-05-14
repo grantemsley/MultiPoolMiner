@@ -213,8 +213,9 @@ while ($true) {
 
     #Activate or deactivate donation
     if ($Config.Donate -lt 10) {$Config.Donate = 10}
-    if ($Timer.AddDays(-1) -ge $LastDonated) {$LastDonated = $Timer}
+    if ($Timer.AddDays(-1) -ge $LastDonated.AddSeconds(59)) {$LastDonated = $Timer}
     if ($Timer.AddDays(-1).AddMinutes($Config.Donate) -ge $LastDonated) {
+        Write-Log "Donation run, mining to donation address for the next $(($LastDonated - ($Timer.AddDays(-1))).Minutes +1) minutes. Note: MPM will use ALL available pools. "
         Get-ChildItem "Pools" -File | ForEach-Object {
             $Config.Pools | Add-Member $_.BaseName (
                 [PSCustomObject]@{
@@ -226,7 +227,10 @@ while ($true) {
         }
         $Config | Add-Member ExcludePoolName @() -Force
     }
-    
+    else {
+        Write-Log ("Mining for you. Donation run will start in {0:hh} hour(s) {0:mm} minute(s). " -f $($LastDonated.AddDays(1) - ($Timer.AddMinutes($Config.Donate))))
+    }
+
     # Add MaxThreads to $Config
     $Config | Add-Member MaxThreads $MaxThreads -Force
 
@@ -677,6 +681,9 @@ while ($true) {
     if ($BenchmarksNeeded -gt 0) {
         Write-Log -Level Warn "Benchmarking in progress: $($BenchmarksNeeded) miners left to benchmark."
     }
+
+    #Display exchange rates
+    if ($Config.Currency | Where-Object {$_ -ne "BTC" -and $NewRates.$_}) {Write-Host "Exchange rates: 1 BTC = $(($Config.Currency | Where-Object {$_ -ne "BTC" -and $NewRates.$_} | ForEach-Object { "$($_) $($NewRates.$_)"})  -join '; ')"}
 
     #Give API access to WatchdogTimers information
     $API.WatchdogTimers = $WatchdogTimers
