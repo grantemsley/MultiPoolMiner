@@ -1,0 +1,1 @@
+start pwsh -noexit -executionpolicy bypass -windowstyle maximized -command "& .\update-dev.ps1"
