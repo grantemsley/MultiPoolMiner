@@ -462,12 +462,26 @@ function Set-Stat {
 function Get-Stat {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [String]$Name
     )
 
     if (-not (Test-Path "Stats")) {New-Item "Stats" -ItemType "directory" | Out-Null}
-    Get-ChildItem "Stats" -File | Where-Object Extension -NE ".ps1" | Where-Object BaseName -EQ $Name | Get-Content | ConvertFrom-Json
+
+    if ($Name) {
+        # Return single requested stat
+        Get-ChildItem "Stats" -File | Where-Object BaseName -EQ $Name | Get-Content | ConvertFrom-Json
+    } else {
+        # Return all stats
+        $Stats = [PSCustomObject]@{}
+        Get-ChildItem "Stats" | ForEach-Object {
+            $BaseName = $_.BaseName
+            $_ | Get-Content | ConvertFrom-Json | ForEach-Object {
+                $Stats | Add-Member $BaseName $_
+            }
+        }
+        Return $Stats
+    }
 }
 
 function Get-ChildItemContentParallel {
@@ -764,6 +778,11 @@ function Get-ChildItemContentParallel {
             }
         }
     }
+    # Cleanup runspaces
+    $RunspacePool.Close()
+    $RunspacePool.Dispose()
+    Remove-Variable RunspacePool
+    Remove-Variable RunspaceCollection
 }
 
 filter ConvertTo-Hash { 
@@ -995,8 +1014,6 @@ class Miner {
     [Array]$Algorithm = @()
     $Type
     $Index
-    $Device
-    $Device_Auto
     $Profit
     $Profit_Comparison
     $Profit_MarginOfError
