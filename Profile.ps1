@@ -436,6 +436,7 @@ while ($true) {
     }
 	time1 "check miner installation"
     $Miners = $AllMiners | Where-Object {(Test-Path $_.Path) -and ((-not $_.PrerequisitePath) -or (Test-Path $_.PrerequisitePath))}
+	time1 "start downloader"
     if ($Downloader.State -ne "Running") {
         $Downloader = Start-Job -InitializationScript ([scriptblock]::Create("Set-Location('$(Get-Location)')")) -ArgumentList (@($AllMiners | Where-Object {$_.PrerequisitePath} | Select-Object @{name = "URI"; expression = {$_.PrerequisiteURI}}, @{name = "Path"; expression = {$_.PrerequisitePath}}, @{name = "Searchable"; expression = {$false}}) + @($AllMiners | Select-Object URI, Path, @{name = "Searchable"; expression = {$Miner = $_; ($AllMiners | Where-Object {(Split-Path $_.Path -Leaf) -eq (Split-Path $Miner.Path -Leaf) -and $_.URI -ne $Miner.URI}).Count -eq 0}}) | Select-Object * -Unique) -FilePath .\Downloader.ps1
     }
@@ -775,7 +776,6 @@ while ($true) {
         }
     }
 	Write-Host -ForegroundColor Green ("Entire loop took: {0}ms" -f [int]($looptimer.Elapsed).TotalMilliseconds)
-	"{0,10}ms - {1} {2} to {3} {4}" -f [int]($Timer1.Elapsed).TotalMilliseconds
 	$looptimer.Restart()
 }
 
