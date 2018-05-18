@@ -7,7 +7,7 @@ $MyConfig = $Config.Pools.$Name
 $Request = [PSCustomObject]@{}
 
 if(!$MyConfig.API_Key) {
-    Write-Log -Level Warn "Pool API ($Name) has failed - no API key specified."
+    Write-Log -Level Warn "Pool Balance API ($Name) has failed - no API key specified."
     return
 }
 
