@@ -76,8 +76,6 @@ $MaxThreads = [int]($TotalThreads /2)
 If($MaxThreads -lt 1) { $MaxThreads = 1 }
 Write-Log -Level Warn "CPU Mining limited to $MaxThreads/$TotalThreads of logical processors"
 
-Clear-Host
-
 $Version = "2.7.2.7"
 $Strikes = 3
 $SyncWindow = 5 #minutes
