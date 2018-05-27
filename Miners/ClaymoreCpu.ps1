@@ -28,7 +28,7 @@ $Commands | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty 
         Type       = "CPU"
         Path       = $Path
         HashSHA256 = $HashSHA256
-        Arguments  = "-r -1 -mport -$Port -pow7 1 -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$($Commands.$_)"
+        Arguments  = "-t $($Config.MaxThreads) -r -1 -mport -$Port -pow7 1 -o $($Pools.$Algorithm_Norm.Protocol)://$($Pools.$Algorithm_Norm.Host):$($Pools.$Algorithm_Norm.Port) -u $($Pools.$Algorithm_Norm.User) -p $($Pools.$Algorithm_Norm.Pass)$($Commands.$_)"
         HashRates  = [PSCustomObject]@{$Algorithm_Norm = $HashRate}
         API        = "Claymore"
         Port       = $Port
