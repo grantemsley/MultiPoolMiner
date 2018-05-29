@@ -361,7 +361,7 @@ namespace PInvoke.Win32 {
             $Controls.ExchangeRates.Dispatcher.Invoke([action]{$Controls.ExchangeRates.Text = $ExchangeRateText}, "Background")
 
             # Get pool balances and format the way the listview expects
-            Get-Balances -Rates $Data.Rates -Config $State.Config | ForEach-Object {$Balances | Add-Member $_.Name $_.Content -Force}
+            Get-Balance -Rates $Data.Rates -Config $State.Config | ForEach-Object {$Balances | Add-Member $_.Name $_.Content -Force}
                     
             $BalanceNames = $Balances | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name
             $BalanceList = $BalanceNames | Select-Object -Property @{Name='Name';Expression={$_}}, @{Name='Updated';Expression={$Balances.$_.lastupdated}},

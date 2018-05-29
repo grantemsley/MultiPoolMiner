@@ -7,7 +7,7 @@ $MyConfig = $Config.Pools.$Name
 $Request = [PSCustomObject]@{}
 
 if(!$MyConfig.BTC) {
-  Write-Log -Level Warn "Pool API ($Name) has failed - no wallet address specified."
+  Write-Log -Level Verbose "Pool API ($Name) has failed - no wallet address specified."
   return
 }
 
@@ -28,5 +28,5 @@ if (($Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measur
   "balance" = $Request.balance
   "pending" = $Request.unsold
   "total" = $Request.unpaid
-  'lastupdated' = (Get-Date)
+  'lastupdated' = (Get-Date).ToUniversalTime()
 }

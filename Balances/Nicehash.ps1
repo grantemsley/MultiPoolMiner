@@ -10,7 +10,7 @@ $PoolConfig = $Config.Pools.$Name
 $Request = [PSCustomObject]@{}
 
 if (!$PoolConfig.BTC) {
-    Write-Log -Level Warn "Pool Balance API ($Name) has failed - no wallet address specified."
+    Write-Log -Level Verbose "Pool Balance API ($Name) has failed - no wallet address specified."
     return
 }
 
@@ -30,7 +30,7 @@ catch {
 [PSCustomObject]@{
     "currency" = 'BTC'
     "balance" = $sum
-    "pending" = 0
+    "pending" = 0 # Pending is always 0 since NiceHash doesn't report unconfirmed or unexchanged profits like other pools do
     "total" = $sum
-    'lastupdated' = (Get-Date)
+    'lastupdated' = (Get-Date).ToUniversalTime()
 }
