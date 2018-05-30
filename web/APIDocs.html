@@ -2,7 +2,12 @@
   <body>
     <h1>MultiPoolMiner API</h1>
     
-    API data is available at http://localhost:3999/&lt;resource&gt;
+    <p>API data is available at http://localhost:3999/&lt;resource&gt;</p>
+    
+    <h2>Files and scripts</h2>
+    <p>Anything other than the resources listed below will be looked for in the web directory and sent if it exists. Any .ps1 files in the web directory will be run and their output sent. They get passed a $Parameters object with keys and values from the URL string.</p>
+    <p>Test it with this demo:  <a href="/scripts/demo.ps1?message=Hello%20world!">/script/demo.ps1?message=Hello%20world!</a></p>
+    <p>This feature can be used to gather data that the API doesn't expose directly.</p>
 
     <h2>Resources</h2>
     
