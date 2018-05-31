@@ -5,6 +5,7 @@
     # Setup flags for controlling script execution
     $API.Stop = $false
     $API.Pause = $false
+    $API.FinishedLoading = $false
 
     # Setup runspace to launch the API webserver in a separate thread
     $newRunspace = [runspacefactory]::CreateRunspace()
