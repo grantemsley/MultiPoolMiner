@@ -34,44 +34,49 @@
 
           <h2>Balances</h2>
           <div id="balanceboxes" class="row"></div>
-          
         </main>
       </div>
     </div>
 
     <!-- End of page scripts -->
-    <script id="poolbalance_template" type="text/template">
-      <div class="col-sm-3">
+    <script id="poolbalance_template" type="text/x-handlebars-template">
+      <div class="col-sm-2">
         <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">{{Name}}</h5>
-            <p class="card-text">{{Total_BTC}} BTC</p>
-            {{#each item}}
-              Index: {{@index}} = {{this}}
-            {{/each item}}
+          <div class="card-body text-center">
+            <h5 class="card-title">{{name}}</h5>
+            <p class="card-text currencies">
+            {{#each balances}}
+              <span class="currencyname">{{@key}}:</span> <span>{{this}}</span>
+            {{/each}}
+            </p>
           </div>
         </div>
       </div>
     </script>
 
     <script type="text/javascript">
-      $(function() {
+    $(function() {
         function updatePoolBalances() {
-          $.ajax({url: '/balances', success: function(result) {
-            console.log(result);
-            $("#balanceboxes").empty();
-            $.each(result, function(index, item) {
-              console.log(item);
-              $("#balanceboxes").append(Mustache.render($("#poolbalance_template").html(), item));
-            });
-            
-            
-          }});
+            $.ajax({url: '/balances', success: function(result) {
+                console.log(result);
+                $("#balanceboxes").empty();
+                var template = Handlebars.compile($("#poolbalance_template").html());
+                $.each(result, function(index, item) {
+                    if (item.Name == "*Total*") { return true; }
+                    var properties = Object.keys(item);
+                    var currencies = properties.filter((properties) => properties.startsWith("Total_"));
+                    var data = {name: item.Name, balances: {}};
+                    $.each(currencies, function(cindex, currency) {
+                        var name = currency.replace("Total_","");
+                        data["balances"][name] = item[currency];
+                    });
+                    $("#balanceboxes").append(template(data));
+                });
+            }});
         }
-        
         updatePoolBalances();
         window.setInterval(function() { updatePoolBalances();}, 60000);
-      });
+    });
     </script>
 
 
