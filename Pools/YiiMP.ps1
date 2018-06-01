@@ -43,6 +43,7 @@ if ($Info) {
 }
 
 try {
+    $YiiMP_Request = Invoke-RestMethod "http://api.yiimp.eu/api/status" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
     $YiiMPCoins_Request = Invoke-RestMethod "http://api.yiimp.eu/api/currencies" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
 }
 catch {
@@ -66,18 +67,7 @@ $YiiMP_Currencies | Where-Object {$YiiMPCoins_Request.$_.hashrate -gt 0} | ForEa
     $YiiMP_Coin = $YiiMPCoins_Request.$_.name
     $YiiMP_Currency = $_
 
-    $Divisor = 1000000000
-
-    switch ($YiiMP_Algorithm_Norm) {
-        "blake2s" {$Divisor *= 1000}
-        "blakecoin" {$Divisor *= 1000}
-        "decred" {$Divisor *= 1000}
-        "equihash" {$Divisor /= 1000}
-        "quark" {$Divisor *= 1000}
-        "qubit" {$Divisor *= 1000}
-        "scrypt" {$Divisor *= 1000}
-        "x11" {$Divisor *= 1000}
-    }
+    $Divisor = 1000000000 * [Double]$YiiMP_Request.$YiiMP_Algorithm.mbtc_mh_factor
 
     $Stat = Set-Stat -Name "$($Name)_$($_)_Profit" -Value ([Double]$YiiMPCoins_Request.$_.estimate / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
