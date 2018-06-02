@@ -1,3 +1,11 @@
+// fix bootstrap-table icons
+window.icons = {
+  refresh: 'fa-sync',
+  toggle: 'fa-id-card',
+  columns: 'fa-columns',
+  clear: 'fa-trash'
+};
+
 function timeSince(date) {
   var seconds = Math.floor((new Date() - date) / 1000);
   var interval = Math.floor(seconds / 31536000);
@@ -22,3 +30,26 @@ function timeSince(date) {
   }
   return Math.floor(seconds) + " seconds ago";
 }
+
+function formatHashRateValue(value) {
+  var sizes = ['H/s','KH/s','MH/s','GH/s','TH/s'];
+  if (value == 0) return '0 H/s';
+  var i = Math.floor(Math.log(value) / Math.log(1000));
+  return parseFloat((value / Math.pow(1000, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+function formatHashRate(value) {
+  if (Array.isArray(value)) {
+    return value.map(formatHashRate).toString();
+  } else {
+    return formatHashRateValue(value);
+  }
+}
+  
+function formatBTC(value) {
+  return parseFloat(value).toFixed(8);
+};
+
+function formatArrayAsString(value) {
+  return value.toString();
+};

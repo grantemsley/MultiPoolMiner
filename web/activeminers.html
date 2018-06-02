@@ -21,7 +21,7 @@
       <script src="/js/utilities.js"></script>
       <title>MultiPoolMiner Local Dashboard</title>
     </head>
-    <body data-navbaractive="navdashboard">
+    <body data-navbaractive="navactiveminers">
     <div id="includeheader"></div>
 
     <div class="container-fluid">
@@ -29,57 +29,38 @@
       <div id="includenavbar"></div>
         <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <h1 class="h2">Dashboard</h1>
+            <h1 class="h2">Active Miners</h1>
           </div>
 
-          <h3>Balances</h3>
-          <div id="balanceboxes" class="card-group"></div>
+
+          <table id="miners" class="table"
+            data-toggle="table"
+            data-url="/activeminers"
+            data-filter-control="true"
+            data-filter-show-clear="true"
+            data-sort-order="desc"
+            data-sort-name="Profit"
+            data-cache="false"
+            data-show-columns="true"
+            data-show-toggle="true"
+            data-show-refresh="true"
+            data-icons="icons"
+            >
+            <thead>
+              <tr>
+                <th data-field="Name" data-sortable="true" data-filter-control="select">Name</th>
+                <th data-field="Type" data-sortable="true" data-filter-control="select" data-formatter="formatArrayAsString">Type</th>
+                <th data-field="Algorithm" data-sortable="true" data-filter-control="select" data-formatter="formatArrayAsString">Algorithm</th>
+                <th data-field="Profit" data-align="right" data-sortable="true" data-formatter="formatBTC">Profit</th>
+                <th data-field="Speed" data-align="right" data-formatter="formatHashRate" data-sortable="true">Speed</th>
+              </tr>
+            </thead>
+          </table>
         </main>
       </div>
     </div>
 
     <!-- End of page scripts -->
-    <script id="poolbalance_template" type="text/x-handlebars-template">
-      <div class="card">
-        <div class="card-header text-center">
-          <h5>{{name}}</h5>
-        </div>
-        <div class="card-body">
-          <p class="card-text currencies">
-          {{#each balances}}
-            <span class="currencyname font-weight-bold">{{@key}}:</span> <span>{{this}}</span><br/>
-          {{/each}}
-          </p>
-        </div>
-      </div>
-    </script>
-
-    <script type="text/javascript">
-    $(function() {
-        function updatePoolBalances() {
-            $.ajax({url: '/balances', success: function(result) {
-                console.log(result);
-                $("#balanceboxes").empty();
-                var template = Handlebars.compile($("#poolbalance_template").html());
-                $.each(result, function(index, item) {
-                    if (item.Name == "*Total*") { return true; }
-                    var properties = Object.keys(item);
-                    var currencies = properties.filter((properties) => properties.startsWith("Total_"));
-                    var data = {name: item.Name, balances: {}};
-                    $.each(currencies, function(cindex, currency) {
-                        var name = currency.replace("Total_","");
-                        data["balances"][name] = item[currency];
-                    });
-                    $("#balanceboxes").append(template(data));
-                });
-            }});
-        }
-        updatePoolBalances();
-        window.setInterval(function() { updatePoolBalances();}, 60000);
-    });
-    </script>
-
-
 
   </body>
 </html>
