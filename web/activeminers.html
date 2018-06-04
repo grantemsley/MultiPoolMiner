@@ -26,16 +26,15 @@
 
     <div class="container-fluid">
       <div class="row">
-      <div id="includenavbar"></div>
+        <div id="includenavbar"></div>
         <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <h1 class="h2">Active Miners</h1>
           </div>
-
-
           <table id="miners" class="table"
             data-toggle="table"
             data-url="/activeminers"
+            data-response-handler="formatActiveMiners"
             data-filter-control="true"
             data-filter-show-clear="true"
             data-sort-order="desc"
@@ -49,10 +48,12 @@
             <thead>
               <tr>
                 <th data-field="Name" data-sortable="true" data-filter-control="select">Name</th>
-                <th data-field="Type" data-sortable="true" data-filter-control="select" data-formatter="formatArrayAsString">Type</th>
-                <th data-field="Algorithm" data-sortable="true" data-filter-control="select" data-formatter="formatArrayAsString">Algorithm</th>
+                <th data-field="Type" data-sortable="true" data-filter-control="select">Type</th>
                 <th data-field="Profit" data-align="right" data-sortable="true" data-formatter="formatBTC">Profit</th>
-                <th data-field="Speed" data-align="right" data-formatter="formatHashRate" data-sortable="true">Speed</th>
+                <th data-field="tPrimaryAlgorithm" data-sortable="true" data-filter-control="select">Algorithm</th>
+                <th data-field="tPrimarySpeed" data-align="right" data-sortable="true" data-formatter="formatHashRateValue">Speed</th>
+                <th data-field="tSecondaryAlgorithm" data-sortable="true" data-filter-control="select">Secondary Algorithm</th>
+                <th data-field="tSecondarySpeed" data-align="right" data-sortable="true" data-formatter="formatHashRateValue">Secondary Speed</th>
               </tr>
             </thead>
           </table>
@@ -61,6 +62,31 @@
     </div>
 
     <!-- End of page scripts -->
+    <script type="text/javascript">
+      function formatActiveMiners(data) {
+        // This function can alter the returned data before building the table, formatting it in a way
+        // that is easier to display and manipulate in a table
+        $.each(data, function(index, item) {
+          console.log(item);
+
+          // Format the algorithm(s)
+          item.tPrimaryAlgorithm = item.Algorithm[0];
+          item.tSecondaryAlgorithm = item.Algorithm[1];
+
+          // Format the speed(s)
+          if (Array.isArray(item.Speed)) {
+            item.tPrimarySpeed = item.Speed[0];
+            item.tSecondarySpeed = item.Speed[1];
+          } else {
+            item.tPrimarySpeed = item.Speed;
+          }
+
+          // Format the type(s)
+          item.Type = item.Type.toString();
+        });
+        return data;
+      }
+    </script>
 
   </body>
 </html>

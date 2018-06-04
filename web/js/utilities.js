@@ -34,6 +34,7 @@ function timeSince(date) {
 function formatHashRateValue(value) {
   var sizes = ['H/s','KH/s','MH/s','GH/s','TH/s'];
   if (value == 0) return '0 H/s';
+  if (isNaN(value)) return '-';
   var i = Math.floor(Math.log(value) / Math.log(1000));
   return parseFloat((value / Math.pow(1000, i)).toFixed(2)) + ' ' + sizes[i];
 };
@@ -53,3 +54,18 @@ function formatBTC(value) {
 function formatArrayAsString(value) {
   return value.toString();
 };
+
+function formatMinerHashRatesAlgorithms(value) {
+  return Object.keys(value).toString();
+};
+
+function formatMinerHashRatesValues(value) {
+  hashrates = [];
+  for (var property in value) {
+    hashrates.push(formatHashRateValue(value[property]));
+  }
+  return hashrates.toString();
+}
+    
+    
+  
