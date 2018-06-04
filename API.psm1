@@ -65,12 +65,6 @@
 
             # Set the proper content type, status code and data for each resource
             Switch($Path) {
-                "/" {
-                    # Serve index page
-                    $ContentType = "text/html"
-                    $Data = Get-Content($BasePath + '/index.html')
-                    break
-                }
                 "/version" {
                     $Data = $API.Version | ConvertTo-Json
                     break
@@ -145,6 +139,11 @@
                     break
                 }
                 default {
+                    # Set index page
+                    if ($Path -eq "/") {
+                        $Path = "/index.html"
+                    }
+
                     # Check if there is a file with the requested path
                     $Filename = $BasePath + $Path
                     if (Test-Path $Filename -PathType Leaf) {
@@ -156,6 +155,19 @@
                             $Data = & $File.FullName -Parameters $Parameters
                         } else {
                             $Data = Get-Content $Filename -Raw
+
+                            # Process server side includes for html files
+                            # Includes are in the traditional '<!-- #include file="/path/filename.html" -->' format used by many web servers
+                            if($File.Extension -eq ".html") {
+                                $IncludeRegex = [regex]'<!-- *#include *file="(.*)" *-->'
+                                $IncludeRegex.Matches($Data) | Foreach-Object {
+                                    $IncludeFile = $BasePath + $_.Groups[1].Value
+                                    If (Test-Path $IncludeFile -PathType Leaf) {
+                                        $IncludeData = Get-Content $IncludeFile -Raw
+                                        $Data = $Data -Replace $_.Value, $IncludeData
+                                    }
+                                }
+                            }
                         }
 
                         # Set content type based on file extension
