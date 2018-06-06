@@ -161,7 +161,7 @@
                             if($File.Extension -eq ".html") {
                                 $IncludeRegex = [regex]'<!-- *#include *file="(.*)" *-->'
                                 $IncludeRegex.Matches($Data) | Foreach-Object {
-                                    $IncludeFile = $BasePath + $_.Groups[1].Value
+                                    $IncludeFile = $BasePath + '/' + $_.Groups[1].Value
                                     If (Test-Path $IncludeFile -PathType Leaf) {
                                         $IncludeData = Get-Content $IncludeFile -Raw
                                         $Data = $Data -Replace $_.Value, $IncludeData
