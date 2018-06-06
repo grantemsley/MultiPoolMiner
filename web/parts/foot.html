@@ -2,4 +2,12 @@
       </div>
     </div>
   </body>
+<script type="text/javascript">
+  // Set the active sidebar item
+  $(function() {
+    console.log("Setting active");
+    console.log($('#title').data('navbaractive'));
+    $('#'+$('#title').data('navbaractive')).addClass('active');
+  });
+</script>
 </html>
