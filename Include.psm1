@@ -1,4 +1,5 @@
 # Disable verbose while importing module
+# Disable verbose while importing module
 $OldVerbosePreference = $VerbosePreference
 $VerbosePreference = 'SilentlyContinue'
 
@@ -681,6 +682,85 @@ function Start-SubProcess {
     Start-Job ([ScriptBlock]::Create($ScriptBlock))
 }
 
+Function Start-SubProcessWithoutStealingFocus {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [String]$FilePath, 
+        [Parameter(Mandatory = $false)]
+        [String]$ArgumentList = "", 
+        [Parameter(Mandatory = $false)]
+        [String]$LogPath = "", 
+        [Parameter(Mandatory = $false)]
+        [String]$WorkingDirectory = "", 
+        [ValidateRange(-2, 3)]
+        [Parameter(Mandatory = $false)]
+        [Int]$Priority = 0
+    )
+
+    $PriorityNames = [PSCustomObject]@{-2 = "Idle"; -1 = "BelowNormal"; 0 = "Normal"; 1 = "AboveNormal"; 2 = "High"; 3 = "RealTime"}
+
+    $Job = Start-Job -ArgumentList $PID, (Resolve-Path ".\CreateProcess.cs"), $FilePath, $ArgumentList, $WorkingDirectory, $MinerVisibility {
+        param($ControllerProcessID, $CreateProcessPath, $FilePath, $ArgumentList, $WorkingDirectory, $MinerVisibility)
+
+        $ControllerProcess = Get-Process -Id $ControllerProcessID
+        if ($ControllerProcess -eq $null) {return}
+
+        #CreateProcess won't be usable inside this job if Add-Type is run outside the job
+        Add-Type -Path $CreateProcessPath
+
+        $lpApplicationName = $FilePath;
+
+        lpCommandLine = '"' + $FilePath + '"' #Windows paths cannot contain ", so there is no need to escape
+        if ($ArgumentList -ne "") {$lpCommandLine += " " + $ArgumentList}
+
+        $lpProcessAttributes = New-Object SECURITY_ATTRIBUTES
+        $lpProcessAttributes.Length = [System.Runtime.InteropServices.Marshal]::SizeOf($lpProcessAttributes)
+
+        $lpThreadAttributes = New-Object SECURITY_ATTRIBUTES
+        $lpThreadAttributes.Length = [System.Runtime.InteropServices.Marshal]::SizeOf($lpThreadAttributes)
+
+        $bInheritHandles = $false
+
+        $dwCreationFlags = [CreationFlags]::CREATE_NEW_CONSOLE
+
+        $lpEnvironment = [IntPtr]::Zero
+
+        if ($WorkingDirectory -ne "") {$lpCurrentDirectory = $WorkingDirectory}
+        else {$lpCurrentDirectory = [IntPtr]::Zero}
+
+        $lpStartupInfo = New-Object STARTUPINFO
+        $lpStartupInfo.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($lpStartupInfo)
+        $lpStartupInfo.wShowWindow = [ShowWindow]::SW_SHOWMINNOACTIVE
+        $lpStartupInfo.dwFlags = [STARTF]::STARTF_USESHOWWINDOW
+
+        $lpProcessInformation = New-Object PROCESS_INFORMATION
+
+        [Kernel32]::CreateProcess($lpApplicationName, $lpCommandLine, [ref] $lpProcessAttributes, [ref] $lpThreadAttributes, $bInheritHandles, $dwCreationFlags, $lpEnvironment, $lpCurrentDirectory, [ref] $lpStartupInfo, [ref] $lpProcessInformation)
+ 
+        $Process = Get-Process -Id $lpProcessInformation.dwProcessId #Start-Process @ProcessParam -PassThru
+        if ($Process -eq $null) {
+            [PSCustomObject]@{ProcessId = $null}
+            return        
+        }
+
+        [PSCustomObject]@{ProcessId = $Process.Id; ProcessHandle = $Process.Handle}
+
+        $ControllerProcess.Handle | Out-Null
+        $Process.Handle | Out-Null
+
+        do {if ($ControllerProcess.WaitForExit(1000)) {$Process.CloseMainWindow() | Out-Null}}
+        while ($Process.HasExited -eq $false)
+    }
+
+    do {Start-Sleep 1; $JobOutput = Receive-Job $Job}
+    while ($JobOutput -eq $null)
+
+    $Process = Get-Process | Where-Object Id -EQ $JobOutput.ProcessId
+    if ($Process) {$Process.PriorityClass = $PriorityNames.$Priority}
+    Return $Job
+}
+
 function Expand-WebRequest {
     [CmdletBinding()]
     param(
@@ -852,7 +932,9 @@ class Miner {
 
         if (-not $this.Process) {
             if ($this.ShowMinerWindow) {
-                $this.Process = Start-Job ([ScriptBlock]::Create("Start-Process $(@{desktop = "powershell"; core = "pwsh"}.$Global:PSEdition) `"-command ```$Process = (Start-Process '$($this.Path)' '$($this.Arguments)' -WorkingDirectory '$(Split-Path $this.Path)' -WindowStyle Minimized -PassThru).Id; Wait-Process -Id `$PID; Stop-Process -Id ```$Process`" -WindowStyle Hidden -Wait"))
+                #$this.Process = Start-Job ([ScriptBlock]::Create("Start-Process $(@{desktop = "powershell"; core = "pwsh"}.$Global:PSEdition) `"-command ```$Process = (Start-Process '$($this.Path)' '$($this.Arguments)' -WorkingDirectory '$(Split-Path $this.Path)' -WindowStyle Minimized -PassThru).Id; Wait-Process -Id `$PID; Stop-Process -Id ```$Process`" -WindowStyle Hidden -Wait"))
+                $this.LogFile = $Global:ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(".\Logs\$($this.Name)-$($this.Port)_$(Get-Date -Format "yyyy-MM-dd_HH-mm-ss").txt")
+                $this.Process = Start-SubProcessWithoutStealingFocus -FilePath $this.Path -ArgumentList $this.Arguments -LogPath $this.LogFile -WorkingDirectory (Split-Path $this.Path) -Priority ($this.Type | ForEach-Object {if ($_ -eq "CPU") {-2}else {-1}} | Measure-Object -Maximum | Select-Object -ExpandProperty Maximum)
             }
             else {
                 $this.LogFile = $Global:ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(".\Logs\$($this.Name)-$($this.Port)_$(Get-Date -Format "yyyy-MM-dd_HH-mm-ss").txt")
