@@ -1,8 +1,8 @@
 ﻿using module ..\Include.psm1
 
 $Path = ".\Bin\CPU-JayDDee\cpuminer-sse2.exe"
-$HashSHA256 = "CA29DF868AB40B1922C183FD8483D5AD354696C32F292F05A0540DD66CD5DFA1"
-$Uri = "https://github.com/JayDDee/cpuminer-opt/files/1939225/cpuminer-opt-3.8.8-windows.zip"
+$HashSHA256 = "3DEC184FA2E26CF3A474FDFFED8FF1AD61A51E9E7A85D48547FE99C801FB7380"
+$Uri = "https://github.com/JayDDee/cpuminer-opt/files/1996977/cpuminer-opt-3.8.8.1-windows.zip"
 
 $Commands = [PSCustomObject]@{
     # CPU Only algos 23/04/2018
