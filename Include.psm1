@@ -711,7 +711,7 @@ Function Start-SubProcessWithoutStealingFocus {
 
         $lpApplicationName = $FilePath;
 
-        lpCommandLine = '"' + $FilePath + '"' #Windows paths cannot contain ", so there is no need to escape
+        $lpCommandLine = '"' + $FilePath + '"' #Windows paths cannot contain ", so there is no need to escape
         if ($ArgumentList -ne "") {$lpCommandLine += " " + $ArgumentList}
 
         $lpProcessAttributes = New-Object SECURITY_ATTRIBUTES
