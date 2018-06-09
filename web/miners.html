@@ -1,11 +1,11 @@
 <!--#include file="/parts/head.html" -->
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-  <h1 id="title" data-navbaractive="navallminers" class="h2">All Miners</h1>
+  <h1 id="title" data-navbaractive="navallminers" class="h2">Miners</h1>
 </div>
 <table id="miners" class="table"
   data-toggle="table"
   data-url="/miners"
-  data-response-handler="formatAllMiners"
+  data-response-handler="formatMiners"
   data-filter-control="true"
   data-filter-show-clear="true"
   data-sort-order="desc"
@@ -14,7 +14,10 @@
   data-show-columns="true"
   data-show-toggle="true"
   data-show-refresh="true"
+  data-icons-prefix="fa"
   data-icons="icons"
+  data-detail-view="true"
+  data-detail-formatter="detailFormatter"
 >
   <thead>
     <tr>
@@ -31,7 +34,7 @@
 
 <!-- End of page scripts -->
 <script type="text/javascript">
-  function formatAllMiners(data) {
+  function formatMiners(data) {
   // This function can alter the returned data before building the table, formatting it in a way
   // that is easier to display and manipulate in a table
   $.each(data, function(index, item) {
@@ -43,6 +46,7 @@
     item.tPrimaryAlgorithm = algorithms[0];
     item.tSecondaryAlgorithm = algorithms[1];
     item.tPrimaryHashRate = item.HashRates[algorithms[0]];
+    item.tSecondaryHashRate = item.HashRates[algorithms[1]];
 
   });
   return data;

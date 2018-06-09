@@ -133,6 +133,10 @@
                     $Data = $API.Balances | ConvertTo-Json
                     Break
                 }
+                "/currentprofit" {
+                    $Data = ($API.RunningMiners | Measure-Object -Sum -Property Profit).Sum | ConvertTo-Json
+                    Break
+                }
                 "/stop" {
                     $API.Stop = $true
                     $Data = "Stopping"

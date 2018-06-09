@@ -2,6 +2,10 @@ body {
   font-size: .875rem;
 }
 
+.detail-icon:before {
+  content: "+";
+}
+
 .svg-inline--fa {
   width: 16px;
   height: 16px;

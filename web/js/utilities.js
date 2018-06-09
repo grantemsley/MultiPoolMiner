@@ -66,6 +66,11 @@ function formatMinerHashRatesValues(value) {
   }
   return hashrates.toString();
 }
-    
-    
-  
+
+function detailFormatter(index, row) {
+  var html = [];
+  $.each(row, function (key, value) {
+    html.push('<p class="mb-0"><b>' + key + ':</b> ' + JSON.stringify(value) + '</p>');
+  });
+  return html.join('');
+}
