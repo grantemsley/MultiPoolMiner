@@ -36,11 +36,11 @@
 </table>
 
 <h3 class="mt-4">Balances</h3>
-<div id="balanceboxes" class="card-group mb-4"></div>
+<div id="balanceboxes" class="card-deck"></div>
 
 <!-- End of page scripts -->
 <script id="poolbalance_template" type="text/x-handlebars-template">
-  <div class="card {{#if total}}text-white bg-primary {{else}}text-dark bg-light{{/if}}" style="min-width: {{#if total}}100%{{else}}200px{{/if}}";>
+  <div class="mb-2 card {{#if total}}text-white bg-primary {{else}}text-dark bg-light{{/if}}" style="min-width: {{#if total}}100%{{else}}200px{{/if}}";>
     <div class="card-header text-center">
       <h5>{{name}}</h5>
     </div>
@@ -88,8 +88,10 @@
     // that is easier to display and manipulate in a table
     $.each(data, function(index, item) {
       // Format the type(s)
+      console.log(data);
+      console.log(item);
       item.Type = item.Type.toString();
-console.log(item);
+
       // Format the algorithms and hashrates
       
       // Algorithm is always an array, sometimes has 2 elements

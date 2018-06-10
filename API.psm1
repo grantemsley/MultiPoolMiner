@@ -70,19 +70,20 @@
                     break
                 }
                 "/activeminers" {
-                    $Data = $API.ActiveMiners | ConvertTo-Json
+                    # Make sure active miners is an array, even if there is only 1 miner running
+                    $Data = ConvertTo-Json @($API.ActiveMiners)
                     break
                 }
                 "/runningminers" {
-                    $Data = $API.RunningMiners | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.RunningMiners)
                     Break
                 }
                 "/failedminers" {
-                    $Data = $API.FailedMiners | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.FailedMiners)
                     Break
                 }
                 "/minersneedingbenchmark" {
-                    $Data = $API.MinersNeedingBenchmark | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.MinersNeedingBenchmark)
                     Break
                 }
                 "/pools" {
