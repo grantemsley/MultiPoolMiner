@@ -7,7 +7,7 @@ $MyConfig = $Config.Pools.$Name
 $Request = [PSCustomObject]@{}
 
 if(!$MyConfig.BTC) {
-  Write-Log -Level Verbose "Pool API ($Name) has failed - no wallet address specified."
+  Write-Log -Level Verbose "Pool Balance API ($Name) has failed - no wallet address specified."
   return
 }
 

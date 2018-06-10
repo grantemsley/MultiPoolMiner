@@ -38,7 +38,7 @@ $guiCmd = [PowerShell]::Create().AddScript{
             'StartWhenIdle' = $False
         }
     }
-    
+
     #region Load window
     # Get XAML and create a window
     Add-Type -AssemblyName PresentationFramework
@@ -78,7 +78,6 @@ $guiCmd = [PowerShell]::Create().AddScript{
             $Controls.StatusText.Dispatcher.Invoke([action]{$Controls.StatusText.Text = 'Running'})
             $Controls.StartStop.Dispatcher.Invoke([action]{$Controls.StartStop.Content = 'Stop Mining'})
         }
-        
     }
 
     $Controls.IdleDelay.add_TextChanged{
@@ -141,12 +140,12 @@ $guiCmd = [PowerShell]::Create().AddScript{
                     # Start the script
                     $FilePath = 'pwsh.exe'
                     $ArgumentList = "-executionpolicy bypass `"$(Convert-Path -Path '.\MultiPoolMiner.ps1')`""
-    
+
                     $Job = Start-Job -ArgumentList $PID, $FilePath, $ArgumentList, $PWD -ScriptBlock {
                         param($ControllerProcessID, $FilePath, $ArgumentList, $WorkingDirectory)
                         $ControllerProcess = Get-Process -Id $ControllerProcessID
                         if ($ControllerProcess -eq $null) {return}
-    
+
                         $ProcessParam = @{}
                         $ProcessParam.Add('FilePath', $FilePath)
                         $ProcessParam.Add('WindowStyle', 'Minimized')
@@ -157,20 +156,20 @@ $guiCmd = [PowerShell]::Create().AddScript{
                             [PSCustomObject]@{ProcessId = $null}
                             return        
                         }
-    
+
                         [PSCustomObject]@{
                             ProcessId = $Process.Id
                             ProcessHandle = $Process.Handle
                         }
-    
+
                         $ControllerProcess.Handle | Out-Null
                         $Process.Handle | Out-Null
-    
+
                         do {if ($ControllerProcess.WaitForExit(1000)) {$Process.CloseMainWindow() | Out-Null}}
                         while ($Process.HasExited -eq $false)
                     }
                     do {Start-Sleep -Seconds 1; $JobOutput = Receive-Job -Job $Job} while ($JobOutput -eq $null)
-    
+
                     $State.MultiPoolMinerProcess = Get-Process -Id $JobOutput.ProcessId
                     $State.MultiPoolMinerHandle = $JobOutput.Handle
                 }
@@ -227,8 +226,8 @@ namespace PInvoke.Win32 {
             }
         }
         public static TimeSpan IdleTime {
-            get { 
-                return DateTime.UtcNow.Subtract(LastInput); 
+            get {
+                return DateTime.UtcNow.Subtract(LastInput);
             }
         }
         public static int LastInputTicks {
@@ -384,9 +383,9 @@ If($DebugPreference -ne 'SilentlyContinue' -or $host.name -match 'ISE') {
     Write-Warning -Message 'MultiPoolMiner GUI Debug Console.  If you close this, the GUI will exit as well.'
     $host.EnterNestedPrompt()
 } else {
-    $windowcode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);' 
-    $asyncwindow = Add-Type -MemberDefinition $windowcode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru 
-    $null = $asyncwindow::ShowWindowAsync((Get-Process -Id $pid).MainWindowHandle, 0) 
+    $windowcode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
+    $asyncwindow = Add-Type -MemberDefinition $windowcode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
+    $null = $asyncwindow::ShowWindowAsync((Get-Process -Id $pid).MainWindowHandle, 0)
     While(!$guiThread.IsCompleted) {
         Start-Sleep -Seconds 1
     }

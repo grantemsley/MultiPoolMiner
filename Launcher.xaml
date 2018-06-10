@@ -1,12 +1,7 @@
-<Window
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        Height='350' Width='600'
-        Title="MultiPoolMiner GUI">
+<?xml version="1.0" encoding="UTF-8"?>
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Height="350" Width="600" Title="MultiPoolMiner GUI">
     <Window.TaskbarItemInfo>
-        <TaskbarItemInfo/>
+        <TaskbarItemInfo />
     </Window.TaskbarItemInfo>
     <Window.Resources>
         <Style x:Key="LinkButton" TargetType="Button">
@@ -28,7 +23,7 @@
         </Style>
     </Window.Resources>
     <DockPanel>
-        <StatusBar DockPanel.Dock='Bottom' Height='25'>
+        <StatusBar DockPanel.Dock="Bottom" Height="25">
             <StatusBarItem>
                 <WrapPanel>
                     <TextBlock Margin="0,0,10,0">Status:</TextBlock>
@@ -39,7 +34,7 @@
             <StatusBarItem>
                 <WrapPanel>
                     <TextBlock Margin="0,0,10,0">System Idle For:</TextBlock>
-                    <TextBlock Name="IdleTime"></TextBlock>
+                    <TextBlock Name="IdleTime" />
                 </WrapPanel>
             </StatusBarItem>
             <Separator />
@@ -50,69 +45,66 @@
                 </WrapPanel>
             </StatusBarItem>
         </StatusBar>
-        <StackPanel DockPanel.Dock='Right' Name='Controls' Width='200' Margin='10'>
+        <StackPanel DockPanel.Dock="Right" Name="Controls" Width="200" Margin="10">
             <Button Name="StartStop" Content="Start Mining" Height="50" Margin="0,0,0,10" />
-            <Button Name="ShowWebInterface" Content="Open Web Interface" Margin='0,0,0,10' />
-            <Button Name="ShowMonitoringSite" Content="Open Monitoring Site" Margin='0,0,0,20' />
+            <Button Name="ShowWebInterface" Content="Open Web Interface" Margin="0,0,0,10" />
+            <Button Name="ShowMonitoringSite" Content="Open Monitoring Site" Margin="0,0,0,20" />
             <GroupBox Header="Auto Start When Idle">
                 <StackPanel>
                     <CheckBox Content="Start when idle" Name="StartWhenIdle" />
                     <Label Content="Idle Delay (seconds):" />
                     <TextBox Name="IdleDelay" Text="60" />
                 </StackPanel>
-            </GroupBox>                
+            </GroupBox>
         </StackPanel>
-
-                <GroupBox Name='WorkersGroup' Header='Remote Worker Monitoring'>
-                    <ListView Name='WorkersList'>
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType='ListViewItem'>
-                                <Setter Property='HorizontalContentAlignment' Value='Stretch' />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Path=Status}" Value="Online">
-                                        <Setter Property="ListViewItem.Background" Value="LightGreen" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Path=Status}" Value="Offline">
-                                        <Setter Property="ListViewItem.Background" Value="LightPink" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ListView.ItemContainerStyle>
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header='Worker Name'>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text='{Binding Path=WorkerName}' />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header='Status'>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text='{Binding Path=Status}' />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header='Last Seen'>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text='{Binding Path=TimeSinceLastSeen}' />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header='Profit Per Day'>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text='{Binding Path=Profit}' />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                </GroupBox>
-
+        <GroupBox Name="WorkersGroup" Header="Remote Worker Monitoring">
+            <ListView Name="WorkersList">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Path=Status}" Value="Online">
+                                <Setter Property="ListViewItem.Background" Value="LightGreen" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Path=Status}" Value="Offline">
+                                <Setter Property="ListViewItem.Background" Value="LightPink" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Worker Name">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=WorkerName}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Status">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Status}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Last Seen">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=TimeSinceLastSeen}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Profit Per Day">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Profit}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </GroupBox>
     </DockPanel>
-
 </Window>

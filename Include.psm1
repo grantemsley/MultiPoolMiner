@@ -1,3 +1,5 @@
+Set-Location (Split-Path $MyInvocation.MyCommand.Path)
+
 Add-Type -Path .\OpenCL\*.cs
 
 function Get-Balance {
@@ -16,7 +18,7 @@ function Get-Balance {
     # Add total of totals
     $Balances += [PSCustomObject]@{
         total = ($Balances.total | Measure-Object -Sum).sum
-        Name  = "*Total*"
+        Name = "*Total*"
     }
 
     # Add local currency values
@@ -184,7 +186,7 @@ function ConvertTo-CommandPerDeviceSet {
                         $DeviceID = [Convert]::ToInt32($_, $DeviceIdBase) - $DeviceIdOffset
                         if ($Values.Split($ValueSeparator) | Select-Object -Index $DeviceId) {$RelevantValues += ($Values.Split($ValueSeparator) | Select-Object -Index $DeviceId)}
                         else {$RelevantValues += ""}
-                    }                    
+                    }
                     $CommandPerDeviceSet += "$($Prefix)$($Parameter)$($ParameterValueSeparator)$(($RelevantValues -join $ValueSeparator).TrimEnd($ValueSeparator))"
                 }
                 else {$CommandPerDeviceSet += "$($Prefix)$($Parameter)$($ParameterValueSeparator)$($Values)"}
@@ -679,11 +681,11 @@ Function Start-SubProcessWithoutStealingFocus {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [String]$FilePath, 
+        [String]$FilePath,
         [Parameter(Mandatory = $false)]
-        [String]$ArgumentList = "", 
+        [String]$ArgumentList = "",
         [Parameter(Mandatory = $false)]
-        [String]$LogPath = "", 
+        [String]$LogPath = "",
         [Parameter(Mandatory = $false)]
         [String]$WorkingDirectory = "", 
         [ValidateRange(-2, 3)]
@@ -730,11 +732,11 @@ Function Start-SubProcessWithoutStealingFocus {
         $lpProcessInformation = New-Object PROCESS_INFORMATION
 
         [Kernel32]::CreateProcess($lpApplicationName, $lpCommandLine, [ref] $lpProcessAttributes, [ref] $lpThreadAttributes, $bInheritHandles, $dwCreationFlags, $lpEnvironment, $lpCurrentDirectory, [ref] $lpStartupInfo, [ref] $lpProcessInformation)
- 
+
         $Process = Get-Process -Id $lpProcessInformation.dwProcessId #Start-Process @ProcessParam -PassThru
         if ($Process -eq $null) {
             [PSCustomObject]@{ProcessId = $null}
-            return        
+            return
         }
 
         [PSCustomObject]@{ProcessId = $Process.Id; ProcessHandle = $Process.Handle}
