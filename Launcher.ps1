@@ -154,7 +154,7 @@ $guiCmd = [PowerShell]::Create().AddScript{
                         $Process = Start-Process @ProcessParam -PassThru
                         if ($Process -eq $null) {
                             [PSCustomObject]@{ProcessId = $null}
-                            return        
+                            return
                         }
 
                         [PSCustomObject]@{
