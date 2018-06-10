@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        Height='550' Width='1200'
+        Height='350' Width='600'
         Title="MultiPoolMiner GUI">
     <Window.TaskbarItemInfo>
         <TaskbarItemInfo/>
@@ -44,220 +44,25 @@
             </StatusBarItem>
             <Separator />
             <StatusBarItem>
-                    <WrapPanel>
+                <WrapPanel>
                     <TextBlock Margin="0,0,10,0">Remote Workers:</TextBlock>
                     <TextBlock Name="RemoteMinerStatus">Unknown</TextBlock>
                 </WrapPanel>
             </StatusBarItem>
-            <Separator />
-            <StatusBarItem>
-                <WrapPanel>
-                    <TextBlock Margin="0,0,10,0">This Worker Profit:</TextBlock>
-                    <TextBlock Name="ProfitPerDay"></TextBlock>
-                </WrapPanel>
-            </StatusBarItem>
-            <Separator />
-            <StatusBarItem>
-                <WrapPanel>
-                    <TextBlock Margin="0,0,10,0">All Workers Profit:</TextBlock>
-                    <TextBlock Name="RemoteMinerProfit">Unknown</TextBlock>
-                </WrapPanel>
-            </StatusBarItem>
-            <Separator />
-            <StatusBarItem>
-                <WrapPanel>
-                    <TextBlock Margin="0,0,10,0">Exchange Rates:</TextBlock>
-                    <TextBlock Name="ExchangeRates"></TextBlock>
-                </WrapPanel>
-            </StatusBarItem>
         </StatusBar>
         <StackPanel DockPanel.Dock='Right' Name='Controls' Width='200' Margin='10'>
-            <Button Name="StartStop" Content="Start Mining" Height="50" Margin="0,0,0,20" />
-            <Button Name="SetParameters" Content="Set Launch Parameters" />
-            <Button Name="Setup" Content="Setup" />
-            <Button Name="ShowMiners" Content="Show Benchmark Info" Margin='0,0,0,20' />
-            <Button Name="ResetBenchmark" Content="Reset Benchmarks" />
-            <Button Name="ResetProfit" Content="Reset Profit Data" />
-            <CheckBox Content="Start when idle" Name="StartWhenIdle" />
-            <Label Content="Idle Delay (seconds):" />
-            <TextBox Name="IdleDelay" Text="60" />
-            <CheckBox Content='Automatically show miner logs' Name='AutoShowLogs' />
+            <Button Name="StartStop" Content="Start Mining" Height="50" Margin="0,0,0,10" />
+            <Button Name="ShowWebInterface" Content="Open Web Interface" Margin='0,0,0,10' />
+            <Button Name="ShowMonitoringSite" Content="Open Monitoring Site" Margin='0,0,0,20' />
+            <GroupBox Header="Auto Start When Idle">
+                <StackPanel>
+                    <CheckBox Content="Start when idle" Name="StartWhenIdle" />
+                    <Label Content="Idle Delay (seconds):" />
+                    <TextBox Name="IdleDelay" Text="60" />
+                </StackPanel>
+            </GroupBox>                
         </StackPanel>
-        <TabControl>
-            <TabItem Header='Main'>
-                <GroupBox Name="ActiveMinersGroup" Header="Active Miners">
-                    <ListView Name="ActiveMinersList">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Name">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Name}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Type">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Type}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Pool">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Pool}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Algorithm">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Algorithm}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Current Speed">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Speed_Live}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Benchmarked Speed">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Speed}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="BTC/day">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Profit}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn x:Name="MinerProfit1" Header="" Width="100">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Profit1}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn x:Name="MinerProfit2" Header="" Width="100">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Profit2}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn x:Name="MinerProfit3" Header="" Width="100">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Profit3}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Active">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Active}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Path">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Path}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="View Log">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=LogFile}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                </GroupBox>
-            </TabItem>
-            <TabItem Header='Balances'>
-                <GroupBox Name="PoolBalancesGroup" Header="Pool Balances">
-                    <ListView Name="PoolsBalancesList">
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType="ListViewItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                            </Style>
-                        </ListView.ItemContainerStyle>
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Pool Name" Width="110">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Name}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Last Refreshed" Width="130">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Updated}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Confirmed" Width="90">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Confirmed}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Pending" Width="90">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Pending}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Total BTC" Width="90">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Total}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn x:Name="PoolBalancesListTotal1" Header="" Width="100">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Total1}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn x:Name="PoolBalancesListTotal2" Header="" Width="100">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Total2}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn x:Name="PoolBalancesListTotal3" Header="" Width="100">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Total3}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                </GroupBox>
 
-            </TabItem>
-            <TabItem Header='Workers'>
                 <GroupBox Name='WorkersGroup' Header='Remote Worker Monitoring'>
                     <ListView Name='WorkersList'>
                         <ListView.ItemContainerStyle>
@@ -288,7 +93,7 @@
                                             <TextBlock Text='{Binding Path=Status}' />
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
-                                </GridViewColumn>                                
+                                </GridViewColumn>
                                 <GridViewColumn Header='Last Seen'>
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
@@ -303,33 +108,11 @@
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn x:Name="RemoteProfit1" Header="" Width="100">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Profit1}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn x:Name="RemoteProfit2" Header="" Width="100">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Profit2}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn x:Name="RemoteProfit3" Header="" Width="100">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Path=Profit3}" TextAlignment="Right" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
                             </GridView>
                         </ListView.View>
                     </ListView>
                 </GroupBox>
-            </TabItem>
-        </TabControl>
+
     </DockPanel>
-    
+
 </Window>

@@ -10,8 +10,6 @@
 $Controls = [hashtable]::Synchronized(@{})
 # State holds information about the configuration and current state of the launcher
 $State = [hashtable]::Synchronized(@{})
-# Data holds all the data retrieved from various APIs
-$Data = [hashtable]::Synchronized(@{})
 # Errors holds the $error variable from each thread, so they can be viewed when debugging
 $Errors = [hashtable]::Synchronized(@{})
 
@@ -24,7 +22,6 @@ $newRunspace.ThreadOptions = 'ReuseThread'
 $newRunspace.Open()
 $newRunspace.SessionStateProxy.SetVariable('Controls', $Controls)
 $newRunspace.SessionStateProxy.SetVariable('State', $State)
-$newRunspace.SessionStateProxy.SetVariable('Data', $Data)
 $newRunspace.SessionStateProxy.SetVariable('Errors', $Errors)
 $newRunspace.SessionStateProxy.Path.SetLocation($pwd)
 
@@ -63,17 +60,6 @@ $guiCmd = [PowerShell]::Create().AddScript{
     $Controls.Window.TaskbarItemInfo
     #endregion Load window
 
-
-    #   $syncHash.Window.Add_Closed({
-    #       # Make sure miner gets closed if it was running
-    #       $synchash.Running = $false
-    #       $synchash.GUIRunning = $false
-    #       if($syncHash.MultiPoolMinerProcess -and $syncHash.MultiPoolMinerProcess.HasExited -eq $false) {
-    #           $synchash.MultiPoolMinerProcess.CloseMainWindow()
-    #       }
-
-
-
     # Set control values
     $Controls.IdleDelay.Text = $State.Settings.IdleDelay
     $Controls.StartWhenIdle.IsChecked = $State.Settings.StartWhenIdle
@@ -83,40 +69,6 @@ $guiCmd = [PowerShell]::Create().AddScript{
     $State.ManualStart = $false
     $State.MultiPoolMinerProcess = $null
     $State.Config = Get-ChildItemContent 'Config.txt' | Select-Object -ExpandProperty Content
-
-    # Setup currencies and exchange rates
-    [array]$Data.Currencies = $State.Config.Currency | Where-Object {$_ -ne 'BTC'}
-    $Data.Rates = [PSCustomObject]@{BTC = [Double]1}
-        
-    # Set the columns for user defined currencies
-    # There is no way to hide a column, so if it isn't used, set it's width to zero
-    if($Data.Currencies[0]) {
-        $Controls.PoolBalancesListTotal1.Header = "Total $($Data.Currencies[0])"
-        $Controls.MinerProfit1.Header = "$($Data.Currencies[0])/Day"
-        $Controls.RemoteProfit1.Header = "$($Data.Currencies[0])/Day"
-    } else {
-        $Controls.PoolBalancesListTotal1.Width = 0.0
-        $Controls.MinerProfit1.Width = 0.0
-        $Controls.RemoteProfit1.Width = 0.0
-    }
-    if ($Data.Currencies[1]) {
-        $Controls.PoolBalancesListTotal2.Header = "Total $($Data.Currencies[1])"
-        $Controls.MinerProfit2.Header = "$($Data.Currencies[0])/Day"
-        $Controls.RemoteProfit2.Header = "$($Data.Currencies[0])/Day"
-    } else {
-        $Controls.PoolBalancesListTotal2.Width = 0.0
-        $Controls.MinerProfit2.Width = 0.0
-        $Controls.RemoteProfit2.Width = 0.0
-    }
-    if ($Data.Currencies[1]) {
-        $Controls.PoolBalancesListTotal3.Header = "Total $($Data.Currencies[2])"
-        $Controls.MinerProfit3.Header = "$($Data.Currencies[0])/Day"
-        $Controls.RemoteProfit3.Header = "$($Data.Currencies[0])/Day"
-    } else {
-        $Controls.PoolBalancesListTotal3.Width = 0.0
-        $Controls.MinerProfit3.Width = 0.0
-        $Controls.RemoteProfit3.Width = 0.0
-    }
 
     # Setup functions for buttons
     $Controls.Window.Add_Closing{
@@ -138,38 +90,6 @@ $guiCmd = [PowerShell]::Create().AddScript{
         
     }
 
-    $Controls.Setup.add_Click{
-        # Setup uses WPF, requires powershell 5 not powershell core
-        Start-Process -FilePath powershell.exe -ArgumentList "-executionpolicy bypass `"$(Convert-Path -Path '.\Setup.ps1')`""
-    }
-
-    #FIXME
-    $Controls.ShowMiners.add_Click{
-        $Miners = Import-CliXml -Path .\Data\Miners.xml
-        $Miners | Sort-Object -Descending -Property Type, Profit_Bias | Select-Object -Property @{Label='Miner';Expression={$_.Name}},
-        @{Label='Type'; Expression={$_.Type}},
-        @{Label= 'Algorithm'; Expression = {$_.HashRates.PSObject.Properties.Name}}, 
-        @{Label= 'Speed'; Expression = {$_.HashRates.PSObject.Properties.Value | ForEach-Object {if ($_ -ne $null) {"$($_ | ConvertTo-Hash)/s"}else {'Benchmarking'}}}}, 
-        @{Label= 'BTC/Day'; Expression = {$_.Profits.PSObject.Properties.Value | ForEach-Object {if ($_ -ne $null) {$_.ToString('N5')}else {'Benchmarking'}}}}, 
-        @{Label= 'Profits_Bias'; Expression = {$_.Profits_Bias.PSObject.Properties.Value | ForEach-Object {if ($_ -ne $null) {$_.ToString('N5')}else {'Benchmarking'}}}}, 
-        @{Label= 'Accuracy'; Expression = {$_.Pools.PSObject.Properties.Value.MarginOfError | ForEach-Object {(1 - $_).ToString('P0')}}}, 
-        @{Label= 'BTC/GH/Day'; Expression = {$_.Pools.PSObject.Properties.Value.Price | ForEach-Object {($_ * 1000000000).ToString('N5')}}}, 
-        @{Label= 'Pool'; Expression = {$_.Pools.PSObject.Properties.Value | ForEach-Object {if ($_.Info) {"$($_.Name)-$($_.Info)"}else {"$($_.Name)"}}}} | Out-GridView
-    }
-        
-    $Controls.ResetBenchmark.add_Click{
-        $confirm = [Windows.MessageBox]::Show('Resetting benchmarks will delete all miner performance data and restart benchmarking. Are you sure you want to continue?', 'Reset Benchmarks', 'YesNo', 'Warning', 'No')
-        if($confirm) {
-            Remove-Item -Path 'Stats\*_HashRate.txt'
-        }
-    }
-    $Controls.ResetProfit.add_Click{
-        $confirm = [Windows.MessageBox]::Show('Resetting profit will delete all pool profit data and restart benchmarking. Are you sure you want to continue?', 'Reset Profit', 'YesNo', 'Warning', 'No')
-        if($confirm) {
-            Remove-Item -Path 'Stats\*Profit.txt'
-        }
-    }
-
     $Controls.IdleDelay.add_TextChanged{
         $State.Settings.IdleDelay = $Controls.IdleDelay.Text
         $State.Settings | ConvertTo-Json | Out-File -FilePath '.\Launchersettings.json'
@@ -185,9 +105,28 @@ $guiCmd = [PowerShell]::Create().AddScript{
         $State.Settings | ConvertTo-Json | Out-File -FilePath '.\Launchersettings.json'
     }
 
-    #$Controls.website.add_Click{
-    #    Start-Process -FilePath 'https://multipoolminer.io/'
-    #}
+    $Controls.ShowWebInterface.add_Click{
+        if($State.Running -eq $false) {
+            [System.Windows.MessageBox]::Show('Web interface only runs when mining. Start mining first.')
+        } else {
+            Start-Process -FilePath 'http://localhost:3999'
+        }
+    }
+
+    $Controls.ShowMonitoringSite.add_Click{
+        $url = $State.Config.MinerStatusURL.Substring(0, $State.Config.MinerStatusURL.lastIndexOf('/')) + "/?address=$($State.Config.MinerStatusKey)"
+        Start-Process -FilePath $url
+    }
+
+    # Stop mining if the window is closed
+    $Controls.Window.Add_Closed({
+        $State.Running = $false
+        $State.GUIRunning = $false
+        if($State.MultiPoolMinerProcess -and $State.MultiPoolMinerProcess.HasExited -eq $false) {
+            $State.MultiPoolMinerProcess.CloseMainWindow()
+        }
+    })
+
 
     #region Create multipoolminer script runner thread...
     # This thread is responsible for starting the script when $State.Running = $true, and stopping it when it's $false.
@@ -335,134 +274,6 @@ namespace PInvoke.Win32 {
     $idlemonitor.Runspace = $newRunspace
     $IdleMonitorThread = $IdleMonitor.BeginInvoke()
     #endregion Create idle monitoring
-    
-    #region Create balance checking thread
-    $newRunspace = [runspacefactory]::CreateRunspace()
-    $newRunspace.ApartmentState = 'STA'
-    $newRunspace.ThreadOptions = 'ReuseThread'
-    $newRunspace.Open()
-    $newRunspace.SessionStateProxy.SetVariable('State', $State)
-    $newRunspace.SessionStateProxy.SetVariable('Data', $Data)
-    $newRunspace.SessionStateProxy.SetVariable('Controls', $Controls)
-    $newRunspace.SessionStateProxy.SetVariable('Errors', $Errors)
-    $newRunspace.SessionStateProxy.Path.SetLocation($pwd)
-    $balanceupdater = [PowerShell]::Create().AddScript{
-        Import-Module .\Include.psm1
-        $Balances = [PSCustomObject]
-
-        While ($State.GUIRunning) {
-            # Update exchange rates
-            $NewRates = Invoke-RestMethod -Uri 'https://api.coinbase.com/v2/exchange-rates?currency=BTC' -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop | Select-Object -ExpandProperty data | Select-Object -ExpandProperty rates
-            $Data.Currencies | Where-Object {$NewRates.$_} | ForEach-Object {$Data.Rates | Add-Member $_ ([Double]$NewRates.$_) -Force}
-
-            # Set exchange rates on status bar
-            $ExchangeRateText = ''
-            $Data.Rates | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name | Where-Object { $_ -ne 'BTC' } | ForEach-Object {$ExchangeRateText += " $_`: {0:N2} " -f $Data.rates.$_}
-            $Controls.ExchangeRates.Dispatcher.Invoke([action]{$Controls.ExchangeRates.Text = $ExchangeRateText}, "Background")
-
-            # Get pool balances and format the way the listview expects
-            Get-Balance -Rates $Data.Rates -Config $State.Config | ForEach-Object {$Balances | Add-Member $_.Name $_.Content -Force}
-                    
-            $BalanceNames = $Balances | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name
-            $BalanceList = $BalanceNames | Select-Object -Property @{Name='Name';Expression={$_}}, @{Name='Updated';Expression={$Balances.$_.lastupdated}},
-            @{Name='Confirmed';Expression={'{0:N8}' -f $Balances.$_.balance}},
-            @{Name='Pending';Expression={'{0:N8}' -f $Balances.$_.pending}},
-            @{Name='Total';Expression={'{0:N8}' -f $Balances.$_.total}},
-            @{Name='Total1';Expression={'{0:N2}' -f $Balances.$_."total_$($Data.Currencies[0])"}},
-            @{Name='Total2';Expression={'{0:N2}' -f $Balances.$_."total_$($Data.Currencies[1])"}},
-            @{Name='Total3';Expression={'{0:N2}' -f $Balances.$_."total_$($Data.Currencies[2])"}}
-
-            # Add the total
-            $BalanceList += [pscustomobject]@{Name='----------'}
-
-            $BalanceList += [pscustomobject]@{
-                Name='Total'
-                Confirmed= '{0:N8}' -f ($BalanceList | Where-Object {$_.Confirmed -ne ''} | Measure-Object -Property Confirmed -Sum).sum
-                Pending= '{0:N8}' -f ($BalanceList | Where-Object {$_.Pending -ne ''} |Measure-Object -Property Pending -Sum).sum
-                Total= '{0:N8}' -f ($BalanceList | Where-Object {$_.Total -ne ''} |Measure-Object -Property Total -Sum).sum
-                Total1= '{0:N2}' -f ($BalanceList | Where-Object {$_.Total1 -ne ''} |Measure-Object -Property Total1 -Sum).sum
-                Total2= '{0:N2}' -f ($BalanceList | Where-Object {$_.Total2 -ne ''} |Measure-Object -Property Total2 -Sum).sum
-                Total3= '{0:N2}' -f ($BalanceList | Where-Object {$_.Total3 -ne ''} |Measure-Object -Property Total3 -Sum).sum
-            }
-
-            # Tell list to update
-            $Controls.PoolsBalancesList.Dispatcher.Invoke([action]{$Controls.PoolsBalancesList.ItemsSource = $BalanceList}, "Background")
-            $Errors.balancethread = $error
-
-            # Sleep for a long time here. Balances don't change often, and we don't want to hammer the pool APIs too hard.
-            Start-Sleep -Seconds 120
-        }
-    }
-
-    $balanceupdater.Runspace = $newRunspace
-    $BalanceUpdaterThread = $balanceupdater.BeginInvoke()
-    #endregion Create balance checking thread
-    
-    #region Create mining list updating thread
-    $newRunspace = [runspacefactory]::CreateRunspace()
-    $newRunspace.ApartmentState = 'STA'
-    $newRunspace.ThreadOptions = 'ReuseThread'
-    $newRunspace.Open()
-    $newRunspace.SessionStateProxy.SetVariable('State', $State)
-    $newRunspace.SessionStateProxy.SetVariable('Data', $Data)
-    $newRunspace.SessionStateProxy.SetVariable('Controls', $Controls)
-    $newRunspace.SessionStateProxy.SetVariable('Errors', $Errors)
-    $newRunspace.SessionStateProxy.Path.SetLocation($pwd)
-    $miningupdater = [PowerShell]::Create().AddScript{
-		Import-Module .\Include.psm1
-                
-        $ActiveMiners = @{}
-        $TotalProfit = 0
-                
-        While ($State.GUIRunning) {
-            Try {
-                # Try to load data from script API
-                $ActiveMiners = Invoke-RestMethod -Uri 'http://localhost:3999/runningminers' -ErrorAction Stop -TimeoutSec 5
-
-                If ($Activeminers -eq $null) {
-                    Throw 'Empty API response'
-                }
-                If ($Activeminers.PSObject.Properties.Name -match 'Error') {
-                    Throw $Activeminers.error
-                }
-
-                $Activeminers | Foreach-Object {
-                    # Change the arrays to comma separated strings and format numbers
-                    $_.Type = $_.Type -join ','
-                    $_.Pool = $_.Pool -join ','
-                    $_.Algorithm = $_.Algorithm -join ','
-                    $_.Speed = ($_.Speed | ConvertTo-Hash) -join ','
-                    $_.Speed_Live = ($_.Speed_Live | ConvertTo-Hash) -join ','
-                    $_.Active = "$($_.Active.Days) Days $($_.Active.Hours) Hours $($_.Active.Minutes) Minutes"
-                    $_.Profit = '{0:N8}' -f [double]$_.Profit
-                    
-                    # Set profit in local currencies
-                    $_ | Add-Member -MemberType ScriptProperty -Name Profit1 -Value {'{0:N2}' -f ([double]$this.Profit * $Data.Rates.($Data.Currencies[0]))}
-                    $_ | Add-Member -MemberType ScriptProperty -Name Profit2 -Value {'{0:N2}' -f ([double]$this.Profit * $Data.Rates.($Data.Currencies[1]))}
-                    $_ | Add-Member -MemberType ScriptProperty -Name Profit3 -Value {'{0:N2}' -f ([double]$this.Profit * $Data.Rates.($Data.Currencies[2]))}
-                }
-
-                $TotalProfit = "BTC: $(($Activeminers | Measure-Object -Sum -Property Profit).Sum)"
-                        
-                if($Data.Currencies[0]) { $TotalProfit += "  $($Data.Currencies[0]): $(($Activeminers | Measure-Object -Sum -Property Profit1).Sum)" }
-                if($Data.Currencies[1]) { $TotalProfit += "  $($Data.Currencies[1]): $(($Activeminers | Measure-Object -Sum -Property Profit2).Sum)" }
-                if($Data.Currencies[2]) { $TotalProfit += "  $($Data.Currencies[2]): $(($Activeminers | Measure-Object -Sum -Property Profit3).Sum)" }
-
-            } Catch {
-                $Activeminers = @{}
-                $TotalProfit = 0
-            }
-
-            # Update miners list and profit per day in status bar
-            $Controls.ProfitPerDay.Dispatcher.Invoke([action]{$Controls.ProfitPerDay.text = $TotalProfit}, "Background")
-            $Controls.ActiveMinersList.Dispatcher.Invoke([action]{$Controls.ActiveMinersList.ItemsSource = $Activeminers}, "Background")
-            $Errors.miningUpdater = $Error
-            Start-Sleep -Seconds 30
-        }
-    }
-    $miningupdater.Runspace = $newRunspace
-    $miningUpdaterThread = $miningupdater.BeginInvoke()
-    #endregion Create mining list updating thread
 
     #region Create remote worker thread
     $newRunspace = [runspacefactory]::CreateRunspace()
@@ -470,7 +281,6 @@ namespace PInvoke.Win32 {
     $newRunspace.ThreadOptions = 'ReuseThread'
     $newRunspace.Open()
     $newRunspace.SessionStateProxy.SetVariable('State', $State)
-    $newRunspace.SessionStateProxy.SetVariable('Data', $Data)
     $newRunspace.SessionStateProxy.SetVariable('Controls', $Controls)
     $newRunspace.SessionStateProxy.SetVariable('Errors', $Errors)
     $newRunspace.SessionStateProxy.Path.SetLocation($pwd)
@@ -512,20 +322,11 @@ namespace PInvoke.Win32 {
                         }
                         # Format profit to 8 digits
                         $_.Profit = '{0:N8}' -f $_.Profit
-                        
-                        # Set profit in local currencies
-                        $_ | Add-Member -MemberType ScriptProperty -Name Profit1 -Value {'{0:N2}' -f ([double]$this.Profit * $Data.Rates.($Data.Currencies[0]))}
-                        $_ | Add-Member -MemberType ScriptProperty -Name Profit2 -Value {'{0:N2}' -f ([double]$this.Profit * $Data.Rates.($Data.Currencies[1]))}
-                        $_ | Add-Member -MemberType ScriptProperty -Name Profit3 -Value {'{0:N2}' -f ([double]$this.Profit * $Data.Rates.($Data.Currencies[2]))}
                     }
 
                     # Calculate totals for status bar
                     $RemoteMinerProfit = "BTC: $(($Remoteminers | Where-Object {$_.Status -eq 'Online'} | Measure-Object -Sum -Property Profit).Sum)"
 
-                    if($Data.Currencies[0]) { $RemoteMinerProfit += "  $($Data.Currencies[0]): {0:N2}" -f $(($Remoteminers | Where-Object {$_.Status -eq 'Online'} | Measure-Object -Sum -Property Profit1).Sum) }
-                    if($Data.Currencies[1]) { $RemoteMinerProfit += "  $($Data.Currencies[1]): {0:N2}" -f $(($Remoteminers | Where-Object {$_.Status -eq 'Online'} | Measure-Object -Sum -Property Profit2).Sum) }
-                    if($Data.Currencies[2]) { $RemoteMinerProfit += "  $($Data.Currencies[2]): {0:N2}" -f $(($Remoteminers | Where-Object {$_.Status -eq 'Online'} | Measure-Object -Sum -Property Profit3).Sum) }
-                    
                     $OnlineWorkers = ($RemoteMiners | Where-Object {$_.Status -eq 'Online'} | Measure-Object).Count
                     $TotalWorkers = ($RemoteMiners | Measure-Object).Count
                     $RemoteMinerStatus = "$OnlineWorkers/$TotalWorkers online"
