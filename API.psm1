@@ -5,7 +5,6 @@
     # Setup flags for controlling script execution
     $API.Stop = $false
     $API.Pause = $false
-    $API.FinishedLoading = $false
 
     # Setup runspace to launch the API webserver in a separate thread
     $newRunspace = [runspacefactory]::CreateRunspace()
@@ -33,7 +32,7 @@
 
         # Setup the listener
         $Server = New-Object System.Net.HttpListener
-        # Listening on anything other than localhost requires admin privileges and could be dangerous
+        # Listening on anything other than localhost requires admin privileges
         $Server.Prefixes.Add("http://localhost:3999/")
         $Server.Start()
 
@@ -42,7 +41,7 @@
             $Request = $Context.Request
             $URL = $Request.Url.OriginalString
 
-            # Determine the requested resource - remove any query strings and trailing slashes
+            # Determine the requested resource and parse query strings
             $Path = $Request.Url.LocalPath
 
             # Parse any parameters in the URL - $Request.Url.Query looks like "+ ?a=b&c=d&message=Hello%20world"
@@ -70,7 +69,6 @@
                     break
                 }
                 "/activeminers" {
-                    # Make sure active miners is an array, even if there is only 1 miner running
                     $Data = ConvertTo-Json @($API.ActiveMiners)
                     break
                 }
@@ -87,27 +85,27 @@
                     Break
                 }
                 "/pools" {
-                    $Data = $API.Pools | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.Pools)
                     Break
                 }
                 "/newpools" {
-                    $Data = $API.NewPools | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.NewPools)
                     Break
                 }
                 "/allpools" {
-                    $Data = $API.AllPools | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.AllPools)
                     Break
                 }
                 "/algorithms" {
-                    $Data = ($API.AllPools.Algorithm | Sort-Object -Unique) | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.AllPools.Algorithm | Sort-Object -Unique)
                     Break
                 }
                 "/miners" {
-                    $Data = $API.Miners | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.Miners)
                     Break
                 }
                 "/fastestminers" {
-                    $Data = $API.FastestMiners | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.FastestMiners)
                     Break
                 }
                 "/config" {
@@ -119,19 +117,19 @@
                     Break
                 }
                 "/devices" {
-                    $Data = $API.Devices | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.Devices)
                     Break
                 }
                 "/stats" {
-                    $Data = $API.Stats | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.Stats)
                     Break
                 }
                 "/watchdogtimers" {
-                    $Data = $API.WatchdogTimers | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.WatchdogTimers)
                     Break
                 }
                 "/balances" {
-                    $Data = $API.Balances | ConvertTo-Json
+                    $Data = ConvertTo-Json @($API.Balances)
                     Break
                 }
                 "/currentprofit" {

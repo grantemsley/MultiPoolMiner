@@ -1,10 +1,3 @@
-# Disable verbose while importing module
-# Disable verbose while importing module
-$OldVerbosePreference = $VerbosePreference
-$VerbosePreference = 'SilentlyContinue'
-
-Set-Location (Split-Path $MyInvocation.MyCommand.Path)
-
 Add-Type -Path .\OpenCL\*.cs
 
 function Get-Balance {
@@ -15,7 +8,7 @@ function Get-Balance {
     if ($Rates -eq $Null) {
         $Rates = [PSCustomObject]@{BTC = [Double]1}
     }
-    
+
     $Balances = @(Get-ChildItem "Balances" -File | Where-Object {$Config.Pools.$($_.BaseName) -and ($Config.ExcludePoolName -inotcontains $_.BaseName) -or $Config.ShowPoolBalancesExcludedPools} | ForEach-Object {
         Get-ChildItemContent "Balances\$($_.Name)" -Parameters @{Config = $Config}
     } | Foreach-Object {$_.Content | Add-Member Name $_.Name -PassThru})
@@ -28,7 +21,7 @@ function Get-Balance {
 
     # Add local currency values
     $Balances | Foreach-Object {
-        Foreach($Rate in ($Rates.PSObject.Properties)) {
+        Foreach ($Rate in ($Rates.PSObject.Properties)) {
             # Round BTC to 8 decimals, everything else is based on BTC value
             if ($Rate.Name -eq "BTC") {
                 $_ | Add-Member "Total_BTC" ("{0:N8}" -f ([Double]$Rate.Value * $_.total))
@@ -251,7 +244,7 @@ function Write-Log {
 
         # Attempt to aquire mutex, waiting up to 1 second if necessary.  If aquired, write to the log file and release mutex.  Otherwise, display an error.
         if ($mutex.WaitOne(1000)) {
-            "$date $LevelText $Message" | Out-File -FilePath $filename -Append -Encoding ascii
+            "$date $LevelText $Message" | Out-File -FilePath $filename -Append -Encoding utf8
             $mutex.ReleaseMutex()
         }
         else {
@@ -913,9 +906,6 @@ class Miner {
 
     hidden StartMining() {
         $this.Status = [MinerStatus]::Failed
-        # Create log file and get full path. This makes sure the file exists when other programs try to read it or resolve to a relative path
-        $this.LogFile = (Resolve-Path (New-Item -ItemType File -Path ".\Logs\$(Get-Date -Format "yyyy-MM-dd_HH-mm-ss")_$($this.Name)-$($this.Port).txt")).Path
-        #$this.LogFile = $Global:ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(".\Logs\$(Get-Date -Format "yyyy-MM-dd_HH-mm-ss")_$($this.Name)-$($this.Port).txt")
         $this.New = $true
         $this.Activated++
 
@@ -1128,6 +1118,3 @@ class Miner {
         }
     }
 }
-
-# Reset verbose
-$VerbosePreference = $OldVerbosePreference
