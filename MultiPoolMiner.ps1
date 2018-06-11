@@ -72,7 +72,9 @@ param(
     [Parameter(Mandatory = $false)]
     [Switch]$ShowPoolBalances = $false,
     [Parameter(Mandatory = $false)]
-    $ShowPoolBalancesForExcludedPools = $false    
+    $ShowPoolBalancesForExcludedPools = $false,
+    [Parameter(Mandatory = $false)]
+    [Switch]$RemoteAPI = $false
 )
 $InformationPreference = 'Continue'
 
@@ -134,7 +136,7 @@ $WorkerNameDonate = "multipoolminer"
 
 #Initialize the API
 Import-Module .\API.psm1
-Start-APIServer
+Start-APIServer -RemoteAPI:$RemoteAPI
 $API.Version = $Version
 $API.Devices = $Devices
 
@@ -185,6 +187,7 @@ while ($true) {
             IgnoreMinerFee                = $IgnoreMinerFee
             ShowPoolBalances              = $ShowPoolBalances
             ShowPoolBalancesExcludedPools = $ShowPoolBalancesForExcludedPools
+            RemoteAPI                     = $RemoteAPI
         } | Select-Object -ExpandProperty Content
     }
 

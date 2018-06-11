@@ -1,4 +1,21 @@
 ﻿Function Start-APIServer {
+    Param(
+        [Parameter(Mandatory = $false)]
+        [Switch]$RemoteAPI = $false
+    )
+
+    # If using API remotely, an ACL must be set to allow listening on a port. If not using the API remotely, an ACL also has to be set for localhost if one for the + host has already been set.
+    # This requires administrator priviledges and will trigger a UAC prompt
+    # Check if the ACL is already set first to avoid triggering the prompt if it isn't necessary
+    $urlACLs = & netsh http show urlacl | Out-String
+    if ($RemoteAPI -and (!$urlACLs.Contains('http://+:3999/'))) {
+        # S-1-5-32-545 is the well known SID for the Users group. Use the SID because the name Users is localized for different languages
+        Start-Process netsh -Verb runas -Wait -ArgumentList 'http add urlacl url=http://+:3999/ sddl=D:(A;;GX;;;S-1-5-32-545)'
+    }
+    if (!$RemoteAPI -and ($urlACLs.Contains('http://+:3999/')) -and (!$urlACLs.Contains('http://localhost:3999/'))) {
+        Start-Process netsh -Verb runas -Wait -ArgumentList 'http add urlacl url=http://localhost:3999/ sddl=D:(A;;GX;;;S-1-5-32-545)'
+    }
+
     # Create a global synchronized hashtable that all threads can access to pass data between the main script and API
     $Global:API = [hashtable]::Synchronized(@{})
   
@@ -32,8 +49,13 @@
 
         # Setup the listener
         $Server = New-Object System.Net.HttpListener
-        # Listening on anything other than localhost requires admin privileges
-        $Server.Prefixes.Add("http://localhost:3999/")
+        if ($RemoteAPI) {
+            $Server.Prefixes.Add("http://+:3999/")
+            # Requires authentication when listening remotely
+            $Server.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::IntegratedWindowsAuthentication
+        } else {
+            $Server.Prefixes.Add("http://localhost:3999/")
+        }
         $Server.Start()
 
         While ($Server.IsListening) {
@@ -62,128 +84,134 @@
             $StatusCode = 200
             $Data = ""
 
-            # Set the proper content type, status code and data for each resource
-            Switch($Path) {
-                "/version" {
-                    $Data = $API.Version | ConvertTo-Json
-                    break
-                }
-                "/activeminers" {
-                    $Data = ConvertTo-Json @($API.ActiveMiners)
-                    break
-                }
-                "/runningminers" {
-                    $Data = ConvertTo-Json @($API.RunningMiners)
-                    Break
-                }
-                "/failedminers" {
-                    $Data = ConvertTo-Json @($API.FailedMiners)
-                    Break
-                }
-                "/minersneedingbenchmark" {
-                    $Data = ConvertTo-Json @($API.MinersNeedingBenchmark)
-                    Break
-                }
-                "/pools" {
-                    $Data = ConvertTo-Json @($API.Pools)
-                    Break
-                }
-                "/newpools" {
-                    $Data = ConvertTo-Json @($API.NewPools)
-                    Break
-                }
-                "/allpools" {
-                    $Data = ConvertTo-Json @($API.AllPools)
-                    Break
-                }
-                "/algorithms" {
-                    $Data = ConvertTo-Json @($API.AllPools.Algorithm | Sort-Object -Unique)
-                    Break
-                }
-                "/miners" {
-                    $Data = ConvertTo-Json @($API.Miners)
-                    Break
-                }
-                "/fastestminers" {
-                    $Data = ConvertTo-Json @($API.FastestMiners)
-                    Break
-                }
-                "/config" {
-                    $Data = $API.Config | ConvertTo-Json
-                    Break
-                }
-                "/debug" {
-                    $Data = $API | ConvertTo-Json
-                    Break
-                }
-                "/devices" {
-                    $Data = ConvertTo-Json @($API.Devices)
-                    Break
-                }
-                "/stats" {
-                    $Data = ConvertTo-Json @($API.Stats)
-                    Break
-                }
-                "/watchdogtimers" {
-                    $Data = ConvertTo-Json @($API.WatchdogTimers)
-                    Break
-                }
-                "/balances" {
-                    $Data = ConvertTo-Json @($API.Balances)
-                    Break
-                }
-                "/currentprofit" {
-                    $Data = ($API.RunningMiners | Measure-Object -Sum -Property Profit).Sum | ConvertTo-Json
-                    Break
-                }
-                "/stop" {
-                    $API.Stop = $true
-                    $Data = "Stopping"
-                    break
-                }
-                default {
-                    # Set index page
-                    if ($Path -eq "/") {
-                        $Path = "/index.html"
+            if($RemoteAPI -and (!$Request.IsAuthenticated)) {
+                $Data = "Unauthorized"
+                $StatusCode = 403
+                $ContentType = "text/html"
+            } else {
+                # Set the proper content type, status code and data for each resource
+                Switch($Path) {
+                    "/version" {
+                        $Data = $API.Version | ConvertTo-Json
+                        break
                     }
+                    "/activeminers" {
+                        $Data = ConvertTo-Json @($API.ActiveMiners)
+                        break
+                    }
+                    "/runningminers" {
+                        $Data = ConvertTo-Json @($API.RunningMiners)
+                        Break
+                    }
+                    "/failedminers" {
+                        $Data = ConvertTo-Json @($API.FailedMiners)
+                        Break
+                    }
+                    "/minersneedingbenchmark" {
+                        $Data = ConvertTo-Json @($API.MinersNeedingBenchmark)
+                        Break
+                    }
+                    "/pools" {
+                        $Data = ConvertTo-Json @($API.Pools)
+                        Break
+                    }
+                    "/newpools" {
+                        $Data = ConvertTo-Json @($API.NewPools)
+                        Break
+                    }
+                    "/allpools" {
+                        $Data = ConvertTo-Json @($API.AllPools)
+                        Break
+                    }
+                    "/algorithms" {
+                        $Data = ConvertTo-Json @($API.AllPools.Algorithm | Sort-Object -Unique)
+                        Break
+                    }
+                    "/miners" {
+                        $Data = ConvertTo-Json @($API.Miners)
+                        Break
+                    }
+                    "/fastestminers" {
+                        $Data = ConvertTo-Json @($API.FastestMiners)
+                        Break
+                    }
+                    "/config" {
+                        $Data = $API.Config | ConvertTo-Json
+                        Break
+                    }
+                    "/debug" {
+                        $Data = $API | ConvertTo-Json
+                        Break
+                    }
+                    "/devices" {
+                        $Data = ConvertTo-Json @($API.Devices)
+                        Break
+                    }
+                    "/stats" {
+                        $Data = ConvertTo-Json @($API.Stats)
+                        Break
+                    }
+                    "/watchdogtimers" {
+                        $Data = ConvertTo-Json @($API.WatchdogTimers)
+                        Break
+                    }
+                    "/balances" {
+                        $Data = ConvertTo-Json @($API.Balances)
+                        Break
+                    }
+                    "/currentprofit" {
+                        $Data = ($API.RunningMiners | Measure-Object -Sum -Property Profit).Sum | ConvertTo-Json
+                        Break
+                    }
+                    "/stop" {
+                        $API.Stop = $true
+                        $Data = "Stopping"
+                        break
+                    }
+                    default {
+                        # Set index page
+                        if ($Path -eq "/") {
+                            $Path = "/index.html"
+                        }
 
-                    # Check if there is a file with the requested path
-                    $Filename = $BasePath + $Path
-                    if (Test-Path $Filename -PathType Leaf) {
-                        # If the file is a powershell script, execute it and return the output. A $Parameters parameter is sent built from the query string
-                        # Otherwise, just return the contents of the file
-                        $File = Get-ChildItem $Filename
+                        # Check if there is a file with the requested path
+                        $Filename = $BasePath + $Path
+                        if (Test-Path $Filename -PathType Leaf) {
+                            # If the file is a powershell script, execute it and return the output. A $Parameters parameter is sent built from the query string
+                            # Otherwise, just return the contents of the file
+                            $File = Get-ChildItem $Filename
 
-                        If ($File.Extension -eq ".ps1") {
-                            $Data = & $File.FullName -Parameters $Parameters
-                        } else {
-                            $Data = Get-Content $Filename -Raw
+                            If ($File.Extension -eq ".ps1") {
+                                $Data = & $File.FullName -Parameters $Parameters
+                            } else {
+                                $Data = Get-Content $Filename -Raw
 
-                            # Process server side includes for html files
-                            # Includes are in the traditional '<!-- #include file="/path/filename.html" -->' format used by many web servers
-                            if($File.Extension -eq ".html") {
-                                $IncludeRegex = [regex]'<!-- *#include *file="(.*)" *-->'
-                                $IncludeRegex.Matches($Data) | Foreach-Object {
-                                    $IncludeFile = $BasePath + '/' + $_.Groups[1].Value
-                                    If (Test-Path $IncludeFile -PathType Leaf) {
-                                        $IncludeData = Get-Content $IncludeFile -Raw
-                                        $Data = $Data -Replace $_.Value, $IncludeData
+                                # Process server side includes for html files
+                                # Includes are in the traditional '<!-- #include file="/path/filename.html" -->' format used by many web servers
+                                if($File.Extension -eq ".html") {
+                                    $IncludeRegex = [regex]'<!-- *#include *file="(.*)" *-->'
+                                    $IncludeRegex.Matches($Data) | Foreach-Object {
+                                        $IncludeFile = $BasePath + '/' + $_.Groups[1].Value
+                                        If (Test-Path $IncludeFile -PathType Leaf) {
+                                            $IncludeData = Get-Content $IncludeFile -Raw
+                                            $Data = $Data -Replace $_.Value, $IncludeData
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        # Set content type based on file extension
-                        If ($MIMETypes.ContainsKey($File.Extension)) {
-                            $ContentType = $MIMETypes[$File.Extension]
+                            # Set content type based on file extension
+                            If ($MIMETypes.ContainsKey($File.Extension)) {
+                                $ContentType = $MIMETypes[$File.Extension]
+                            } else {
+                                # If it's an unrecognized file type, prompt for download
+                                $ContentType = "application/octet-stream"
+                            }
                         } else {
-                            # If it's an unrecognized file type, prompt for download
-                            $ContentType = "application/octet-stream"
+                            $StatusCode = 404
+                            $ContentType = "text/html"
+                            $Data = "URI '$Path' is not a valid resource."
                         }
-                    } else {
-                        $StatusCode = 404
-                        $ContentType = "text/html"
-                        $Data = "URI '$Path' is not a valid resource."
                     }
                 }
             }
