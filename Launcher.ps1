@@ -108,6 +108,10 @@ $guiCmd = [PowerShell]::Create().AddScript{
         Start-Process -FilePath $url
     }
 
+    $Controls.EditConfig.add_Click{
+        Start-Process -FilePath .\config.txt
+    }
+
     # Stop mining if the window is closed
     $Controls.Window.Add_Closed({
         $State.Running = $false

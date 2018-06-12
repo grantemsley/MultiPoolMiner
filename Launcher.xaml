@@ -48,7 +48,8 @@
         <StackPanel DockPanel.Dock="Right" Name="Controls" Width="200" Margin="10">
             <Button Name="StartStop" Content="Start Mining" Height="50" Margin="0,0,0,10" />
             <Button Name="ShowWebInterface" Content="Open Web Interface" Margin="0,0,0,10" />
-            <Button Name="ShowMonitoringSite" Content="Open Monitoring Site" Margin="0,0,0,20" />
+            <Button Name="ShowMonitoringSite" Content="Open Monitoring Site" Margin="0,0,0,10" />
+            <Button Name="EditConfig" Content="Edit Config.txt" Margin="0,0,0,20" />
             <GroupBox Header="Auto Start When Idle">
                 <StackPanel>
                     <CheckBox Content="Start when idle" Name="StartWhenIdle" />
