@@ -4,24 +4,26 @@
         [Switch]$RemoteAPI = $false
     )
 
-    # If using API remotely, an ACL must be set to allow listening on a port. If not using the API remotely, an ACL also has to be set for localhost if one for the + host has already been set.
-    # This requires administrator priviledges and will trigger a UAC prompt
-    # Check if the ACL is already set first to avoid triggering the prompt if it isn't necessary
-    $urlACLs = & netsh http show urlacl | Out-String
-    if ($RemoteAPI -and (!$urlACLs.Contains('http://+:3999/'))) {
-        # S-1-5-32-545 is the well known SID for the Users group. Use the SID because the name Users is localized for different languages
-        Start-Process netsh -Verb runas -Wait -ArgumentList 'http add urlacl url=http://+:3999/ sddl=D:(A;;GX;;;S-1-5-32-545)'
-    }
-    if (!$RemoteAPI -and ($urlACLs.Contains('http://+:3999/')) -and (!$urlACLs.Contains('http://localhost:3999/'))) {
-        Start-Process netsh -Verb runas -Wait -ArgumentList 'http add urlacl url=http://localhost:3999/ sddl=D:(A;;GX;;;S-1-5-32-545)'
-    }
-
     # Create a global synchronized hashtable that all threads can access to pass data between the main script and API
     $Global:API = [hashtable]::Synchronized(@{})
   
     # Setup flags for controlling script execution
     $API.Stop = $false
     $API.Pause = $false
+    $API.RemoteAPI = $RemoteAPI
+
+    # Starting the API for remote access requires that a reservation be set to give permission for non-admin users.
+    # If switching back to local only, the reservation needs to be removed first.
+    # Check the reservations before trying to create them to avoid unnecessary UAC prompts.
+    $urlACLs = & netsh http show urlacl | Out-String
+
+    if ($API.RemoteAPI -and (!$urlACLs.Contains('http://+:3999/'))) {
+        # S-1-5-32-545 is the well known SID for the Users group. Use the SID because the name Users is localized for different languages
+        Start-Process netsh -Verb runas -Wait -ArgumentList 'http add urlacl url=http://+:3999/ sddl=D:(A;;GX;;;S-1-5-32-545)'
+    }
+    if (!$API.RemoteAPI -and ($urlACLs.Contains('http://+:3999/'))) {
+        Start-Process netsh -Verb runas -Wait -ArgumentList 'http delete urlacl url=http://+:3999/'
+    }
 
     # Setup runspace to launch the API webserver in a separate thread
     $newRunspace = [runspacefactory]::CreateRunspace()
@@ -49,9 +51,9 @@
 
         # Setup the listener
         $Server = New-Object System.Net.HttpListener
-        if ($RemoteAPI) {
+        if ($API.RemoteAPI) {
             $Server.Prefixes.Add("http://+:3999/")
-            # Requires authentication when listening remotely
+            # Require authentication when listening remotely
             $Server.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::IntegratedWindowsAuthentication
         } else {
             $Server.Prefixes.Add("http://localhost:3999/")
@@ -84,7 +86,7 @@
             $StatusCode = 200
             $Data = ""
 
-            if($RemoteAPI -and (!$Request.IsAuthenticated)) {
+            if($API.RemoteAPI -and (!$Request.IsAuthenticated)) {
                 $Data = "Unauthorized"
                 $StatusCode = 403
                 $ContentType = "text/html"

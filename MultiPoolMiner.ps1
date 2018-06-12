@@ -134,12 +134,6 @@ $WalletDonate = @("1BLXARB3GbKyEg8NTY56me5VXFsX2cixFB","1Q24z7gHPDbedkaWDTFqhMF8
 $UserNameDonate = @("grantemsley","aaronsace", "fonyo")[[Math]::Floor((Get-Random -Minimum 1 -Maximum 11) / 10)]
 $WorkerNameDonate = "multipoolminer"
 
-#Initialize the API
-Import-Module .\API.psm1
-Start-APIServer -RemoteAPI:$RemoteAPI
-$API.Version = $Version
-$API.Devices = $Devices
-
 # Create config.txt if it is missing
 if (!(Test-Path "Config.txt")) {
     if (Test-Path "Config.default.txt") {
@@ -196,6 +190,14 @@ while ($true) {
         Write-Log -Level Error "Config.txt is invalid. Cannot continue. "
         Start-Sleep 10
         Exit
+    }
+
+    #Initialize the API only once
+    if(!(Test-Path Variable:API)) {
+        Import-Module .\API.psm1
+        Start-APIServer -RemoteAPI:$Config.RemoteAPI
+        $API.Version = $Version
+        $API.Devices = $Devices
     }
 
     #Only use configured types that are present in system
