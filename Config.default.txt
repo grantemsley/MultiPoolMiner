@@ -51,6 +51,6 @@
     "PalginNvidia"
   ],
   "UseFastestMinerPerAlgoOnly": "$UseFastestMinerPerAlgoOnly",
-  "IgnoreMinerFee":  "$IgnoreMinerFee",
+  "IgnoreCosts":  "$IgnoreCosts",
   "RemoteAPI": "$RemoteAPI"
 }
