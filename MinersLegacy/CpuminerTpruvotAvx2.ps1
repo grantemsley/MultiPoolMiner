@@ -1,89 +1,66 @@
 ﻿using module ..\Include.psm1
 
-$Path = ".\Bin\CPU-JayDDee\cpuminer-avx2.exe"
-$HashSHA256 = "8F37B5BAD9D6A3AE1BA488C680B7DE2B244D1D012BCE105E6C2C7AB86DEEF6D0"
-$Uri = "https://github.com/JayDDee/cpuminer-opt/files/1996977/cpuminer-opt-3.8.8.1-windows.zip"
+$Path = ".\Bin\CPU-TPruvot\cpuminer-gw64-avx2.exe"
+$HashSHA256 = "1F7ACE389009B0CB13D048BEDBBECCCDD3DDD723892FD2E2F6F3032D999224DC"
+$Uri = "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.1-multi/cpuminer-multi-rel1.3.1-x64.zip"
 
 $Commands = [PSCustomObject]@{
-    # CPU Only algos 23/04/2018
-    "anime" = "" #Anime 
-    "argon2" = "" #Argon2
-    "argon2d-crds" = "" #Argon2Credits
-    "argon2d-dyn" = "" #Argon2Dynamic
-    "argon2d-uis" = "" #Argon2Unitus
+    # CPU Only algos 3/27/2018
+    "yescrypt" = "" #Yescrypt
     #"axiom" = "" #axiom
-    "drop" = "" #drop    
-    "lyra2z330" = "" #lyra2z330
-    "m7m" = "" #m7m
-
-    # CPU & GPU - still profitable 23/04/2018
-    "lyra2z" = "" #Lyra2z, ZCoin
+    
+    # CPU & GPU - still profitable 27/03/2018
+    "cryptonight" = "" #CryptoNight
     "hmq1725" = "" #HMQ1725
     "shavite3" = "" #shavite3
-    "x12" = "" #x12
-    "cryptonightv7" = "" #CryptoNightV7XMR
-    "yescrypt" = "" #Yescrypt
-    "yescryptr8" = "" #yescryptr8
-    "yescryptr16" = "" #yescryptr16, YENTEN
-    "yescryptr32" = "" #yescryptr32, WAVI
 
-    #GPU or ASIC - never profitable 23/04/2018
-    #"allium" = "" #Allium
+    #GPU - never profitable 27/03/2018
     #"bastion" = "" #bastion
     #"bitcore" = "" #Bitcore
     #"blake" = "" #blake
-    #"blakecoin" = "" #Blakecoin
     #"blake2s" = "" #Blake2s
+    #"blakecoin" = "" #Blakecoin
     #"bmw" = "" #bmw
-    #"cryptolight" = "" #cryptolight
-    #"cryptonight" = "" #CryptoNight
     #"c11" = "" #C11
+    #"cryptolight" = "" #cryptolight
     #"decred" = "" #Decred
-    #"deep" = "" #deep
     #"dmd-gr" = "" #dmd-gr
     #"equihash" = "" #Equihash
     #"ethash" = "" #Ethash
-    #"fresh" = "" #fresh
     #"groestl" = "" #Groestl
-    #"heavy" = "" #heavy
     #"jha" = "" #JHA
     #"keccak" = "" #Keccak
     #"keccakc" = "" #keccakc
     #"lbry" = "" #Lbry
-    #"lyra2v2" = "" #Lyra2RE2
-    #"lyra2h" = "" #lyra2h
     #"lyra2re" = "" #lyra2re
+    #"lyra2v2" = "" #Lyra2RE2
     #"myr-gr" = "" #MyriadGroestl
     #"neoscrypt" = "" #NeoScrypt
     #"nist5" = "" #Nist5
     #"pascal" = "" #Pascal
     #"pentablake" = "" #pentablake
-    #"phi1612" = "" #phi1612
     #"pluck" = "" #pluck
     #"scrypt:N" = "" #scrypt:N
     #"scryptjane:nf" = "" #scryptjane:nf
     #"sha256d" = "" #sha256d
-    #"sha256t" = "" #sha256t
     #"sib" = "" #Sib
-    #"skunk" = "" #Skunk
     #"skein" = "" #Skein
     #"skein2" = "" #skein2
+    #"skunk" = "" #Skunk
     #"timetravel" = "" #Timetravel
-    #"timetravel10" = "" #timetravel10
     #"tribus" = "" #Tribus
     #"vanilla" = "" #BlakeVanilla
     #"veltor" = "" #Veltor
-    #"whirlpoolx" = "" #whirlpoolx
+    #"x11" = "" #X11
     #"x11evo" = "" #X11evo
     #"x13" = "" #x13
-    #"x13sm3" = "" #x13sm3
     #"x14" = "" #x14
     #"x15" = "" #x15
     #"x16r" = "" #x16r
-    #"x16s" = "" #X16s
-    #"x17" = "" #X17
     #"zr5" = "" #zr5
 }
+
+$CommonCommands = " -t $($Config.MaxThreads)"
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
@@ -92,7 +69,7 @@ $Commands | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty 
         Type = "CPU"
         Path = $Path
         HashSHA256 = $HashSHA256
-        Arguments = "-a $_ -o $($Pools.(Get-Algorithm $_).Protocol)://$($Pools.(Get-Algorithm $_).Host):$($Pools.(Get-Algorithm $_).Port) -u $($Pools.(Get-Algorithm $_).User) -p $($Pools.(Get-Algorithm $_).Pass)$($Commands.$_) -t $($Config.MaxThreads)"
+        Arguments = "-a $_ -o $($Pools.(Get-Algorithm $_).Protocol)://$($Pools.(Get-Algorithm $_).Host):$($Pools.(Get-Algorithm $_).Port) -u $($Pools.(Get-Algorithm $_).User) -p $($Pools.(Get-Algorithm $_).Pass)$($Commands.$_)$($CommonCommands)"
         HashRates = [PSCustomObject]@{(Get-Algorithm $_) = $Stats."$($Name)_$(Get-Algorithm $_)_HashRate".Week}
         API = "Ccminer"
         Port = 4048
