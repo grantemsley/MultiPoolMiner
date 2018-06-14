@@ -108,6 +108,7 @@ $files = & git diff --name-only $Commit HEAD
 If ($LastExitCode -eq 0) {
     # Get just the basename of verything that start with Miners/ - can't use Get-ChildItem, since the file may have been deleted
     $miners = $files | Where-Object {$_.StartsWith('Miners/')} | Foreach-Object {$_.Split('/')[1].Split('.')[0]}
+    $miners += $files | Where-Object {$_.StartsWith('MinersLegacy/')} | Foreach-Object {$_.Split('/')[1].Split('.')[0]}
     If($miners.count -gt 0) {
         Write-Host -Foregroundcolor Green "changes detected for: $miners"
     } else {
