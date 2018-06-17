@@ -21,14 +21,14 @@
 >
   <thead>
     <tr>
-      <th data-field="Name" data-sortable="true" data-filter-control="select">Name</th>
-      <th data-field="Pool" data-sortable="true" data-filter-control="select">Pool</th>
-      <th data-field="Type" data-sortable="true" data-filter-control="select">Type</th>
+      <th data-field="Name" data-sortable="true" data-filter-control="select" data-filter-strict-search="true">Name</th>
+      <th data-field="Pool" data-sortable="true" data-filter-control="select" data-filter-strict-search="true">Pool</th>
+      <th data-field="tDevices" data-sortable="true" data-filter-control="select" data-filter-strict-search="true">Devices</th>
       <th data-field="Profit" data-align="right" data-sortable="true" data-formatter="formatBTC">Profit</th>
-      <th data-field="tPrimaryAlgorithm" data-sortable="true" data-filter-control="select">Algorithm</th>
-      <th data-field="tPrimaryHashRate" data-sortable="true" data-formatter="formatHashRateValue">Benchmarked Speed</th>
+      <th data-field="tPrimaryAlgorithm" data-sortable="true" data-filter-control="select" data-filter-strict-search="true">Algorithm</th>
+      <th data-field="tPrimaryHashRate" data-sortable="true" data-formatter="formatHashRateValue" data-filter-strict-search="true">Benchmarked Speed</th>
       <th data-field="tPrimaryHashRateLive" data-sortable="true" data-formatter="formatHashRateValue">Actual Speed</th>
-      <th data-field="tSecondaryAlgorithm" data-sortable="true" data-filter-control="select">Secondary Algorithm</th>
+      <th data-field="tSecondaryAlgorithm" data-sortable="true" data-filter-control="select" data-filter-strict-search="true">Secondary Algorithm</th>
       <th data-field="tSecondaryHashRate" data-sortable="true" data-formatter="formatHashRateValue">Secondary Benchmarked Speed</th>
       <th data-field="tSecondaryHashRateLive" data-sortable="true" data-formatter="formatHashRateValue">Secondary Actual Speed</th>
     </tr>
@@ -90,7 +90,7 @@
       // Format the type(s)
       console.log(data);
       console.log(item);
-      item.Type = item.Type.toString();
+      item.tDevices = item.DeviceName.toString();
 
       // Format the algorithms and hashrates
       

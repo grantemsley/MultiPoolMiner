@@ -21,12 +21,12 @@
 >
   <thead>
     <tr>
-      <th data-field="Name" data-sortable="true" data-filter-control="select">Name</th>
-      <th data-field="Type" data-sortable="true" data-filter-control="select">Type</th>
+      <th data-field="Name" data-sortable="true" data-filter-control="select" data-filter-strict-search="true">Name</th>
+      <th data-field="tDevices" data-sortable="true" data-filter-control="select" data-filter-strict-search="true">Devices</th>
       <th data-field="Profit" data-align="right" data-sortable="true" data-formatter="formatBTC">Profit</th>
-      <th data-field="tPrimaryAlgorithm" data-sortable="true" data-filter-control="select">Algorithm</th>
+      <th data-field="tPrimaryAlgorithm" data-sortable="true" data-filter-control="select" data-filter-strict-search="true">Algorithm</th>
       <th data-field="tPrimaryHashRate" data-sortable="true" data-formatter="formatHashRateValue">Primary Speed</th>
-      <th data-field="tSecondaryAlgorithm" data-sortable="true" data-filter-control="select">Secondary Algorithm</th>
+      <th data-field="tSecondaryAlgorithm" data-sortable="true" data-filter-control="select" data-filter-strict-search="true">Secondary Algorithm</th>
       <th data-field="tSecondaryHashRate" data-sortable="true" data-formatter="formatHashRateValue">Secondary Speed</th>
     </tr>
   </thead>
@@ -38,8 +38,8 @@
   // This function can alter the returned data before building the table, formatting it in a way
   // that is easier to display and manipulate in a table
   $.each(data, function(index, item) {
-    // Format the type(s)
-    item.Type = item.Type.toString();
+    // Format the device(s)
+    item.tDevices = item.DeviceName.toString();
 
     // Format the algorithms and hashrates
     var algorithms = Object.keys(item.HashRates);
