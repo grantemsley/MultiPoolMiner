@@ -695,7 +695,6 @@ function Get-Device {
 
     # Try to get cached devices first to improve performance
     if ((Test-Path Variable:Script:CachedDevices) -and -not $Refresh) {
-	Write-Host "Using device cache"
         $Devices = $CachedDevices
         $Devices | Foreach-Object {
             $Device = $_
@@ -706,7 +705,6 @@ function Get-Device {
         return
     }
 
-    Write-Host "Generating device list"
     $Devices = @()
     $PlatformId = 0
     $Index = 0
@@ -788,7 +786,6 @@ function Get-Device {
         $CPUIndex++
         $Index++
     }
-    Write-Host "Saving device cache"
     $Script:CachedDevices = $Devices
     $Devices
 }
