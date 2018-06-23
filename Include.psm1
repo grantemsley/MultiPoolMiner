@@ -858,6 +858,7 @@ class Miner {
     $Pool
     hidden [Array]$Data = @()
     $ShowMinerWindow
+    $ExtendInterval
 
     [String[]]GetProcessNames() {
         return @(([IO.FileInfo]($this.Path | Split-Path -Leaf -ErrorAction Ignore)).BaseName)

@@ -43,13 +43,6 @@
   "SwitchingPrevention": "$SwitchingPrevention",
   "ShowPoolBalances": "$ShowPoolBalances",
   "ShowPoolBalancesExcludedPools": "$ShowPoolBalancesExcludedPools",
-  "ExtendIntervalAlgorithm": [
-    "X16R",
-    "X16S"
-  ],
-  "ExtendIntervalMinerName": [
-    "PalginNvidia"
-  ],
   "UseFastestMinerPerAlgoOnly": "$UseFastestMinerPerAlgoOnly",
   "IgnoreCosts":  "$IgnoreCosts",
   "RemoteAPI": "$RemoteAPI"
