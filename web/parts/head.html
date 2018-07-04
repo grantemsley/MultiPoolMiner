@@ -24,7 +24,6 @@
       <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.11/handlebars.min.js" integrity="sha256-+JMHsXRyeTsws/tzbIh5YHQxRdKCuNjmvNcTFtY6DLc=" crossorigin="anonymous"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
       <script defer src="https://use.fontawesome.com/releases/v5.0.13/js/all.js" integrity="sha384-xymdQtn1n3lH2wcu0qhcdaOpQwyoarkgLVxC/wZ5q7h9gHtxICrpcaSUfygqZGOe" crossorigin="anonymous"></script>
-      <script src="/js/includes.js"></script>
       <script src="/js/utilities.js"></script>
       <title>MultiPoolMiner Local Dashboard</title>
     </head>
@@ -32,7 +31,7 @@
     <nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
       <a class="navbar-brand" href="/">MultiPoolMiner</a>
       <div class="text-white" id="profit">Unknown</div>
-      <div class="text-white" id="exchangerates">Unknown</div>
+      <div class="text-white" id="exchangerates"></div>
       
     </nav>
     
@@ -94,7 +93,21 @@
                 </a>
               </li>
             </ul>
-
+            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+              <span>Config</span>
+            </h6>
+            <ul class="nav flex-column mb-2">
+              <li class="nav-item">
+                <a id="navrunningconfig" class="nav-link" href="runningconfig.html">
+                  <i class="fas fa-folder-open"></i>Running Config
+                </a>
+              </li>
+              <li class="nav flex-column mb-2">
+                <a id="navsavedconfig" class="nav-link" href="savedconfig.html">
+                  <i class="fas fa-folder-open"></i>Saved Config
+                </a>
+              </li>
+            </ul>
             <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
               <span>Links</span>
             </h6>
