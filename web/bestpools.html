@@ -6,10 +6,10 @@
 <table id="pools" class="table"
   data-toggle="table"
   data-url="/pools"
-  data-response-handler="formatActiveMiners"
+  data-response-handler="formatPools"
   data-filter-control="true"
   data-filter-show-clear="true"
-  data-sort-order="desc"
+  data-sort-order="asc"
   data-sort-name="Algorithm"
   data-cache="false"
   data-show-columns="true"
@@ -34,7 +34,7 @@
 
 <!-- End of page scripts -->
 <script type="text/javascript">
-  function formatActiveMiners(data) {
+  function formatPools(data) {
     data = data[0];
     var items = new Array();
     $.each(Object.keys(data), function (index, item) {
