@@ -6,10 +6,9 @@
 <table id="pools" class="table"
   data-toggle="table"
   data-url="/pools"
-  data-response-handler="formatPools"
   data-filter-control="true"
   data-filter-show-clear="true"
-  data-sort-order="asc"
+  data-sort-order="desc"
   data-sort-name="Algorithm"
   data-cache="false"
   data-show-columns="true"
@@ -34,15 +33,6 @@
 
 <!-- End of page scripts -->
 <script type="text/javascript">
-  function formatPools(data) {
-    data = data[0];
-    var items = new Array();
-    $.each(Object.keys(data), function (index, item) {
-      items.push(data[item]);
-    });
-    return items;
-  }
-
   function formatPrices(data) {
     return (data * 1000000000).toFixed(10);
   }
