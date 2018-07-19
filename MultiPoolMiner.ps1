@@ -100,6 +100,7 @@ $Region = $Region | ForEach-Object {Get-Region $_}
 $Currency = $Currency | ForEach-Object {$_.ToUpper()}
 
 $Timer = (Get-Date).ToUniversalTime()
+$LastReport = $Timer
 $StatEnd = $Timer
 $DecayStart = $Timer
 $DecayPeriod = 60 #seconds
@@ -621,8 +622,6 @@ while ($true) {
         }
     }
 
-    if ($Config.MinerStatusURL -and $Config.MinerStatusKey) {& .\ReportStatus.ps1 -Key $Config.MinerStatusKey -WorkerName $Config.WorkerName -ActiveMiners $ActiveMiners -MinerStatusURL $Config.MinerStatusURL}
-
     #Clear-Host
 
     #Get miners needing benchmarking
@@ -730,6 +729,14 @@ while ($true) {
     for ($i = $Strikes; $i -gt 0 -or $Timer -lt $StatEnd; $i--) {
         if ($Downloader) {$Downloader | Receive-Job}
         if ($API.Stop) {Exit}
+
+        if ($Config.MinerStatusURL -and $Config.MinerStatusKey) {
+            if ($Timer -gt $LastReport.AddSeconds($Config.Interval)) {
+                & .\ReportStatus.ps1 -Key $Config.MinerStatusKey -WorkerName $Config.WorkerName -ActiveMiners $ActiveMiners -MinerStatusURL $Config.MinerStatusURL
+                $LastReport = $Timer
+            }
+        }
+
         Start-Sleep 10
         $ActiveMiners | ForEach-Object {
             $Miner = $_
