@@ -1,4 +1,4 @@
-﻿using module ..\Include.psm1
+using module ..\Include.psm1
 
 param(
     [alias("Wallet")]
@@ -33,9 +33,16 @@ $ZergPool_MiningCurrencies = ($ZergPoolCoins_Request | Get-Member -MemberType No
 $ZergPool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$ZergPool_Request.$_.hashrate -gt 0} | ForEach-Object {
     $ZergPool_Host = "mine.zergpool.com"
     $ZergPool_Port = $ZergPool_Request.$_.port
-    $ZergPool_Algorithm = $ZergPool_Request.$_.name
-    $ZergPool_Algorithm_Norm = Get-Algorithm $ZergPool_Algorithm
     $ZergPool_Coin = ""
+    $ZergPool_Algorithm = $ZergPool_Request.$_.name
+
+    #Define CoinNames for new Equihash algorithms
+    if ($ZergPool_Algorithm -eq "Equihash144")     {$ZergPool_Coin = "Snowgem"}
+    if ($ZergPool_Algorithm -eq "Equihash144BtcZ") {$ZergPool_Algorithm = "Equihash144"; $ZergPool_Coin = "Bitcoinz"}
+    if ($ZergPool_Algorithm -eq "Equihash144Zel")  {$ZergPool_Algorithm = "Equihash144"; $ZergPool_Coin = "Zelcash"}
+    if ($ZergPool_Algorithm -eq "Equihash192")     {$ZergPool_Coin = "Zerocoin"}
+
+    $ZergPool_Algorithm_Norm = Get-Algorithm $ZergPool_Algorithm
 
     #Define CoinNames for new Equihash algorithms
     if ($ZergPool_Algorithm -eq "Equihash192") {$ZergPool_Coin = "ZeroCoin"}
