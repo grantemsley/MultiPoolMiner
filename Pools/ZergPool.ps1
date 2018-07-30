@@ -27,7 +27,7 @@ if (($ZergPool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore
 }
 
 $ZergPool_Regions = "us", "europe"
-$ZergPool_Currencies = @("BTC", "LTC") | Select-Object -Unique | Where-Object {Get-Variable $_ -ValueOnly -ErrorAction SilentlyContinue}
+$ZergPool_Currencies = @("BTC", "DASH", "LTC") | Select-Object -Unique | Where-Object {Get-Variable $_ -ValueOnly -ErrorAction SilentlyContinue}
 $ZergPool_MiningCurrencies = ($ZergPoolCoins_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name) | Foreach-Object {if ($ZergPoolCoins_Request.$_.Symbol) {$ZergPoolCoins_Request.$_.Symbol} else {$_}} | Select-Object -Unique # filter ...-algo
 
 $ZergPool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$ZergPool_Request.$_.hashrate -gt 0} | ForEach-Object {
@@ -36,19 +36,20 @@ $ZergPool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Se
     $ZergPool_Coin = ""
     $ZergPool_Algorithm = $ZergPool_Request.$_.name
 
+    $Divisor = 1000000 * [Double]$ZergPool_Request.$_.mbtc_mh_factor
+    if ($Divisor -eq 0) {
+        Write-Log -Level Info "$($Name): Unable to determine divisor for algorithm $ZergPool_Algorithm. "
+        return
+    }
+
     #Define CoinNames for new Equihash algorithms
-    if ($ZergPool_Algorithm -eq "Equihash144")     {$ZergPool_Coin = "Snowgem"}
-    if ($ZergPool_Algorithm -eq "Equihash144BtcZ") {$ZergPool_Algorithm = "Equihash144"; $ZergPool_Coin = "Bitcoinz"}
-    if ($ZergPool_Algorithm -eq "Equihash144Zel")  {$ZergPool_Algorithm = "Equihash144"; $ZergPool_Coin = "Zelcash"}
+    if ($ZergPool_Algorithm -eq "Equihash144btcz") {$ZergPool_Algorithm = "Equihash144"; $ZergPool_Coin = "Bitcoinz"}
+    if ($ZergPool_Algorithm -eq "Equihash144safe") {$ZergPool_Algorithm = "Equihash144"; $ZergPool_Coin = "Safecoin"}
+    if ($ZergPool_Algorithm -eq "Equihash144xsg")  {$ZergPool_Algorithm = "Equihash144"; $ZergPool_Coin = "Snowgem"}
+    if ($ZergPool_Algorithm -eq "Equihash144zel")  {$ZergPool_Algorithm = "Equihash144"; $ZergPool_Coin = "Zelcash"}
     if ($ZergPool_Algorithm -eq "Equihash192")     {$ZergPool_Coin = "Zerocoin"}
 
     $ZergPool_Algorithm_Norm = Get-Algorithm $ZergPool_Algorithm
-
-    #Define CoinNames for new Equihash algorithms
-    if ($ZergPool_Algorithm -eq "Equihash192") {$ZergPool_Coin = "ZeroCoin"}
-    if ($ZergPool_Algorithm -eq "Equihash144") {$ZergPool_Coin = "SnowGem"}
-
-    $Divisor = 1000000 * [Double]$ZergPool_Request.$_.mbtc_mh_factor
 
     if ((Get-Stat -Name "$($Name)_$($ZergPool_Algorithm_Norm)_Profit") -eq $null) {$Stat = Set-Stat -Name "$($Name)_$($ZergPool_Algorithm_Norm)_Profit" -Value ([Double]$ZergPool_Request.$_.estimate_last24h / $Divisor) -Duration (New-TimeSpan -Days 1)}
     else {$Stat = Set-Stat -Name "$($Name)_$($ZergPool_Algorithm_Norm)_Profit" -Value ([Double]$ZergPool_Request.$_.estimate_current / $Divisor) -Duration $StatSpan -ChangeDetection $true}
@@ -88,7 +89,7 @@ $ZergPool_MiningCurrencies | Where-Object {$ZergPoolCoins_Request.$_.hashrate -g
 
     $Divisor = 1000000000 * [Double]$ZergPool_Request.$ZergPool_Algorithm.mbtc_mh_factor
     if ($Divisor -eq 0) {
-        Write-Log -Level Info "Unable to determine divisor for $ZergPool_Coin using $ZergPool_Algorithm_Norm algorithm"
+        Write-Log -Level Info "$($Name): Unable to determine divisor for $ZergPool_Coin using $ZergPool_Algorithm algorithm. "
         return
     }
 
