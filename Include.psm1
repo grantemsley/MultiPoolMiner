@@ -2,6 +2,25 @@ Set-Location (Split-Path $MyInvocation.MyCommand.Path)
 
 Add-Type -Path .\OpenCL\*.cs
 
+function Test-Port {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [String]$Hostname = "www.multipoolminer.io",
+        [Parameter(Mandatory = $true)]
+        [Int]$Port = 80,
+        [Parameter(Mandatory = $true)]
+        [Int]$Timeout = 250 #ms
+    )
+
+    $RequestCallback = $State = $null
+    $Client = New-Object System.Net.Sockets.TcpClient
+    $BeginConnect = $Client.BeginConnect($Hostname, $Port, $RequestCallback, $State)
+    Start-Sleep -milli $Timeout
+    
+    [Bool]$Client.Connected
+}
+
 function Get-Balance {
     [CmdletBinding()]
     param($Config, $Rates)

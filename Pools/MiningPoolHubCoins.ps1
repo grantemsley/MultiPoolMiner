@@ -10,7 +10,13 @@ param(
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
-$MiningPoolHubCoins_Request = [PSCustomObject]@{}
+$PoolAPIUri= "http://miningpoolhub.com/index.php?page=api&action=getminingandprofitsstatistics&$(Get-Date -Format "yyyy-MM-dd_HH-mm")"
+$PoolRegions = "europe", "us-east", "asia"
+
+if (-not (Test-Port -Hostname ([Uri]$PoolAPIUri).Host -Port ([Uri]$PoolAPIUri).Port -Timeout 500)) {
+    Write-Log -Level Warn "Pool API ($Name) is down. "
+    return
+}
 
 #defines minimum memory required per coin, default is 4gb
 $MinMem = [PSCustomObject]@{
@@ -20,74 +26,76 @@ $MinMem = [PSCustomObject]@{
     "Musicoin" = "3gb"
 }
 
-try {
-    $MiningPoolHubCoins_Request = Invoke-RestMethod "http://miningpoolhub.com/index.php?page=api&action=getminingandprofitsstatistics&$(Get-Date -Format "yyyy-MM-dd_HH-mm")" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-}
-catch {
-    Write-Log -Level Warn "Pool API ($Name) has failed. "
-    return
-}
+if ($User) {
 
-if (($MiningPoolHubCoins_Request.return | Measure-Object).Count -le 1) {
-    Write-Log -Level Warn "Pool API ($Name) returned nothing. "
-    return
-}
+    try {
+        $APIRequest = [PSCustomObject]@{}
+        $APIRequest = Invoke-RestMethod $PoolAPIUri-UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    }
+    catch {
+        Write-Log -Level Warn "Pool API ($Name) has failed. "
+        return
+    }
 
-$MiningPoolHubCoins_Regions = "europe", "us-east", "asia"
+    if ($APIRequest.return.count -le 1) {
+        Write-Log -Level Warn "Pool API ($Name) returned nothing. "
+        return
+    }
 
-$MiningPoolHubCoins_Request.return | Where-Object {$_.pool_hash -gt 0} | ForEach-Object {
-    $MiningPoolHubCoins_Host = $_.host
-    $MiningPoolHubCoins_Hosts = $_.host_list.split(";")
-    $MiningPoolHubCoins_Port = $_.port
-    $MiningPoolHubCoins_Algorithm = $_.algo
-    $MiningPoolHubCoins_Algorithm_Norm = Get-Algorithm $MiningPoolHubCoins_Algorithm
-    $MiningPoolHubCoins_Coin = (Get-Culture).TextInfo.ToTitleCase(($_.coin_name -replace "-", " " -replace "_", " ")) -replace " "
+    $APIRequest.return | ForEach-Object {
 
-    #Electroneum hardforked. ETN algo changed to previous Cryptonight which is also compatible with ASIC
-    if ($MiningPoolHubCoins_Coin -eq "Electroneum") {$MiningPoolHubCoins_Algorithm_Norm = "CryptoNight"}
+        $PoolHosts      = $_.host_list.split(";")
+        $Port           = $_.port
+        $Algorithm      = $_.algo
+        $Algorithm_Norm = Get-Algorithm $Algorithm
+        $CoinName       = (Get-Culture).TextInfo.ToTitleCase(($_.coin_name -replace "-", " " -replace "_", " ").ToLower()) -replace " "
 
-    if ($MiningPoolHubCoins_Algorithm -eq "Equihash-BTG") {$MiningPoolHubCoins_Hosts = ($_.host_list -replace ".hub.miningpoolhub", ".equihash-hub.miningpoolhub").split(";")}
-    if ($MiningPoolHubCoins_Algorithm_Norm -eq "Sia") {$MiningPoolHubCoins_Algorithm_Norm = "SiaClaymore"} #temp fix
+        #Electroneum hardforked. ETN algo changed to previous Cryptonight which is also compatible with ASIC
+        if ($CoinName -eq "Electroneum") {$Algorithm_Norm = "CryptoNight"}
 
-    $Divisor = 1000000000
+        #temp fix. no need to replace first value hub.miningpoolhub 'cause it is never used
+        if ($Algorithm -eq "Equihash-BTG") {$PoolHosts = ($_.host_list -replace ".hub.miningpoolhub", ".equihash-hub.miningpoolhub").split(";")}
+        if ($Algorithm_Norm -eq "Sia") {$Algorithm_Norm = "SiaClaymore"} #temp fix
 
-    $Stat = Set-Stat -Name "$($Name)_$($MiningPoolHubCoins_Coin)_Profit" -Value ([Double]$_.profit / $Divisor) -Duration $StatSpan -ChangeDetection $true
+        $Divisor = 1000000000
 
-    $MiningPoolHubCoins_Regions | ForEach-Object {
-        $MiningPoolHubCoins_Region = $_
-        $MiningPoolHubCoins_Region_Norm = Get-Region ($MiningPoolHubCoins_Region -replace "^us-east$", "us")
+        $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$_.profit / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
-        if ($User) {
+        $PoolRegions | ForEach-Object {
+            $Region = $_
+            $Region_Norm = Get-Region ($Region -replace "^us-east$", "us")
+
             [PSCustomObject]@{
-                Algorithm     = "$($MiningPoolHubCoins_Algorithm_Norm)$(if ($MiningPoolHubCoins_Algorithm_Norm -EQ "Ethash"){$MinMem.$MiningPoolHubCoins_Coin})"
-                CoinName      = $MiningPoolHubCoins_Coin
+                Algorithm     = "$($Algorithm_Norm)$(if ($Algorithm_Norm -EQ "Ethash"){$MinMem.$CoinName})"
+                CoinName      = $CoinName
                 Price         = $Stat.Live
                 StablePrice   = $Stat.Week
                 MarginOfError = $Stat.Week_Fluctuation
                 Protocol      = "stratum+tcp"
-                Host          = $MiningPoolHubCoins_Hosts | Sort-Object -Descending {$_ -ilike "$MiningPoolHubCoins_Region*"} | Select-Object -First 1
-                Port          = $MiningPoolHubCoins_Port
+                Host          = $PoolHosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
+                Port          = $Port
                 User          = "$User.$Worker"
                 Pass          = "x"
-                Region        = $MiningPoolHubCoins_Region_Norm
+                Region        = $Region_Norm
                 SSL           = $false
                 Updated       = $Stat.Updated
+                Fee           = 0.9 / 100
             }
-
             [PSCustomObject]@{
-                Algorithm     = "$($MiningPoolHubCoins_Algorithm_Norm)$(if ($MiningPoolHubCoins_Algorithm_Norm -EQ "Ethash"){$MinMem.$MiningPoolHubCoins_Coin})"
-                CoinName      = $MiningPoolHubCoins_Coin
+                Algorithm     = "$($Algorithm_Norm)$(if ($Algorithm_Norm -EQ "Ethash"){$MinMem.$CoinName})"
+                CoinName      = $CoinName
                 Price         = $Stat.Live
                 StablePrice   = $Stat.Week
                 MarginOfError = $Stat.Week_Fluctuation
                 Protocol      = "stratum+ssl"
-                Host          = $MiningPoolHubCoins_Hosts | Sort-Object -Descending {$_ -ilike "$MiningPoolHubCoins_Region*"} | Select-Object -First 1
-                Port          = $MiningPoolHubCoins_Port
+                Host          = $PoolHosts | Sort-Object -Descending {$_ -ilike "$Region*"} | Select-Object -First 1
+                Port          = $Port
                 User          = "$User.$Worker"
                 Pass          = "x"
-                Region        = $MiningPoolHubCoins_Region_Norm
+                Region        = $Region_Norm
                 SSL           = $true
                 Updated       = $Stat.Updated
+                Fee           = 0.9 / 100
             }
         }
     }

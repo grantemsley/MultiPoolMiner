@@ -10,55 +10,71 @@ param(
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
-$AHashPool_Request = [PSCustomObject]@{}
+$PoolRegions = "us"
+$PoolAPIStatusUri = "http://www.ahashpool.com/api/status"
 
-try {
-    $AHashPool_Request = Invoke-RestMethod "http://www.ahashpool.com/api/status" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-}
-catch {
-    Write-Log -Level Warn "Pool API ($Name) has failed. "
+if (-not (Test-Port -Hostname ([Uri]$PoolAPIStatusUri).Host -Port ([Uri]$PoolAPIStatusUri).Port -Timeout 500)) {
+    Write-Log -Level Warn "Pool API ($Name) [StatusUri] is down. "
     return
 }
 
-if (($AHashPool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
-    Write-Log -Level Warn "Pool API ($Name) returned nothing. "
-    return
-}
+# Guaranteed payout currencies
+$Payout_Currencies = @("BTC") | Where-Object {Get-Variable $_ -ErrorAction SilentlyContinue}
 
-$AHashPool_Regions = "us"
-$AHashPool_Currencies = @("BTC") | Select-Object -Unique | Where-Object {Get-Variable $_ -ValueOnly -ErrorAction SilentlyContinue}
+if ($Payout_Currencies) {
 
-$AHashPool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$AHashPool_Request.$_.hashrate -gt 0} | ForEach-Object {
-    $AHashPool_Host = "mine.ahashpool.com"
-    $AHashPool_Port = $AHashPool_Request.$_.port
-    $AHashPool_Algorithm = $AHashPool_Request.$_.name
-    $AHashPool_Algorithm_Norm = Get-Algorithm $AHashPool_Algorithm
-    $AHashPool_Coin = ""
+    $APIStatusRequest = [PSCustomObject]@{}
 
-    $Divisor = 1000000 * [Double]$AHashPool_Request.$_.mbtc_mh_factor
+    try {
+        $APIStatusRequest = Invoke-RestMethod $PoolAPIStatusUri -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    }
+    catch {
+        Write-Log -Level Warn "Pool API ($Name) has failed. "
+        return
+    }
 
-    if ((Get-Stat -Name "$($Name)_$($AHashPool_Algorithm_Norm)_Profit") -eq $null) {$Stat = Set-Stat -Name "$($Name)_$($AHashPool_Algorithm_Norm)_Profit" -Value ([Double]$AHashPool_Request.$_.estimate_last24h / $Divisor) -Duration (New-TimeSpan -Days 1)}
-    else {$Stat = Set-Stat -Name "$($Name)_$($AHashPool_Algorithm_Norm)_Profit" -Value ([Double]$AHashPool_Request.$_.estimate_current / $Divisor) -Duration $StatSpan -ChangeDetection $true}
+    if (($APIStatusRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
+        Write-Log -Level Warn "Pool API ($Name) [StatusUri] returned nothing. "
+        return
+    }
 
-    $AHashPool_Regions | ForEach-Object {
-        $AHashPool_Region = $_
-        $AHashPool_Region_Norm = Get-Region $AHashPool_Region
+    $APIStatusRequest | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$APIStatusRequest.$_.hashrate -gt 0} | Where-Object {$APIStatusRequest.$_.name -ne "Skunk"} | ForEach-Object {
 
-        $AHashPool_Currencies | ForEach-Object {
-            [PSCustomObject]@{
-                Algorithm     = $AHashPool_Algorithm_Norm
-                CoinName      = $AHashPool_Coin
-                Price         = $Stat.Live
-                StablePrice   = $Stat.Week
-                MarginOfError = $Stat.Week_Fluctuation
-                Protocol      = "stratum+tcp"
-                Host          = "$AHashPool_Algorithm.$AHashPool_Host"
-                Port          = $AHashPool_Port
-                User          = Get-Variable $_ -ValueOnly
-                Pass          = "$Worker,c=$_"
-                Region        = $AHashPool_Region_Norm
-                SSL           = $false
-                Updated       = $Stat.Updated
+        $PoolHost       = "mine.ahashpool.com"
+        $Port           = $APIStatusRequest.$_.port
+        $Algorithm      = $APIStatusRequest.$_.name
+        $Algorithm_Norm = Get-Algorithm $Algorithm
+        $CoinName       = ""
+        $Workers        = $APIStatusRequest.$_.workers
+        $Fee            = $APIStatusRequest.$_.Fees / 100
+
+        $Divisor = 1000000 * [Double]$APIStatusRequest.$_.mbtc_mh_factor
+
+        if ((Get-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit") -eq $null) {$Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APIStatusRequest.$_.estimate_last24h / $Divisor) -Duration (New-TimeSpan -Days 1)}
+        else {$Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$APIStatusRequest.$_.estimate_current / $Divisor) -Duration $StatSpan -ChangeDetection $true}
+
+        $PoolRegions | ForEach-Object {
+            $Region = $_
+            $Region_Norm = Get-Region $Region
+            
+            $Payout_Currencies | ForEach-Object {
+                [PSCustomObject]@{
+                    Algorithm     = $Algorithm_Norm
+                    CoinName      = $CoinName
+                    Price         = $Stat.Live
+                    StablePrice   = $Stat.Week
+                    MarginOfError = $Stat.Week_Fluctuation
+                    Protocol      = "stratum+tcp"
+                    Host          = "$Algorithm.$PoolHost"
+                    Port          = $Port
+                    User          = Get-Variable $_ -ValueOnly
+                    Pass          = "ID=$Worker,c=$_"
+                    Region        = $Region_Norm
+                    SSL           = $false
+                    Updated       = $Stat.Updated
+                    Fee           = $Fee
+                    Workers       = $Workers
+                }
             }
         }
     }

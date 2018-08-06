@@ -10,73 +10,121 @@ param(
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
-$NiceHash_Request = [PSCustomObject]@{}
+$PoolRegions = "eu", "usa", "hk", "jp", "in", "br"
+$PoolAPIUri = "http://api.nicehash.com/api?method=simplemultialgo.info"
 
-try {
-    $NiceHash_Request = Invoke-RestMethod "http://api.nicehash.com/api?method=simplemultialgo.info" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-}
-catch {
-    Write-Log -Level Warn "Pool API ($Name) has failed. "
+if (-not (Test-Port -Hostname ([Uri]$PoolAPIUri).Host -Port ([Uri]$PoolAPIUri).Port -Timeout 500)) {
+    Write-Log -Level Warn "Pool API ($Name) is down. "
     return
 }
 
-if (($NiceHash_Request.result.simplemultialgo | Measure-Object).Count -le 1) {
-    Write-Log -Level Warn "Pool API ($Name) returned nothing. "
-    return
-}
+#Pool currenctly allows payout in BTC only
+$Payout_Currencies = @("BTC") | Where-Object {Get-Variable $_ -ErrorAction SilentlyContinue}
 
-$NiceHash_Regions = "eu", "usa", "hk", "jp", "in", "br"
+if ($Payout_Currencies) {
 
-$NiceHash_Request.result.simplemultialgo | Where-Object {$_.paying -gt 0} <# algos paying 0 fail stratum #> | ForEach-Object {
-    $NiceHash_Host = "nicehash.com"
-    $NiceHash_Port = $_.port
-    $NiceHash_Algorithm = $_.name
-    $NiceHash_Algorithm_Norm = Get-Algorithm $NiceHash_Algorithm
-    $NiceHash_Coin = ""
+    $APIStatusRequest = [PSCustomObject]@{}
 
-    if ($NiceHash_Algorithm_Norm -eq "Sia") {$NiceHash_Algorithm_Norm = "SiaNiceHash"} #temp fix
-    if ($NiceHash_Algorithm_Norm -eq "Decred") {$NiceHash_Algorithm_Norm = "DecredNiceHash"} #temp fix
+    try {
+        $APIRequest = Invoke-RestMethod $PoolAPIUri -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    }
+    catch {
+        Write-Log -Level Warn "Pool API ($Name) has failed. "
+        return
+    }
 
-    $Divisor = 1000000000
+    if ($APIRequest.result.simplemultialgo.count -le 1) {
+        Write-Log -Level Warn "Pool API ($Name) returned nothing. "
+        return
+    }
 
-    $Stat = Set-Stat -Name "$($Name)_$($NiceHash_Algorithm_Norm)_Profit" -Value ([Double]$_.paying / $Divisor) -Duration $StatSpan -ChangeDetection $true
+    $APIRequest.result.simplemultialgo | Where-Object {$_.paying -gt 0} <# algos paying 0 fail stratum #> | ForEach-Object {
+        $PoolHost = "nicehash.com"
+        $Port = $_.port
+        $Algorithm = $_.name
+        $Algorithm_Norm = Get-Algorithm $Algorithm
+        $Currency = ""
+        
+        if ($IsInternalWallet) {$Fee = 0.01} else {$Fee = 0.03}
+        
+        if ($Algorithm_Norm -eq "blake256r14") {$Algorithm_Norm = "DecredNiceHash"} #temp fix
+        if ($Algorithm_Norm -eq "Sia") {$Algorithm_Norm = "SiaNiceHash"} #temp fix
 
-    $NiceHash_Regions | ForEach-Object {
-        $NiceHash_Region = $_
-        $NiceHash_Region_Norm = Get-Region $NiceHash_Region
+        $Divisor = 1000000000
 
-        if ($BTC) {
-            [PSCustomObject]@{
-                Algorithm     = $NiceHash_Algorithm_Norm
-                CoinName      = $NiceHash_Coin
-                Price         = $Stat.Live
-                StablePrice   = $Stat.Week
-                MarginOfError = $Stat.Week_Fluctuation
-                Protocol      = "stratum+tcp"
-                Host          = "$NiceHash_Algorithm.$NiceHash_Region.$NiceHash_Host"
-                Port          = $NiceHash_Port
-                User          = "$BTC.$Worker"
-                Pass          = "x"
-                Region        = $NiceHash_Region_Norm
-                SSL           = $false
-                Updated       = $Stat.Updated
-            }
+        $Stat = Set-Stat -Name "$($Name)_$($Algorithm_Norm)_Profit" -Value ([Double]$_.paying / $Divisor) -Duration $StatSpan -ChangeDetection $true
 
-            if ($NiceHash_Algorithm_Norm -eq "CryptonightV7" -or $NiceHash_Algorithm_Norm -eq "Equihash") {
+        $PoolRegions | ForEach-Object {
+            $Region = $_
+            $Region_Norm = Get-Region $Region
+
+            $Payout_Currencies | ForEach-Object {
                 [PSCustomObject]@{
-                    Algorithm     = $NiceHash_Algorithm_Norm
-                    CoinName      = $NiceHash_Coin
+                    Algorithm     = $Algorithm_Norm
+                    CoinName      = $Currency
                     Price         = $Stat.Live
                     StablePrice   = $Stat.Week
                     MarginOfError = $Stat.Week_Fluctuation
-                    Protocol      = "stratum+ssl"
-                    Host          = "$NiceHash_Algorithm.$NiceHash_Region.$NiceHash_Host"
-                    Port          = $NiceHash_Port + 30000
-                    User          = "$BTC.$Worker"
+                    Protocol      = "stratum+tcp"
+                    Host          = "$Algorithm.$Region.$PoolHost"
+                    Port          = $Port
+                    User          = "$(Get-Variable $_ -ValueOnly).$Worker"
                     Pass          = "x"
-                    Region        = $NiceHash_Region_Norm
-                    SSL           = $true
+                    Region        = $Region_Norm
+                    SSL           = $false
                     Updated       = $Stat.Updated
+                    Fee           = $Fee
+                }
+                [PSCustomObject]@{
+                    Algorithm     = "$($Algorithm_Norm)-NHMP"
+                    CoinName      = $Currency
+                    Price         = $Stat.Live
+                    StablePrice   = $Stat.Week
+                    MarginOfError = $Stat.Week_Fluctuation
+                    Protocol      = "stratum+tcp"
+                    Host          = "nhmp.$($Region.ToLower()).nicehash.com"
+                    Port          = 3200
+                    User          = "$(Get-Variable $_ -ValueOnly).$Worker"
+                    Pass          = "x"
+                    Region        = $Region_Norm
+                    SSL           = $false
+                    Updated       = $Stat.Updated
+                    Fee           = $Fee
+                }
+
+                if ($Algorithm_Norm -eq "CryptonightV7" -or $Algorithm_Norm -eq "Equihash") {
+                    [PSCustomObject]@{
+                        Algorithm     = $Algorithm_Norm
+                        CoinName      = $Currency
+                        Price         = $Stat.Live
+                        StablePrice   = $Stat.Week
+                        MarginOfError = $Stat.Week_Fluctuation
+                        Protocol      = "stratum+ssl"
+                        Host          = "$Algorithm.$Region.$PoolHost"
+                        Port          = $Port + 30000
+                        User          = "$(Get-Variable $_ -ValueOnly).$Worker"
+                        Pass          = "x"
+                        Region        = $Region_Norm
+                        SSL           = $true
+                        Updated       = $Stat.Updated
+                        Fee           = $Fee
+                    }
+                    [PSCustomObject]@{
+                        Algorithm     = "$($Algorithm_Norm)-NHMP"
+                        CoinName      = $Currency
+                        Price         = $Stat.Live
+                        StablePrice   = $Stat.Week
+                        MarginOfError = $Stat.Week_Fluctuation
+                        Protocol      = "stratum+ssl"
+                        Host          = "nhmp.$($Region.ToLower()).nicehash.com"
+                        Port          = 3200
+                        User          = "$(Get-Variable $_ -ValueOnly).$Worker"
+                        Pass          = "x"
+                        Region        = $Region_Norm
+                        SSL           = $true
+                        Updated       = $Stat.Updated
+                        Fee           = $Fee
+                    }
                 }
             }
         }
