@@ -63,17 +63,25 @@
         var template = Handlebars.compile($("#poolbalance_template").html());
         $.each(result, function(index, item) {
           var properties = Object.keys(item);
-          var currencies = properties.filter((properties) => properties.startsWith("Total_"));
+          var balances = properties.filter((properties) => properties.startsWith("Balance "));
+          var values = properties.filter((properties) => properties.startsWith("Value in "));
 
           if (item.Name == "*Total*") { 
             var data = {name: "Total Balance From All Pools", balances: {}, total: true};
           } else {
             var data = {name: item.Name, balances: {}};
           }
-          $.each(currencies, function(cindex, currency) {
-            var name = currency.replace("Total_","");
-              data["balances"][name] = item[currency];
+          
+          $.each(balances, function(cindex, balance) {
+              var name = balance.replace(/Balance \((.*)\)/,"$1")
+              data["balances"][name] = item[balance];
+              
           });
+          $.each(values, function(cindex, value) {
+              var name = value.replace(/Value in (.*)/,"$1")
+              data["balances"][name] = item[value];
+          });
+          
           $("#balanceboxes").append(template(data));
         });
       }});
