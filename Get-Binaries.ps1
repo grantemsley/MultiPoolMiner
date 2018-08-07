@@ -129,8 +129,9 @@ $Miners | Foreach-Object {
                     If($MinerFolder.StartsWith($BinDirectory)) {
                         # Have to use -force because many of the download files are flagged as read-only
                         Remove-Item -Force -Recurse (Split-Path $Miner.Path)
-                        Write-Host "    Deleting .\Stats\$($Miner.Name)_*.txt"
-                        Remove-Item ".\Stats\$($Miner.Name)_*.txt"
+			$MinerBaseName = ($Miner.Name -Split '-')[0]
+                        Write-Host "    Deleting .\Stats\$($MinerBaseName)*.txt"
+                        Remove-Item ".\Stats\$($MinerBaseName)*.txt"
                     } else {
                         Write-Warning "$($Miner.Name) - path $($Miner.Path) is not in the .\Bin directory, path is invalid, not deleting."
                         Return
