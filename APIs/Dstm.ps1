@@ -1,4 +1,4 @@
-﻿using module ..\Include.psm1
+using module ..\Include.psm1
 
 class Dstm : Miner {
     [String[]]UpdateMinerData () {

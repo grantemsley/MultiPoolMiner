@@ -17,7 +17,7 @@ TWITTER: @multipoolminer
 Licensed under the GNU General Public License v3.0
 Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/LICENSE
 
-README.txt - updated on 08/07/2018 (dd/mm/yyyy) - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
+README.txt - updated on 24/08/2018 (dd/mm/yyyy) - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
 
 
 ====================================================================
@@ -29,6 +29,7 @@ FEATURE SUMMARY:
 - Controls any miner that is available via command line
 - Supports benchmarking, multiple platforms (AMD, NVIDIA and CPU) and mining on A Hash Pool, BlazePool, BlockMasters, Hash Refinery, MiningPoolHub, Nicehash, YiiMP, ZergPool and Zpool pools
 - Includes Watchdog Timer to detect and handle miner failures
+
 
 Any bitcoin donations are greatly appreciated: 1MsrCoAt8qM53HUMsUxvy9gMj3QVbHLazH 
 
@@ -56,14 +57,14 @@ Done. You are all set to mine the most profitable coins and maximise your profit
 IMPORTANT NOTES:
 
 - It is not recommended but to upgrade from a previous version of MultiPoolMiner, you may simply copy the 'Stats' folder.
-- Having PowerShell 6 installed is now a requirement. Windows 64bit: https://github.com/PowerShell/PowerShell/releases/download/v6.0.2/PowerShell-6.0.2-win-x64.msi, ALL OTHER VERSIONS: https://github.com/PowerShell/PowerShell/releases
+- Having PowerShell 6 installed is now a requirement. Windows 64bit: https://github.com/PowerShell/PowerShell/releases/download/v6.0.4/PowerShell-6.0.4-win-x64.msi, ALL OTHER VERSIONS: https://github.com/PowerShell/PowerShell/releases
 - Microsoft .NET Framework 4.5.1 or later is required for MultiPoolMiner to function properly. Please update from here: https://www.microsoft.com/en-us/download/details.aspx?id=40773
 - CCMiner (NVIDIA cards only) may need 'MSVCR120.dll' if you don't already have it: https://www.microsoft.com/en-gb/download/details.aspx?id=40784. Make sure that you install both the x86 and the x64 versions. 
 - CCMiner (NVIDIA cards only) may need 'VCRUNTIME140.DLL' if you don't already have it: https://www.microsoft.com/en-us/download/details.aspx?id=48145. Make sure that you install both the x86 and the x64 versions. 
 - It is highly recommended to set Virtual Memory size in Windows to at least 16 GB in multi-GPU systems: Computer Properties -> Advanced System Settings -> Performance -> Advanced -> Virtual Memory
 - Please see the FAQ section on the bottom of this page before submitting bugs and feature requests on Github. https://github.com/MultiPoolMiner/MultiPoolMiner/issues 
 - Logs and Stats are produced in text format; use them when submitting issues.
-- Currently mining with upto 6 GPUs is fully supported. Where required advanced users can create additional or amend current miner files to support mining with more than 6 graphics cards.
+- Currently mining with up to 6 GPUs is fully supported. Where required advanced users can create additional or amend current miner files to support mining with more than 6 graphics cards.
 
 
 ====================================================================
@@ -224,23 +225,24 @@ SAMPLE USAGE (check "start.bat" file in root folder):
 @cd /d %~dp0
 
 @if not "%GPU_FORCE_64BIT_PTR%"=="1" (setx GPU_FORCE_64BIT_PTR 1) > nul
-@if not "%GPU_MAX_HEAP_SIZE %"=="100" (setx GPU_MAX_HEAP_SIZE 100) > nul
+@if not "%GPU_MAX_HEAP_SIZE%"=="100" (setx GPU_MAX_HEAP_SIZE 100) > nul
 @if not "%GPU_USE_SYNC_OBJECTS%"=="1" (setx GPU_USE_SYNC_OBJECTS 1) > nul
 @if not "%GPU_MAX_ALLOC_PERCENT%"=="100" (setx GPU_MAX_ALLOC_PERCENT 100) > nul
 @if not "%GPU_SINGLE_ALLOC_PERCENT%"=="100" (setx GPU_SINGLE_ALLOC_PERCENT 100) > nul
 @if not "%CUDA_DEVICE_ORDER%"=="PCI_BUS_ID" (setx CUDA_DEVICE_ORDER PCI_BUS_ID) > nul
 
-@set "command=& .\multipoolminer.ps1 -wallet 1Q24z7gHPDbedkaWDTFqhMF8g7iHMehsCb -username aaronsace -workername multipoolminer -region europe -currency btc,usd,eur -devicename amd,nvidia,cpu -poolname miningpoolhubcoins,zpool,nicehash -algorithm blake2s,cryptonightV7,cryptonightheavy,decrednicehash,ethash,ethash2gb,ethash3gb,equihash,groestl,keccak,lbry,lyra2re2,lyra2z,neoscrypt,pascal,sib,skunk -donate 24 -watchdog -minerstatusurl https://multipoolminer.io/monitor/miner.php -MinerStatusKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx -switchingprevention 2"
+@set "command=& .\multipoolminer.ps1 -Wallet 1Q24z7gHPDbedkaWDTFqhMF8g7iHMehsCb -UserName aaronsace -WorkerName multipoolminer -Region europe -Currency btc,usd,eur -DeviceName amd,nvidia,cpu -PoolName miningpoolhubcoins,zpool,nicehash -Algorithm blake2s,cryptonightV7,cryptonightheavy,decrednicehash,ethash,ethash2gb,ethash3gb,equihash,keccak,lbry,lyra2re2,lyra2z,m7m,neoscrypt,pascal,sib,skein,skunk,x16r -Donate 24 -Watchdog -MinerStatusURL https://multipoolminer.io/monitor/miner.php -SwitchingPrevention 2"
 
 start pwsh -noexit -executionpolicy bypass -command "& .\reader.ps1 -log 'MultiPoolMiner_\d\d\d\d-\d\d-\d\d\.txt' -sort '^[^_]*_' -quickstart"
-start pwsh -noexit -executionpolicy bypass -command "& .\reader.ps1 -log '^((?!MultiPoolMiner_\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d\.txt).)*$' -sort '^[^_]*_' -quickstart"
+start pwsh -noexit -executionpolicy bypass -command "& .\reader.ps1 -log '^((?!MultiPoolMiner_.+\.txt).)*$' -sort '^[^_]*_' -quickstart"
 
 pwsh -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
 powershell -version 5.0 -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
-msiexec -i https://github.com/PowerShell/PowerShell/releases/download/v6.0.2/PowerShell-6.0.2-win-x64.msi -qb!
+msiexec -i https://github.com/PowerShell/PowerShell/releases/download/v6.0.4/PowerShell-6.0.4-win-x64.msi -qb!
 pwsh -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
 
 pause
+
 ############ END OF CONTENT OF START.BAT ############
 
 
@@ -376,6 +378,45 @@ To display the balances of all pools (including those that are excluded with 'Ex
     ...
 }
 Note: Only balances in BTC are listed, other currencies are currently not supported.
+
+
+
+UNPROFITABLE ALGORITHMS
+
+As more and more algorithms can be mined with ASICs mining them with GPUs becomes unprofitable.
+To add algorithms to the list edit 'UnprofitableAlgorithms.txt' in the MPM directory.
+
+[
+    "Bitcore",
+    "Blake2s",
+    "Blakecoin",
+    "BlakeVanilla",
+    "CryptoLight",
+    "CryptoNight",
+    "Groestl",
+    "Keccak",
+    "KeccakC",
+    "Lbry",
+    "Lyra2RE",
+    "Decred",
+    "Quark",
+    "Qubit",
+    "MyriadGroestl",
+    "Nist5",
+    "Scrypt",
+    "ScryptN",
+    "SHA256d",
+    "SHA256t",
+    "Sia",
+    "Sib",
+    "X11",
+    "X13",
+    "X14",
+    "X15"
+]
+
+Note: MPM will no longer mine/benchmark these algorithms as main algorithms, but they will still be used as secondary algorithm for dual miners.
+
 
 
 ====================================================================

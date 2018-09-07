@@ -7,7 +7,7 @@
 
 ###### Licensed under the GNU General Public License v3.0 - Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/LICENSE
 
-README.md is based on README.txt - updated on 08/07/2018 (dd/mm/yyyy) - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
+README.md is based on README.txt - updated on 24/08/2018 (dd/mm/yyyy) - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
 
 
 
@@ -47,7 +47,7 @@ Done. You are all set to mine the most profitable coins and maximise your profit
 - It is highly recommended to set Virtual Memory size in Windows to at least 16 GB in multi-GPU systems: Computer Properties -> Advanced System Settings -> Performance -> Advanced -> Virtual Memory
 - Please see the FAQ section on the bottom of this page before submitting bugs and feature requests on Github. https://github.com/MultiPoolMiner/MultiPoolMiner/issues 
 - Logs and Stats are produced in text format; use them when submitting issues.
-- Currently mining with upto 6 GPUs is fully supported. Where required advanced users can create additional or amend current miner files to support mining with more than 6 graphics cards.
+- Currently mining with up to 6 GPUs is fully supported. Where required advanced users can create additional or amend current miner files to support mining with more than 6 graphics cards.
 
 	
 
@@ -208,30 +208,31 @@ By default MPM will use the values from the command line. If you hardcode config
 
 
 
-##SAMPLE USAGE
-#####(check "start.bat" file in root folder)
+## SAMPLE USAGE (check "start.bat" file in root folder)
 
+-------------------------------------------------
 @cd /d %~dp0
 
 @if not "%GPU_FORCE_64BIT_PTR%"=="1" (setx GPU_FORCE_64BIT_PTR 1) > nul
-@if not "%GPU_MAX_HEAP_SIZE %"=="100" (setx GPU_MAX_HEAP_SIZE 100) > nul
+@if not "%GPU_MAX_HEAP_SIZE%"=="100" (setx GPU_MAX_HEAP_SIZE 100) > nul
 @if not "%GPU_USE_SYNC_OBJECTS%"=="1" (setx GPU_USE_SYNC_OBJECTS 1) > nul
 @if not "%GPU_MAX_ALLOC_PERCENT%"=="100" (setx GPU_MAX_ALLOC_PERCENT 100) > nul
 @if not "%GPU_SINGLE_ALLOC_PERCENT%"=="100" (setx GPU_SINGLE_ALLOC_PERCENT 100) > nul
 @if not "%CUDA_DEVICE_ORDER%"=="PCI_BUS_ID" (setx CUDA_DEVICE_ORDER PCI_BUS_ID) > nul
 
-@set "command=& .\multipoolminer.ps1 -wallet 1Q24z7gHPDbedkaWDTFqhMF8g7iHMehsCb -username aaronsace -workername multipoolminer -region europe -currency btc,usd,eur -devicename amd,nvidia,cpu -poolname miningpoolhubcoins,zpool,nicehash -algorithm blake2s,cryptonightV7,cryptonightheavy,decrednicehash,ethash,ethash2gb,ethash3gb,equihash,groestl,keccak,lbry,lyra2re2,lyra2z,neoscrypt,pascal,sib,skunk -donate 24 -watchdog -minerstatusurl https://multipoolminer.io/monitor/miner.php -MinerStatusKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx -switchingprevention 2"
+@set "command=& .\multipoolminer.ps1 -Wallet 1Q24z7gHPDbedkaWDTFqhMF8g7iHMehsCb -UserName aaronsace -WorkerName multipoolminer -Region europe -Currency btc,usd,eur -DeviceName amd,nvidia,cpu -PoolName miningpoolhubcoins,zpool,nicehash -Algorithm blake2s,cryptonightV7,cryptonightheavy,decrednicehash,ethash,ethash2gb,ethash3gb,equihash,keccak,lbry,lyra2re2,lyra2z,m7m,neoscrypt,pascal,sib,skein,skunk,x16r -Donate 24 -Watchdog -MinerStatusURL https://multipoolminer.io/monitor/miner.php -SwitchingPrevention 2"
 
 start pwsh -noexit -executionpolicy bypass -command "& .\reader.ps1 -log 'MultiPoolMiner_\d\d\d\d-\d\d-\d\d\.txt' -sort '^[^_]*_' -quickstart"
-start pwsh -noexit -executionpolicy bypass -command "& .\reader.ps1 -log '^((?!MultiPoolMiner_\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d\.txt).)*$' -sort '^[^_]*_' -quickstart"
+start pwsh -noexit -executionpolicy bypass -command "& .\reader.ps1 -log '^((?!MultiPoolMiner_.+\.txt).)*$' -sort '^[^_]*_' -quickstart"
 
 pwsh -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
 powershell -version 5.0 -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
-msiexec -i https://github.com/PowerShell/PowerShell/releases/download/v6.0.2/PowerShell-6.0.2-win-x64.msi -qb!
+msiexec -i https://github.com/PowerShell/PowerShell/releases/download/v6.0.4/PowerShell-6.0.4-win-x64.msi -qb!
 pwsh -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
 
 pause
-############ END OF CONTENT OF START.BAT ############
+
+---------- END OF CONTENT OF START.BAT ----------
 
 
 
@@ -364,6 +365,43 @@ To display the balances of all pools (including those that are excluded with 'Ex
     ...
 }
 Note: Only balances in BTC are listed, other currencies are currently not supported.
+
+
+## UNPROFITABLE ALGORITHMS
+
+As more and more algorithms can be mined with ASICs mining them with GPUs becomes unprofitable.
+To add algorithms to the list edit 'UnprofitableAlgorithms.txt' in the MPM directory.
+
+[
+    "Bitcore",
+    "Blake2s",
+    "Blakecoin",
+    "BlakeVanilla",
+    "CryptoLight",
+    "CryptoNight",
+    "Groestl",
+    "Keccak",
+    "KeccakC",
+    "Lbry",
+    "Lyra2RE",
+    "Decred",
+    "Quark",
+    "Qubit",
+    "MyriadGroestl",
+    "Nist5",
+    "Scrypt",
+    "ScryptN",
+    "SHA256d",
+    "SHA256t",
+    "Sia",
+    "Sib",
+    "X11",
+    "X13",
+    "X14",
+    "X15"
+]
+
+Note: MPM will no longer mine/benchmark these algorithms as main algorithms, but they will still be used as secondary algorithm for dual miners.
 
 
 
@@ -559,4 +597,3 @@ This is not a fault of MultiPoolMiner and nothing can be done on our end. Please
 ###### **BTC/day:** Estimated Bitcoin earnings per day
 
 ###### *The monitoring service can change, evolve, be unavailable any time without prior notice. The contents of the database will NOT be shared with any third-parties but we reserve the right to create metrics out of it and use its contents to improve or promote our services and MultiPoolMiner. Credits to @grantemsley for the codebase.*
-
