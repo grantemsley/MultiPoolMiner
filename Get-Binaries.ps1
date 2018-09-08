@@ -5,7 +5,7 @@ Param(
     [Parameter(Mandatory = $false)]
     [Switch]$VerifyOnly = $false,
     [Parameter(Mandatory = $false)]
-    [Switch]$Overwrite = $false,
+    [Switch]$NoOverwrite = $false,
     [Parameter(Mandatory = $false)]
     [Switch]$SkipCPU = $false,
     [Parameter(Mandatory = $false)]
@@ -119,7 +119,7 @@ $Miners | Foreach-Object {
             }
             else {
                 # Wrong version of miner installed - if -Overwrite specified and miner can be automatically downloaded, delete it
-                if($Overwrite -and $Miner.URI) {
+                if(!$NoOverwrite -and $Miner.URI) {
                     Write-Warning "$($Miner.Name) - incorrect version installed (got hash $($Hash), expected $($Miner.HashSHA256)), updating..."
                     # Delete the existing miner and stats files, and don't return so the miner gets redownloaded
                     Write-Host "    Deleting $(Split-Path $Miner.Path)"

@@ -80,8 +80,9 @@ Write-Host -NoNewLine "Checking if updates are available..."
 $remotecommit = & git rev-parse '@{u}'
 If ($LastExitCode -eq 0) {
     If($remotecommit -eq $commit) {
-        Write-Host -Foregroundcolor Green "No updates needed"
-        Write-Host -Foregroundcolor Green "Already up to date!"
+        Write-Host -Foregroundcolor Green "No updates needed. Already up to date!"
+        Write-Host "Checking for updates to binaries..."
+        .\Get-Binaries.ps1
         Exit
     } else {
         Write-Host "Updates available"
@@ -128,7 +129,7 @@ If($miners.count -gt 0) {
     }
 
     Write-Host "Updating binaries..."
-    .\Get-Binaries.ps1 -Overwrite
+    .\Get-Binaries.ps1
 }
 
 Write-Host -Foregroundcolor Green "Update complete!"
